@@ -1,0 +1,56 @@
+--DATABASE PERMISSIONS
+select pe.class_desc, pe.grantor_principal_id, pe.permission_name, pe.state_desc,
+pr.name, pr.type_desc
+from sys.database_permissions pe
+inner join sys.database_principals as pr on pe.grantee_principal_id = pr.principal_id
+where pe.class_desc = 'database'
+--and pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION', 'DENY')
+--and pe.permission_name = 'SELECT'
+order by pr.name
+
+
+
+--SCHEMA PERMISSIONS
+select pe.class_desc, pe.grantor_principal_id, pe.permission_name, pe.state_desc,
+pr.name, pr.type_desc,
+s.name
+from sys.database_permissions pe
+inner join sys.database_principals as pr on pe.grantee_principal_id = pr.principal_id
+inner join sys.schemas s on s.schema_id = pe.major_id
+where pe.class_desc = 'schema'
+--and pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION', 'DENY')
+--and pe.permission_name = 'SELECT'
+order by pr.name
+
+Select * from  sys.database_principals 
+
+
+--OBJECT/COLUMN PERMISSIONS
+select pe.class_desc, pe.grantor_principal_id, pe.permission_name, pe.state_desc,
+pr.name, pr.type_desc,
+s.name as TableName, c.name as ColumnName
+from sys.database_permissions pe
+inner join sys.database_principals as pr on pe.grantee_principal_id = pr.principal_id
+inner join sys.objects s on s.object_id = pe.major_id
+left join sys.columns c on c.object_id = s.object_id
+and c.column_id = pe.minor_id
+where pe.class_desc = 'object_or_column'
+--and pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION', 'DENY')
+--and pe.permission_name = 'SELECT'
+order by pr.name, s.name
+
+
+-------Grant schema access-----
+
+select pe.class_desc, pe.grantor_principal_id, pe.permission_name, pe.state_desc,
+pr.name, pr.type_desc,
+s.name,'GRANT SELECT ON SCHEMA :: ['+s.name+'] TO ['+pr.name +']'
+from sys.database_permissions pe
+inner join sys.database_principals as pr on pe.grantee_principal_id = pr.principal_id
+inner join sys.schemas s on s.schema_id = pe.major_id
+where pe.class_desc = 'schema'
+--and pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION', 'DENY')
+--and pe.permission_name = 'SELECT'
+order by pr.name
+
+
