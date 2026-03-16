@@ -1,0 +1,2565 @@
+{
+  "name": "SemanticModel",
+  "compatibilityLevel": 1500,
+  "model": {
+    "culture": "en-US",
+    "dataSources": [
+      {
+        "type": "structured",
+        "name": "SQL/stgalignbisql database windows net;stgalignbidw",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "stgalignbisql.database.windows.net",
+            "database": "stgalignbidw"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "OAuth2",
+          "kind": "SQL",
+          "path": "stgalignbisql.database.windows.net;stgalignbidw",
+          "Expires": "Mon, 13 Apr 2020 22:54:03 GMT",
+          "RefreshToken": "********"
+        }
+      }
+    ],
+    "tables": [
+      {
+        "name": "Revenue",
+        "columns": [
+          {
+            "name": "COST_ELMNT_KEY",
+            "dataType": "string",
+            "sourceColumn": "COST_ELMNT_KEY"
+          },
+          {
+            "name": "GL_ACCNT_KEY",
+            "dataType": "string",
+            "sourceColumn": "GL_ACCNT_KEY"
+          },
+          {
+            "name": "DIVISION_KEY",
+            "dataType": "string",
+            "sourceColumn": "DIVISION_KEY"
+          },
+          {
+            "name": "PROFIT_CENTER_KEY",
+            "dataType": "string",
+            "sourceColumn": "PROFIT_CENTER_KEY"
+          },
+          {
+            "name": "COPA_TIME_KEY",
+            "dataType": "string",
+            "sourceColumn": "COPA_TIME_KEY"
+          },
+          {
+            "name": "Company Code",
+            "dataType": "string",
+            "sourceColumn": "Company Code"
+          },
+          {
+            "name": "Profit Center",
+            "dataType": "string",
+            "sourceColumn": "Profit Center"
+          },
+          {
+            "name": "Product Hierarchy",
+            "dataType": "string",
+            "sourceColumn": "Product Hierarchy"
+          },
+          {
+            "name": "Version",
+            "dataType": "string",
+            "sourceColumn": "Version"
+          },
+          {
+            "name": "Sales Order",
+            "dataType": "string",
+            "sourceColumn": "Sales Order"
+          },
+          {
+            "name": "Cost Element",
+            "dataType": "string",
+            "sourceColumn": "Cost Element"
+          },
+          {
+            "name": "Controlling Area",
+            "dataType": "string",
+            "sourceColumn": "Controlling Area"
+          },
+          {
+            "name": "Plant",
+            "dataType": "string",
+            "sourceColumn": "Plant"
+          },
+          {
+            "name": "Cost center",
+            "dataType": "string",
+            "sourceColumn": "Cost center"
+          },
+          {
+            "name": "Division",
+            "dataType": "string",
+            "sourceColumn": "Division"
+          },
+          {
+            "name": "Sales Organisation",
+            "dataType": "string",
+            "sourceColumn": "Sales Organisation"
+          },
+          {
+            "name": "Deliverable Quantity",
+            "dataType": "double",
+            "sourceColumn": "Deliverable Quantity"
+          },
+          {
+            "name": "Deliv. Qty",
+            "dataType": "double",
+            "sourceColumn": "Deliv. Qty"
+          },
+          {
+            "name": "FoC Qty",
+            "dataType": "double",
+            "sourceColumn": "FoC Qty"
+          },
+          {
+            "name": "Total Qty. for COPA",
+            "dataType": "string",
+            "sourceColumn": "Total Qty. for COPA"
+          },
+          {
+            "name": "Value Fields",
+            "dataType": "string",
+            "sourceColumn": "Value Fields"
+          },
+          {
+            "name": "COPA Revenue",
+            "dataType": "double",
+            "sourceColumn": "COPA Revenue"
+          },
+          {
+            "name": "Material Number",
+            "dataType": "string",
+            "sourceColumn": "Material Number"
+          },
+          {
+            "name": "Posting Date",
+            "dataType": "string",
+            "sourceColumn": "Posting Date"
+          },
+          {
+            "name": "Business Segment",
+            "dataType": "string",
+            "sourceColumn": "Business Segment"
+          },
+          {
+            "name": "Deliverable Type",
+            "dataType": "string",
+            "sourceColumn": "Deliverable Type"
+          },
+          {
+            "name": "Item Category",
+            "dataType": "string",
+            "sourceColumn": "Item Category"
+          },
+          {
+            "name": "Currency Type",
+            "dataType": "string",
+            "sourceColumn": "Currency Type"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    DWSAP_FACT = Source{[Schema=\"DWSAP\",Item=\"FACT_COPA\"]}[Data]",
+                "in",
+                "    DWSAP_FACT"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Total Revenue",
+            "expression": "SUM(Revenue[COPA Revenue])"
+          },
+          {
+            "name": "ASP",
+            "expression": "  ([Total Revenue]/[Shipment])"
+          },
+          {
+            "name": "Discount",
+            "expression": " CALCULATE(SUM(Revenue[COPA Revenue]), FILTER('Cost Element', 'Cost Element'[Level 4]=\"Sales Discounts and Rebates\"))"
+          },
+          {
+            "name": "Discount%",
+            "expression": " ([Discount]*-1/[Total Revenue])*100"
+          },
+          {
+            "name": "Clear Aligner Revenue",
+            "expression": [
+              " ",
+              "CALCULATE([Total Revenue], FILTER(Revenue, Revenue[Product Hierarchy] IN { \"A1A1T1C101\",\"A1A1T1C102\",\"A1A1T1C10301\",\"A1A1T1C104\",\"A1A1T1C105\",\"A1A1T1C106\",",
+              "\"A1A1T1C107\",\"A1A1T1C2E101\",\"A1A1T1C2E102\",\"A1A1T1C2E103\",\"A1A1T1C2G1\",\"A1A1T1C2G2\"",
+              ",\"A1A1T1C2G3\",\"A1A1T1C2L1\",\"A1A1T1C2L101\",\"A1A1T1C2L102\",\"A1A1T1C2L104\",\"A1A1T1C2M1\",\"A1A1T1C2M101\",",
+              "\"A1A1T1C2N1\",\"A1A1T1C2S1\",\"A1A1T1C2S201\",\"A1A1T1C2S202\",\"A1A1T1C2S301\"}  ))"
+            ]
+          },
+          {
+            "name": "Clear Aligner ASP",
+            "expression": " [Clear Aligner Revenue]/[Clear Aligner Shipments]"
+          },
+          {
+            "name": "Scanner Revenue",
+            "expression": " CALCULATE([Total Revenue],FILTER('Product','Product'[Level 3] = \"Scanner and Scanner Services\"))"
+          },
+          {
+            "name": "Scanner ASP",
+            "expression": " [Scanner Revenue]/[Scanner Shipments]"
+          },
+          {
+            "name": "Revenue YTD",
+            "expression": [
+              "CALCULATE(SUM(Revenue[COPA Revenue]),FILTER('Time','Time'[KeyDate]>=DATE(YEAR(TODAY()),1,1) && 'Time'[KeyDate]<= TODAY()))",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "name": "COPA Documents",
+        "columns": [
+          {
+            "name": "COPA_DOC_KEY",
+            "dataType": "string",
+            "sourceColumn": "COPA_DOC_KEY"
+          },
+          {
+            "name": "Document number",
+            "dataType": "string",
+            "sourceColumn": "Document number"
+          },
+          {
+            "name": "Item number",
+            "dataType": "string",
+            "sourceColumn": "Item number"
+          },
+          {
+            "name": "Reference item",
+            "dataType": "string",
+            "sourceColumn": "Reference item"
+          },
+          {
+            "name": "Sales Ord. Item",
+            "dataType": "string",
+            "sourceColumn": "Sales Ord. Item"
+          },
+          {
+            "name": "Sales Order",
+            "dataType": "string",
+            "sourceColumn": "Sales Order"
+          },
+          {
+            "name": "Sales Doc. Type",
+            "dataType": "string",
+            "sourceColumn": "Sales Doc. Type"
+          },
+          {
+            "name": "Ref.doc.number",
+            "dataType": "string",
+            "sourceColumn": "Ref.doc.number"
+          },
+          {
+            "name": "Item category",
+            "dataType": "string",
+            "sourceColumn": "Item category"
+          },
+          {
+            "name": "Canceled item",
+            "dataType": "string",
+            "sourceColumn": "Canceled item"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM COPA DOCUMENTS\" = Source{[Schema=\"DWSAP\",Item=\"DIM COPA DOCUMENTS\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM COPA DOCUMENTS\""
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Shipment",
+            "expression": "COUNT(Delivery[Delivery])"
+          }
+        ]
+      },
+      {
+        "name": "Cost Element",
+        "columns": [
+          {
+            "name": "COST_ELMNT_KEY",
+            "dataType": "string",
+            "sourceColumn": "COST_ELMNT_KEY"
+          },
+          {
+            "name": "Level 1",
+            "dataType": "string",
+            "sourceColumn": "Level 1"
+          },
+          {
+            "name": "Level 2",
+            "dataType": "string",
+            "sourceColumn": "Level 2"
+          },
+          {
+            "name": "Level 3",
+            "dataType": "string",
+            "sourceColumn": "Level 3"
+          },
+          {
+            "name": "Level 4",
+            "dataType": "string",
+            "sourceColumn": "Level 4"
+          },
+          {
+            "name": "Level 5",
+            "dataType": "string",
+            "sourceColumn": "Level 5"
+          },
+          {
+            "name": "Level 6",
+            "dataType": "string",
+            "sourceColumn": "Level 6"
+          },
+          {
+            "name": "Level 7",
+            "dataType": "string",
+            "sourceColumn": "Level 7"
+          },
+          {
+            "name": "Cost Element",
+            "dataType": "string",
+            "sourceColumn": "Cost Element"
+          },
+          {
+            "name": "Controlling Area",
+            "dataType": "string",
+            "sourceColumn": "Controlling Area"
+          },
+          {
+            "name": "Valid To Date",
+            "dataType": "string",
+            "sourceColumn": "Valid To Date"
+          },
+          {
+            "name": "Valid-From Date",
+            "dataType": "string",
+            "sourceColumn": "Valid-From Date"
+          },
+          {
+            "name": "Cost element category",
+            "dataType": "string",
+            "sourceColumn": "Cost element category"
+          },
+          {
+            "name": "Cost element attributes",
+            "dataType": "string",
+            "sourceColumn": "Cost element attributes"
+          },
+          {
+            "name": "Unit of Measurement",
+            "dataType": "string",
+            "sourceColumn": "Unit of Measurement"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM COST ELEMENT\" = Source{[Schema=\"DWSAP\",Item=\"DIM COST ELEMENT\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM COST ELEMENT\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Cost Element Hierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Level 1",
+                "ordinal": 0,
+                "column": "Level 1"
+              },
+              {
+                "name": "Level 2",
+                "ordinal": 1,
+                "column": "Level 2"
+              },
+              {
+                "name": "Level 3",
+                "ordinal": 2,
+                "column": "Level 3"
+              },
+              {
+                "name": "Level 4",
+                "ordinal": 3,
+                "column": "Level 4"
+              },
+              {
+                "name": "Level 5",
+                "ordinal": 4,
+                "column": "Level 5"
+              },
+              {
+                "name": "Level 6",
+                "ordinal": 5,
+                "column": "Level 6"
+              },
+              {
+                "name": "Level 7",
+                "ordinal": 6,
+                "column": "Level 7"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Division",
+        "columns": [
+          {
+            "name": "DIVISION_KEY",
+            "dataType": "string",
+            "sourceColumn": "DIVISION_KEY"
+          },
+          {
+            "name": "Language Key",
+            "dataType": "string",
+            "sourceColumn": "Language Key"
+          },
+          {
+            "name": "Division",
+            "dataType": "string",
+            "sourceColumn": "Division"
+          },
+          {
+            "name": "Name",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM DIVISION\" = Source{[Schema=\"DWSAP\",Item=\"DIM DIVISION\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM DIVISION\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "GL Account",
+        "columns": [
+          {
+            "name": "GL_ACCNT_KEY",
+            "dataType": "string",
+            "sourceColumn": "GL_ACCNT_KEY"
+          },
+          {
+            "name": "Company Code",
+            "dataType": "string",
+            "sourceColumn": "Company Code"
+          },
+          {
+            "name": "G/L Account Number",
+            "dataType": "string",
+            "sourceColumn": "G/L Account Number"
+          },
+          {
+            "name": "Authorization Group",
+            "dataType": "string",
+            "sourceColumn": "Authorization Group"
+          },
+          {
+            "name": "Date on which the Record Was Created",
+            "dataType": "string",
+            "sourceColumn": "Date on which the Record Was Created"
+          },
+          {
+            "name": "Name of Person who Created the Object",
+            "dataType": "string",
+            "sourceColumn": "Name of Person who Created the Object"
+          },
+          {
+            "name": "Financial Budget Item",
+            "dataType": "string",
+            "sourceColumn": "Financial Budget Item"
+          },
+          {
+            "name": "Field status group",
+            "dataType": "string",
+            "sourceColumn": "Field status group"
+          },
+          {
+            "name": "Account currency",
+            "dataType": "string",
+            "sourceColumn": "Account currency"
+          },
+          {
+            "name": "Recovery Indicator",
+            "dataType": "string",
+            "sourceColumn": "Recovery Indicator"
+          },
+          {
+            "name": "Commitment Item",
+            "dataType": "string",
+            "sourceColumn": "Commitment Item"
+          },
+          {
+            "name": "Valuation Group",
+            "dataType": "string",
+            "sourceColumn": "Valuation Group"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM GL ACCOUNT\" = Source{[Schema=\"DWSAP\",Item=\"DIM GL ACCOUNT\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM GL ACCOUNT\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Material",
+        "columns": [
+          {
+            "name": "Material Number",
+            "dataType": "string",
+            "sourceColumn": "Material Number"
+          },
+          {
+            "name": "Material Type",
+            "dataType": "string",
+            "sourceColumn": "Material Type"
+          },
+          {
+            "name": "Created On",
+            "dataType": "string",
+            "sourceColumn": "Created On"
+          },
+          {
+            "name": "Industry sector",
+            "dataType": "string",
+            "sourceColumn": "Industry sector"
+          },
+          {
+            "name": "Material Group",
+            "dataType": "string",
+            "sourceColumn": "Material Group"
+          },
+          {
+            "name": "Base Unit of Measure",
+            "dataType": "string",
+            "sourceColumn": "Base Unit of Measure"
+          },
+          {
+            "name": "Purchase Order Unit of Measure",
+            "dataType": "string",
+            "sourceColumn": "Purchase Order Unit of Measure"
+          },
+          {
+            "name": "Gross Weight",
+            "dataType": "double",
+            "sourceColumn": "Gross Weight"
+          },
+          {
+            "name": "Net Weight",
+            "dataType": "double",
+            "sourceColumn": "Net Weight"
+          },
+          {
+            "name": "Weight Unit",
+            "dataType": "string",
+            "sourceColumn": "Weight Unit"
+          },
+          {
+            "name": "Volume",
+            "dataType": "double",
+            "sourceColumn": "Volume"
+          },
+          {
+            "name": "Volume Unit",
+            "dataType": "string",
+            "sourceColumn": "Volume Unit"
+          },
+          {
+            "name": "Competitor",
+            "dataType": "string",
+            "sourceColumn": "Competitor"
+          },
+          {
+            "name": "Division",
+            "dataType": "string",
+            "sourceColumn": "Division"
+          },
+          {
+            "name": "Procurement Rule",
+            "dataType": "string",
+            "sourceColumn": "Procurement Rule"
+          },
+          {
+            "name": "Source of Supply",
+            "dataType": "string",
+            "sourceColumn": "Source of Supply"
+          },
+          {
+            "name": "Season Category",
+            "dataType": "string",
+            "sourceColumn": "Season Category"
+          },
+          {
+            "name": "European Article Number/Universal Product Code",
+            "dataType": "string",
+            "sourceColumn": "European Article Number/Universal Product Code"
+          },
+          {
+            "name": "Unit of Dimension for Length/Width/Height",
+            "dataType": "string",
+            "sourceColumn": "Unit of Dimension for Length/Width/Height"
+          },
+          {
+            "name": "Product hierarchy",
+            "dataType": "string",
+            "sourceColumn": "Product hierarchy"
+          },
+          {
+            "name": "Season Year",
+            "dataType": "string",
+            "sourceColumn": "Season Year"
+          },
+          {
+            "name": "Price Band Category",
+            "dataType": "string",
+            "sourceColumn": "Price Band Category"
+          },
+          {
+            "name": "External Material Group",
+            "dataType": "string",
+            "sourceColumn": "External Material Group"
+          },
+          {
+            "name": "Cross-Plant Configur. Material",
+            "dataType": "string",
+            "sourceColumn": "Cross-Plant Configur. Material"
+          },
+          {
+            "name": "Material Category",
+            "dataType": "string",
+            "sourceColumn": "Material Category"
+          },
+          {
+            "name": "Content Unit",
+            "dataType": "string",
+            "sourceColumn": "Content Unit"
+          },
+          {
+            "name": "Net Content",
+            "dataType": "double",
+            "sourceColumn": "Net Content"
+          },
+          {
+            "name": "Gross Content",
+            "dataType": "double",
+            "sourceColumn": "Gross Content"
+          },
+          {
+            "name": "Manufacturer Part Number",
+            "dataType": "string",
+            "sourceColumn": "Manufacturer Part Number"
+          },
+          {
+            "name": "Manufacturer",
+            "dataType": "string",
+            "sourceColumn": "Manufacturer"
+          },
+          {
+            "name": "Collection",
+            "dataType": "string",
+            "sourceColumn": "Collection"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM MATERIAL\" = Source{[Schema=\"DWSAP\",Item=\"DIM MATERIAL\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM MATERIAL\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Plant",
+        "columns": [
+          {
+            "name": "Plant",
+            "dataType": "string",
+            "sourceColumn": "Plant"
+          },
+          {
+            "name": "Customer Number of Plant",
+            "dataType": "string",
+            "sourceColumn": "Customer Number of Plant"
+          },
+          {
+            "name": "Purchasing Organization",
+            "dataType": "string",
+            "sourceColumn": "Purchasing Organization"
+          },
+          {
+            "name": "Sales organization",
+            "dataType": "string",
+            "sourceColumn": "Sales organization"
+          },
+          {
+            "name": "Country Key",
+            "dataType": "string",
+            "sourceColumn": "Country Key"
+          },
+          {
+            "name": "Region (State, Province, County)",
+            "dataType": "string",
+            "sourceColumn": "Region (State, Province, County)"
+          },
+          {
+            "name": "County Code",
+            "dataType": "string",
+            "sourceColumn": "County Code"
+          },
+          {
+            "name": "Distribution channel",
+            "dataType": "string",
+            "sourceColumn": "Distribution channel"
+          },
+          {
+            "name": "Plant category",
+            "dataType": "string",
+            "sourceColumn": "Plant category"
+          },
+          {
+            "name": "Sales district",
+            "dataType": "string",
+            "sourceColumn": "Sales district"
+          },
+          {
+            "name": "BAS: Postal Code (Geo-Relevant)",
+            "dataType": "string",
+            "sourceColumn": "BAS: Postal Code (Geo-Relevant)"
+          },
+          {
+            "name": "Factory calendar ID",
+            "dataType": "string",
+            "sourceColumn": "Factory calendar ID"
+          },
+          {
+            "name": "Store Category",
+            "dataType": "string",
+            "sourceColumn": "Store Category"
+          },
+          {
+            "name": "Superordinate Department Store",
+            "dataType": "string",
+            "sourceColumn": "Superordinate Department Store"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM PLANT\" = Source{[Schema=\"DWSAP\",Item=\"DIM PLANT\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM PLANT\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Profit Center",
+        "columns": [
+          {
+            "name": "PROFIT_CENTER_KEY",
+            "dataType": "string",
+            "sourceColumn": "PROFIT_CENTER_KEY"
+          },
+          {
+            "name": "Profit Center",
+            "dataType": "string",
+            "sourceColumn": "Profit Center"
+          },
+          {
+            "name": "Valid To Date",
+            "dataType": "string",
+            "sourceColumn": "Valid To Date"
+          },
+          {
+            "name": "Controlling Area",
+            "dataType": "string",
+            "sourceColumn": "Controlling Area"
+          },
+          {
+            "name": "Valid-From Date",
+            "dataType": "string",
+            "sourceColumn": "Valid-From Date"
+          },
+          {
+            "name": "Department",
+            "dataType": "string",
+            "sourceColumn": "Department"
+          },
+          {
+            "name": "Currency Key",
+            "dataType": "string",
+            "sourceColumn": "Currency Key"
+          },
+          {
+            "name": "Level 1 S",
+            "dataType": "string",
+            "sourceColumn": "Level 1 S"
+          },
+          {
+            "name": "Level 2 S",
+            "dataType": "string",
+            "sourceColumn": "Level 2 S"
+          },
+          {
+            "name": "Level 3 S",
+            "dataType": "string",
+            "sourceColumn": "Level 3 S"
+          },
+          {
+            "name": "Level 4 S",
+            "dataType": "string",
+            "sourceColumn": "Level 4 S"
+          },
+          {
+            "name": "Level 5 S",
+            "dataType": "string",
+            "sourceColumn": "Level 5 S"
+          },
+          {
+            "name": "Level 6 S",
+            "dataType": "string",
+            "sourceColumn": "Level 6 S"
+          },
+          {
+            "name": "Level 1 A",
+            "dataType": "string",
+            "sourceColumn": "Level 1 A"
+          },
+          {
+            "name": "Level 2 A",
+            "dataType": "string",
+            "sourceColumn": "Level 2 A"
+          },
+          {
+            "name": "Level 3 A",
+            "dataType": "string",
+            "sourceColumn": "Level 3 A"
+          },
+          {
+            "name": "Level 4 A",
+            "dataType": "string",
+            "sourceColumn": "Level 4 A"
+          },
+          {
+            "name": "Level 5 A",
+            "dataType": "string",
+            "sourceColumn": "Level 5 A"
+          },
+          {
+            "name": "Level 6 A",
+            "dataType": "string",
+            "sourceColumn": "Level 6 A"
+          },
+          {
+            "name": "Person Responsible",
+            "dataType": "string",
+            "sourceColumn": "Person Responsible"
+          },
+          {
+            "name": "User Responsible",
+            "dataType": "string",
+            "sourceColumn": "User Responsible"
+          },
+          {
+            "name": "Segment for Segmental Reporting",
+            "dataType": "string",
+            "sourceColumn": "Segment for Segmental Reporting"
+          },
+          {
+            "type": "calculated",
+            "name": "Region",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "IF(AND('Profit Center'[Level 2 A] = \"Americas\", 'Profit Center'[Level 4 A] =\"NA\"), \"NA\",",
+              "IF(AND('Profit Center'[Level 2 A]=\"Americas\", 'Profit Center'[Level 4 A]=\"LATAM\"), \"LATAM\",",
+              "IF('Profit Center'[Level 2 A] = \"NA DDTC\", \"NA\",",
+              "IF('Profit Center'[Level 2 A] = \"Dummy Profit Center\", \"NA\",",
+              "IF('Profit Center'[Level 2 A] = \"Corp\", \"NA\",",
+              "'Profit Center'[Level 2 A])))))"
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "Region Seperate NA DDTC",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "IF(AND('Profit Center'[Level 2 A] = \"Americas\", 'Profit Center'[Level 4 A]=\"NA\"), \"NA\",",
+              "IF(AND('Profit Center'[Level 2 A]=\"Americas\",'Profit Center'[Level 4 A]=\"LATAM\"), \"LATAM\",",
+              "IF('Profit Center'[Level 2 A] = \"Dummy Profit Center\", \"NA\",",
+              "IF('Profit Center'[Level 2 A] = \"Corp\", \"NA\",",
+              "'Profit Center'[Level 2 A]))))"
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM PROFIT CENTER\" = Source{[Schema=\"DWSAP\",Item=\"DIM PROFIT CENTER\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM PROFIT CENTER\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Standard Profit Center Hierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Level 1",
+                "ordinal": 0,
+                "column": "Level 1 S"
+              },
+              {
+                "name": "Level 2",
+                "ordinal": 1,
+                "column": "Level 2 S"
+              },
+              {
+                "name": "Level 3",
+                "ordinal": 2,
+                "column": "Level 3 S"
+              },
+              {
+                "name": "Level 4",
+                "ordinal": 3,
+                "column": "Level 4 S"
+              },
+              {
+                "name": "Level 5",
+                "ordinal": 4,
+                "column": "Level 5 S"
+              },
+              {
+                "name": "Level 6",
+                "ordinal": 5,
+                "column": "Level 6 S"
+              }
+            ]
+          },
+          {
+            "name": "Alternate Profit Center Hierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Level 1",
+                "ordinal": 0,
+                "column": "Level 1 A"
+              },
+              {
+                "name": "Level 2",
+                "ordinal": 1,
+                "column": "Level 2 A"
+              },
+              {
+                "name": "Level 3",
+                "ordinal": 2,
+                "column": "Level 3 A"
+              },
+              {
+                "name": "Level 4",
+                "ordinal": 3,
+                "column": "Level 4 A"
+              },
+              {
+                "name": "Level 5",
+                "ordinal": 4,
+                "column": "Level 5 A"
+              },
+              {
+                "name": "Level 6",
+                "ordinal": 5,
+                "column": "Level 6 A"
+              },
+              {
+                "name": "Region Seperate NA DDTC",
+                "ordinal": 6,
+                "column": "Region Seperate NA DDTC"
+              }
+            ]
+          },
+          {
+            "name": "Custom Profit Center Hierarchy",
+            "levels": [
+              {
+                "name": "Level 1 A",
+                "ordinal": 0,
+                "column": "Level 1 A"
+              },
+              {
+                "name": "Level 2 A",
+                "ordinal": 1,
+                "column": "Level 2 A"
+              },
+              {
+                "name": "Region",
+                "ordinal": 2,
+                "column": "Region"
+              },
+              {
+                "name": "Region Seperate NA DDTC",
+                "ordinal": 3,
+                "column": "Region Seperate NA DDTC"
+              },
+              {
+                "name": "Level 3 A",
+                "ordinal": 4,
+                "column": "Level 3 A"
+              },
+              {
+                "name": "Level 4 A",
+                "ordinal": 5,
+                "column": "Level 4 A"
+              },
+              {
+                "name": "Level 5 A",
+                "ordinal": 6,
+                "column": "Level 5 A"
+              },
+              {
+                "name": "Level 6 A",
+                "ordinal": 7,
+                "column": "Level 6 A"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sales Organization",
+        "columns": [
+          {
+            "name": "Sales Organization",
+            "dataType": "string",
+            "sourceColumn": "Sales Organization"
+          },
+          {
+            "name": "Statistics currency",
+            "dataType": "string",
+            "sourceColumn": "Statistics currency"
+          },
+          {
+            "name": "Company code",
+            "dataType": "string",
+            "sourceColumn": "Company code"
+          },
+          {
+            "name": "Address",
+            "dataType": "string",
+            "sourceColumn": "Address"
+          },
+          {
+            "name": "Reference sales org.",
+            "dataType": "string",
+            "sourceColumn": "Reference sales org."
+          },
+          {
+            "name": "Customer number",
+            "dataType": "string",
+            "sourceColumn": "Customer number"
+          },
+          {
+            "name": "Sales organization calendar",
+            "dataType": "string",
+            "sourceColumn": "Sales organization calendar"
+          },
+          {
+            "name": "Purchasing Organization",
+            "dataType": "string",
+            "sourceColumn": "Purchasing Organization"
+          },
+          {
+            "name": "Purchasing Group",
+            "dataType": "string",
+            "sourceColumn": "Purchasing Group"
+          },
+          {
+            "name": "Account Number of Vendor",
+            "dataType": "string",
+            "sourceColumn": "Account Number of Vendor"
+          },
+          {
+            "name": "Plant",
+            "dataType": "string",
+            "sourceColumn": "Plant"
+          },
+          {
+            "name": "Order Type",
+            "dataType": "string",
+            "sourceColumn": "Order Type"
+          },
+          {
+            "name": "Purchasing Document Category",
+            "dataType": "string",
+            "sourceColumn": "Purchasing Document Category"
+          },
+          {
+            "name": "Movement Type",
+            "dataType": "string",
+            "sourceColumn": "Movement Type"
+          },
+          {
+            "name": "Storage Location",
+            "dataType": "string",
+            "sourceColumn": "Storage Location"
+          },
+          {
+            "name": "Maximum Number of Items",
+            "dataType": "string",
+            "sourceColumn": "Maximum Number of Items"
+          },
+          {
+            "name": "Price protection period",
+            "dataType": "string",
+            "sourceColumn": "Price protection period"
+          },
+          {
+            "name": "Unit for price protection",
+            "dataType": "string",
+            "sourceColumn": "Unit for price protection"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM SALES ORGANIZATION\" = Source{[Schema=\"DWSAP\",Item=\"DIM SALES ORGANIZATION\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM SALES ORGANIZATION\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Time",
+        "columns": [
+          {
+            "name": "Fiscal Year",
+            "dataType": "int64",
+            "sourceColumn": "Fiscal Year"
+          },
+          {
+            "name": "Fiscal Period",
+            "dataType": "int64",
+            "sourceColumn": "Fiscal Period"
+          },
+          {
+            "name": "Fiscal Year/Period",
+            "dataType": "string",
+            "sourceColumn": "Fiscal Year/Period"
+          },
+          {
+            "name": "SKDate",
+            "dataType": "int64",
+            "sourceColumn": "SKDate"
+          },
+          {
+            "name": "KeyDate",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate",
+            "formatString": "yyyy-MM-dd",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeCustom\"><DateTimes><DateTime LCID=\"1033\" Group=\"ShortDate\" FormatString=\"yyyy-MM-dd\" /></DateTimes></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Date",
+            "dataType": "string",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "CalendarDay",
+            "dataType": "int64",
+            "sourceColumn": "CalendarDay"
+          },
+          {
+            "name": "CalendarMonth",
+            "dataType": "int64",
+            "sourceColumn": "CalendarMonth"
+          },
+          {
+            "name": "CalendarQuarter",
+            "dataType": "int64",
+            "sourceColumn": "CalendarQuarter"
+          },
+          {
+            "name": "CalendarYear",
+            "dataType": "int64",
+            "sourceColumn": "CalendarYear"
+          },
+          {
+            "name": "DayNameLong",
+            "dataType": "string",
+            "sourceColumn": "DayNameLong"
+          },
+          {
+            "name": "DayNameShort",
+            "dataType": "string",
+            "sourceColumn": "DayNameShort"
+          },
+          {
+            "name": "DayNumberOfWeek",
+            "dataType": "int64",
+            "sourceColumn": "DayNumberOfWeek"
+          },
+          {
+            "name": "DayNumberOfYear",
+            "dataType": "int64",
+            "sourceColumn": "DayNumberOfYear"
+          },
+          {
+            "name": "DaySuffix",
+            "dataType": "string",
+            "sourceColumn": "DaySuffix"
+          },
+          {
+            "name": "Fiscal Week",
+            "dataType": "int64",
+            "sourceColumn": "Fiscal Week"
+          },
+          {
+            "name": "FiscalQuarter",
+            "dataType": "int64",
+            "sourceColumn": "FiscalQuarter"
+          },
+          {
+            "name": "FirstDayOfMonth",
+            "dataType": "dateTime",
+            "sourceColumn": "FirstDayOfMonth"
+          },
+          {
+            "name": "FirstDayOfQuarter",
+            "dataType": "dateTime",
+            "sourceColumn": "FirstDayOfQuarter"
+          },
+          {
+            "name": "FirstDayOfWeek",
+            "dataType": "dateTime",
+            "sourceColumn": "FirstDayOfWeek"
+          },
+          {
+            "name": "FirstDayOfYear",
+            "dataType": "dateTime",
+            "sourceColumn": "FirstDayOfYear"
+          },
+          {
+            "name": "HolidayName",
+            "dataType": "string",
+            "sourceColumn": "HolidayName"
+          },
+          {
+            "name": "IsHoliday",
+            "dataType": "boolean",
+            "sourceColumn": "IsHoliday"
+          },
+          {
+            "name": "IsLastDayOfMonth",
+            "dataType": "boolean",
+            "sourceColumn": "IsLastDayOfMonth"
+          },
+          {
+            "name": "IsWeekday",
+            "dataType": "boolean",
+            "sourceColumn": "IsWeekday"
+          },
+          {
+            "name": "LastDayOfMonth",
+            "dataType": "dateTime",
+            "sourceColumn": "LastDayOfMonth"
+          },
+          {
+            "name": "LastDayOfQuarter",
+            "dataType": "dateTime",
+            "sourceColumn": "LastDayOfQuarter"
+          },
+          {
+            "name": "LastDayOfWeek",
+            "dataType": "dateTime",
+            "sourceColumn": "LastDayOfWeek"
+          },
+          {
+            "name": "LastDayOfYear",
+            "dataType": "dateTime",
+            "sourceColumn": "LastDayOfYear"
+          },
+          {
+            "name": "MonthNameLong",
+            "dataType": "string",
+            "sourceColumn": "MonthNameLong",
+            "sortByColumn": "CalendarMonth"
+          },
+          {
+            "name": "MonthNameShort",
+            "dataType": "string",
+            "sourceColumn": "MonthNameShort",
+            "sortByColumn": "CalendarMonth"
+          },
+          {
+            "name": "MonthYear",
+            "dataType": "string",
+            "sourceColumn": "MonthYear"
+          },
+          {
+            "name": "QuarterNameLong",
+            "dataType": "string",
+            "sourceColumn": "QuarterNameLong"
+          },
+          {
+            "name": "QuarterNameShort",
+            "dataType": "string",
+            "sourceColumn": "QuarterNameShort"
+          },
+          {
+            "name": "WeekOfMonth",
+            "dataType": "int64",
+            "sourceColumn": "WeekOfMonth"
+          },
+          {
+            "name": "WeekOfYear",
+            "dataType": "int64",
+            "sourceColumn": "WeekOfYear"
+          },
+          {
+            "name": "Fiscal Year/Quarter",
+            "dataType": "string",
+            "sourceColumn": "Fiscal Year/Quarter"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    DWSAP_DIMTIME = Source{[Schema=\"DWSAP\",Item=\"DIMTIME\"]}[Data]",
+                "in",
+                "    DWSAP_DIMTIME"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Version",
+        "columns": [
+          {
+            "name": "Version number",
+            "dataType": "string",
+            "sourceColumn": "Version number"
+          },
+          {
+            "name": "Maintenance status",
+            "dataType": "string",
+            "sourceColumn": "Maintenance status"
+          },
+          {
+            "name": "No. of lines per object when list displayed for TJ91",
+            "dataType": "double",
+            "sourceColumn": "No. of lines per object when list displayed for TJ91"
+          },
+          {
+            "name": "Indicator: Blank Line in List Display",
+            "dataType": "string",
+            "sourceColumn": "Indicator: Blank Line in List Display"
+          },
+          {
+            "name": "Indicator: hanging indent",
+            "dataType": "string",
+            "sourceColumn": "Indicator: hanging indent"
+          },
+          {
+            "name": "Indicator: all wanted",
+            "dataType": "string",
+            "sourceColumn": "Indicator: all wanted"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM VERSION\" = Source{[Schema=\"DWSAP\",Item=\"DIM VERSION\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM VERSION\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Company",
+        "columns": [
+          {
+            "name": "Company Code",
+            "dataType": "string",
+            "sourceColumn": "Company Code"
+          },
+          {
+            "name": "Country Key",
+            "dataType": "string",
+            "sourceColumn": "Country Key"
+          },
+          {
+            "name": "Currency Key",
+            "dataType": "string",
+            "sourceColumn": "Currency Key"
+          },
+          {
+            "name": "Chart of Accounts",
+            "dataType": "string",
+            "sourceColumn": "Chart of Accounts"
+          },
+          {
+            "name": "Fiscal Year Variant",
+            "dataType": "string",
+            "sourceColumn": "Fiscal Year Variant"
+          },
+          {
+            "name": "Company",
+            "dataType": "string",
+            "sourceColumn": "Company"
+          },
+          {
+            "name": "Credit control area",
+            "dataType": "string",
+            "sourceColumn": "Credit control area"
+          },
+          {
+            "name": "Level 1",
+            "dataType": "string",
+            "sourceColumn": "Level 1"
+          },
+          {
+            "name": "Level 2",
+            "dataType": "string",
+            "sourceColumn": "Level 2"
+          },
+          {
+            "name": "Level 3",
+            "dataType": "string",
+            "sourceColumn": "Level 3"
+          },
+          {
+            "name": "Level 4",
+            "dataType": "string",
+            "sourceColumn": "Level 4"
+          },
+          {
+            "name": "Level 5",
+            "dataType": "string",
+            "sourceColumn": "Level 5"
+          },
+          {
+            "name": "Level 6",
+            "dataType": "string",
+            "sourceColumn": "Level 6"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM COMPANY\" = Source{[Schema=\"DWSAP\",Item=\"DIM COMPANY\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM COMPANY\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Company Hierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Level 1",
+                "ordinal": 0,
+                "column": "Level 1"
+              },
+              {
+                "name": "Level 2",
+                "ordinal": 1,
+                "column": "Level 2"
+              },
+              {
+                "name": "Level 3",
+                "ordinal": 2,
+                "column": "Level 3"
+              },
+              {
+                "name": "Level 4",
+                "ordinal": 3,
+                "column": "Level 4"
+              },
+              {
+                "name": "Level 5",
+                "ordinal": 4,
+                "column": "Level 5"
+              },
+              {
+                "name": "Level 6",
+                "ordinal": 5,
+                "column": "Level 6"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Product",
+        "columns": [
+          {
+            "name": "Product hierarchy",
+            "dataType": "string",
+            "sourceColumn": "Product hierarchy"
+          },
+          {
+            "name": "Number of the level in the product hierarchy",
+            "dataType": "string",
+            "sourceColumn": "Number of the level in the product hierarchy"
+          },
+          {
+            "name": "Level 1",
+            "dataType": "string",
+            "sourceColumn": "Level 1"
+          },
+          {
+            "name": "Level 2",
+            "dataType": "string",
+            "sourceColumn": "Level 2"
+          },
+          {
+            "name": "Level 3",
+            "dataType": "string",
+            "sourceColumn": "Level 3"
+          },
+          {
+            "name": "Level 4",
+            "dataType": "string",
+            "sourceColumn": "Level 4"
+          },
+          {
+            "name": "Level 5",
+            "dataType": "string",
+            "sourceColumn": "Level 5"
+          },
+          {
+            "name": "Level 6",
+            "dataType": "string",
+            "sourceColumn": "Level 6"
+          },
+          {
+            "name": "Level 7",
+            "dataType": "string",
+            "sourceColumn": "Level 7"
+          },
+          {
+            "name": "Level 8",
+            "dataType": "string",
+            "sourceColumn": "Level 8"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM PRODUCT\" = Source{[Schema=\"DWSAP\",Item=\"DIM PRODUCT\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM PRODUCT\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Prod Hierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Level 1",
+                "ordinal": 0,
+                "column": "Level 1"
+              },
+              {
+                "name": "Level 2",
+                "ordinal": 1,
+                "column": "Level 2"
+              },
+              {
+                "name": "Level 3",
+                "ordinal": 2,
+                "column": "Level 3"
+              },
+              {
+                "name": "Level 4",
+                "ordinal": 3,
+                "column": "Level 4"
+              },
+              {
+                "name": "Level 5",
+                "ordinal": 4,
+                "column": "Level 5"
+              },
+              {
+                "name": "Level 6",
+                "ordinal": 5,
+                "column": "Level 6"
+              },
+              {
+                "name": "Level 7",
+                "ordinal": 6,
+                "column": "Level 7"
+              },
+              {
+                "name": "Level 8",
+                "ordinal": 7,
+                "column": "Level 8"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Customer Account",
+        "columns": [
+          {
+            "name": "AccountNumber",
+            "dataType": "string",
+            "sourceColumn": "AccountNumber"
+          },
+          {
+            "name": "AccountName",
+            "dataType": "string",
+            "sourceColumn": "AccountName"
+          },
+          {
+            "name": "AccountStatus",
+            "dataType": "string",
+            "sourceColumn": "AccountStatus"
+          },
+          {
+            "name": "AccountSubType",
+            "dataType": "string",
+            "sourceColumn": "AccountSubType"
+          },
+          {
+            "name": "AccountType",
+            "dataType": "string",
+            "sourceColumn": "AccountType"
+          },
+          {
+            "name": "CountryCode",
+            "dataType": "string",
+            "sourceColumn": "CountryCode"
+          },
+          {
+            "name": "Country",
+            "dataType": "string",
+            "sourceColumn": "Country"
+          },
+          {
+            "name": "CountryGroup",
+            "dataType": "string",
+            "sourceColumn": "CountryGroup"
+          },
+          {
+            "name": "RegionPC",
+            "dataType": "string",
+            "sourceColumn": "RegionPC"
+          },
+          {
+            "name": "RegionGroup",
+            "dataType": "string",
+            "sourceColumn": "RegionGroup"
+          },
+          {
+            "name": "GlobalRegion",
+            "dataType": "string",
+            "sourceColumn": "GlobalRegion"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    DWSAP_DimCusAccount = Source{[Schema=\"DWSAP\",Item=\"DimCusAccount\"]}[Data]",
+                "in",
+                "    DWSAP_DimCusAccount"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Delivery",
+        "columns": [
+          {
+            "name": "Ship-to party",
+            "dataType": "string",
+            "sourceColumn": "Ship-to party"
+          },
+          {
+            "name": "Volume",
+            "dataType": "double",
+            "sourceColumn": "Volume"
+          },
+          {
+            "name": "Volume unit",
+            "dataType": "string",
+            "sourceColumn": "Volume unit"
+          },
+          {
+            "name": "Net weight",
+            "dataType": "double",
+            "sourceColumn": "Net weight"
+          },
+          {
+            "name": "Total Weight",
+            "dataType": "double",
+            "sourceColumn": "Total Weight"
+          },
+          {
+            "name": "Sold-to party",
+            "dataType": "string",
+            "sourceColumn": "Sold-to party"
+          },
+          {
+            "name": "Sales Organization",
+            "dataType": "string",
+            "sourceColumn": "Sales Organization"
+          },
+          {
+            "name": "DIVISION_KEY",
+            "dataType": "string",
+            "sourceColumn": "DIVISION_KEY"
+          },
+          {
+            "name": "Shipment Date",
+            "dataType": "string",
+            "sourceColumn": "Shipment Date"
+          },
+          {
+            "name": "Company Code",
+            "dataType": "string",
+            "sourceColumn": "Company Code"
+          },
+          {
+            "name": "Product Hierarchy",
+            "dataType": "string",
+            "sourceColumn": "Product Hierarchy"
+          },
+          {
+            "name": "Profit Center",
+            "dataType": "string",
+            "sourceColumn": "Profit Center"
+          },
+          {
+            "name": "Material Number",
+            "dataType": "string",
+            "sourceColumn": "Material Number"
+          },
+          {
+            "name": "Cost Element",
+            "dataType": "string",
+            "sourceColumn": "Cost Element"
+          },
+          {
+            "name": "Sales Order Number",
+            "dataType": "string",
+            "sourceColumn": "Sales Order Number"
+          },
+          {
+            "name": "Delivery",
+            "dataType": "string",
+            "sourceColumn": "Delivery"
+          },
+          {
+            "name": "PROFIT_CENTER_KEY",
+            "dataType": "string",
+            "sourceColumn": "PROFIT_CENTER_KEY"
+          },
+          {
+            "name": "Item Category",
+            "dataType": "string",
+            "sourceColumn": "Item Category"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_FACT Delivery\" = Source{[Schema=\"DWSAP\",Item=\"FACT Delivery\"]}[Data]",
+                "in",
+                "    #\"DWSAP_FACT Delivery\""
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Customer",
+            "expression": " COUNT(Delivery[Sold-to party])"
+          },
+          {
+            "name": "CurrentShipmentYr",
+            "expression": " CALCULATE([Shipment], FILTER('Time', 'Time'[Fiscal Year]=(YEAR(TODAY()))))"
+          },
+          {
+            "name": "PreviousShipmentYr",
+            "expression": " CALCULATE([Shipment], FILTER('Time', 'Time'[Fiscal Year]=(YEAR(TODAY())-1)))"
+          },
+          {
+            "name": "ShipmentYr%",
+            "expression": " ([CurrentShipmentYr]-[PreviousShipmentYr])/[PreviousShipmentYr] * 100"
+          },
+          {
+            "name": "Clear Aligner Shipments",
+            "expression": [
+              " CALCULATE([Shipment],FILTER(Delivery, Delivery[Product Hierarchy] IN { \"A1A1T1C101\",\"A1A1T1C102\",\"A1A1T1C10301\",\"A1A1T1C104\",\"A1A1T1C105\",\"A1A1T1C106\",",
+              "\"A1A1T1C107\",\"A1A1T1C2E101\",\"A1A1T1C2E102\",\"A1A1T1C2E103\",\"A1A1T1C2G1\",\"A1A1T1C2G2\"",
+              ",\"A1A1T1C2G3\",\"A1A1T1C2L1\",\"A1A1T1C2L101\",\"A1A1T1C2L102\",\"A1A1T1C2L104\",\"A1A1T1C2M1\",\"A1A1T1C2M101\",",
+              "\"A1A1T1C2N1\",\"A1A1T1C2S1\",\"A1A1T1C2S201\",\"A1A1T1C2S202\",\"A1A1T1C2S301\"}  ))"
+            ]
+          },
+          {
+            "name": "Scanner Shipments",
+            "expression": " CALCULATE([Shipment],FILTER('Product','Product'[Level 3]=\"Scanner and Scanner Services\"),FILTER('Sales Order','Sales Order'[Treatment Category]=\"Primary\"))"
+          },
+          {
+            "name": "Shipment YTD",
+            "expression": [
+              "CALCULATE(COUNT(Delivery[Delivery]),FILTER('Time','Time'[KeyDate]>=DATE(YEAR(TODAY()),1,1) && 'Time'[KeyDate]<= TODAY()))",
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sales Order",
+        "columns": [
+          {
+            "name": "Order Number",
+            "dataType": "string",
+            "sourceColumn": "Order Number"
+          },
+          {
+            "name": "Age Tier",
+            "dataType": "double",
+            "sourceColumn": "Age Tier"
+          },
+          {
+            "name": "Order Stages",
+            "dataType": "double",
+            "sourceColumn": "Order Stages"
+          },
+          {
+            "name": "Stage Bucket",
+            "dataType": "string",
+            "sourceColumn": "Stage Bucket"
+          },
+          {
+            "name": "PatientType",
+            "dataType": "string",
+            "sourceColumn": "PatientType"
+          },
+          {
+            "name": "Is IO Scan",
+            "dataType": "string",
+            "sourceColumn": "Is IO Scan"
+          },
+          {
+            "name": "Sales Org",
+            "dataType": "string",
+            "sourceColumn": "Sales Org"
+          },
+          {
+            "name": "Distribution Channel",
+            "dataType": "string",
+            "sourceColumn": "Distribution Channel"
+          },
+          {
+            "name": "Division",
+            "dataType": "string",
+            "sourceColumn": "Division"
+          },
+          {
+            "name": "Sales Group",
+            "dataType": "string",
+            "sourceColumn": "Sales Group"
+          },
+          {
+            "name": "Sales Office",
+            "dataType": "string",
+            "sourceColumn": "Sales Office"
+          },
+          {
+            "name": "Treatment Location",
+            "dataType": "string",
+            "sourceColumn": "TreatmentLocation"
+          },
+          {
+            "name": "Treatment Category",
+            "dataType": "string",
+            "sourceColumn": "TreatmentCategory"
+          },
+          {
+            "name": "ClinID",
+            "dataType": "string",
+            "sourceColumn": "ClinID"
+          },
+          {
+            "name": "ProductType",
+            "dataType": "string",
+            "sourceColumn": "ProductType"
+          },
+          {
+            "name": "TreatingDoctor",
+            "dataType": "string",
+            "sourceColumn": "TreatingDoctor"
+          },
+          {
+            "name": "ShipTo",
+            "dataType": "string",
+            "sourceColumn": "ShipTo"
+          },
+          {
+            "name": "SoldTo",
+            "dataType": "string",
+            "sourceColumn": "SoldTo"
+          },
+          {
+            "name": "AMRDate",
+            "dataType": "string",
+            "sourceColumn": "AMRDate"
+          },
+          {
+            "name": "CCADate",
+            "dataType": "string",
+            "sourceColumn": "CCADate"
+          },
+          {
+            "name": "ShipDate",
+            "dataType": "string",
+            "sourceColumn": "ShipDate"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    #\"DWSAP_DIM SALES ORDER\" = Source{[Schema=\"DWSAP\",Item=\"DIM SALES ORDER\"]}[Data]",
+                "in",
+                "    #\"DWSAP_DIM SALES ORDER\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Contact",
+        "columns": [
+          {
+            "name": "ContactName",
+            "dataType": "string",
+            "sourceColumn": "ContactName"
+          },
+          {
+            "name": "LineOfBusiness",
+            "dataType": "string",
+            "sourceColumn": "LineOfBusiness"
+          },
+          {
+            "name": "City",
+            "dataType": "string",
+            "sourceColumn": "City"
+          },
+          {
+            "name": "Country",
+            "dataType": "string",
+            "sourceColumn": "Country"
+          },
+          {
+            "name": "CountryCode",
+            "dataType": "string",
+            "sourceColumn": "CountryCode"
+          },
+          {
+            "name": "ProfessionalCategory",
+            "dataType": "string",
+            "sourceColumn": "ProfessionalCategory"
+          },
+          {
+            "name": "Salutation",
+            "dataType": "string",
+            "sourceColumn": "Salutation"
+          },
+          {
+            "name": "DID",
+            "dataType": "string",
+            "sourceColumn": "DID"
+          },
+          {
+            "name": "ClinID",
+            "dataType": "string",
+            "sourceColumn": "ClinID"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    DWSAP_DimContact = Source{[Schema=\"DWSAP\",Item=\"DimContact\"]}[Data]",
+                "in",
+                "    DWSAP_DimContact"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "SrcSAP User2Company",
+        "columns": [
+          {
+            "name": "EmpID",
+            "dataType": "string",
+            "sourceColumn": "EmpID"
+          },
+          {
+            "name": "SAPRole",
+            "dataType": "string",
+            "sourceColumn": "SAPRole"
+          },
+          {
+            "name": "VARBL",
+            "dataType": "string",
+            "sourceColumn": "VARBL"
+          },
+          {
+            "name": "BUKRS",
+            "dataType": "string",
+            "sourceColumn": "BUKRS"
+          },
+          {
+            "name": "ADName",
+            "dataType": "string",
+            "sourceColumn": "ADName"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/stgalignbisql database windows net;stgalignbidw\",",
+                "    SrcSAP_User2Company = Source{[Schema=\"SrcSAP\",Item=\"User2Company\"]}[Data]",
+                "in",
+                "    SrcSAP_User2Company"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "0ec80c8e-0046-41f8-aa95-7207c91d2e37",
+        "fromTable": "Revenue",
+        "fromColumn": "Company Code",
+        "toTable": "Company",
+        "toColumn": "Company Code"
+      },
+      {
+        "name": "99ca1eb6-1c5f-40bb-9f7f-24d29eef00c0",
+        "fromTable": "Revenue",
+        "fromColumn": "COST_ELMNT_KEY",
+        "toTable": "Cost Element",
+        "toColumn": "COST_ELMNT_KEY"
+      },
+      {
+        "name": "656da4fc-9252-4f74-80be-509f959852f4",
+        "fromTable": "Revenue",
+        "fromColumn": "DIVISION_KEY",
+        "toTable": "Division",
+        "toColumn": "DIVISION_KEY"
+      },
+      {
+        "name": "41c196cc-2666-49bd-b49e-2df1a62ab3ea",
+        "fromTable": "Revenue",
+        "fromColumn": "GL_ACCNT_KEY",
+        "toTable": "GL Account",
+        "toColumn": "GL_ACCNT_KEY"
+      },
+      {
+        "name": "790edcac-19a8-4294-969b-937c82c5fd8f",
+        "fromTable": "Revenue",
+        "fromColumn": "Version",
+        "toTable": "Version",
+        "toColumn": "Version number"
+      },
+      {
+        "name": "5a69ffab-eb6a-48ab-b255-5ff0bc33ec9d",
+        "fromTable": "Revenue",
+        "fromColumn": "Plant",
+        "toTable": "Plant",
+        "toColumn": "Plant"
+      },
+      {
+        "name": "8c71fba9-079f-41af-b09d-0f63427a74cd",
+        "fromTable": "Revenue",
+        "fromColumn": "Sales Organisation",
+        "toTable": "Sales Organization",
+        "toColumn": "Sales Organization"
+      },
+      {
+        "name": "6b0d3190-77dc-4882-a7f1-cb894c2b2ce2",
+        "fromTable": "Revenue",
+        "fromColumn": "Product Hierarchy",
+        "toTable": "Product",
+        "toColumn": "Product hierarchy"
+      },
+      {
+        "name": "c78738bc-8b8a-4072-bc9b-d83d2996ceb5",
+        "fromTable": "Delivery",
+        "fromColumn": "Sales Organization",
+        "toTable": "Sales Organization",
+        "toColumn": "Sales Organization"
+      },
+      {
+        "name": "fbfd25bc-3134-48bd-b11f-1572f991d8f2",
+        "fromTable": "Delivery",
+        "fromColumn": "DIVISION_KEY",
+        "toTable": "Division",
+        "toColumn": "DIVISION_KEY"
+      },
+      {
+        "name": "e2b6e6f1-0fb4-4913-9844-60131f755e56",
+        "fromTable": "Revenue",
+        "fromColumn": "Sales Order",
+        "toTable": "Sales Order",
+        "toColumn": "Order Number"
+      },
+      {
+        "name": "19815abe-8f73-4750-9904-6fe4b89e2228",
+        "fromTable": "Revenue",
+        "fromColumn": "COPA_TIME_KEY",
+        "toTable": "COPA Documents",
+        "toColumn": "COPA_DOC_KEY",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "ad26ee6c-305a-4a1f-8907-24b523d4fdf9",
+        "fromTable": "Revenue",
+        "fromColumn": "Material Number",
+        "toTable": "Material",
+        "toColumn": "Material Number",
+        "isActive": false
+      },
+      {
+        "name": "b5154378-bf9d-4fcc-9576-c122c3a899f9",
+        "fromTable": "Delivery",
+        "fromColumn": "Company Code",
+        "toTable": "Company",
+        "toColumn": "Company"
+      },
+      {
+        "name": "89215b31-7b3c-47f2-a86b-5211becf234b",
+        "fromTable": "Revenue",
+        "fromColumn": "Posting Date",
+        "toTable": "Time",
+        "toColumn": "SKDate"
+      },
+      {
+        "name": "db338bd6-982e-4f8d-b83d-f497f1639d0a",
+        "fromTable": "Delivery",
+        "fromColumn": "Shipment Date",
+        "toTable": "Time",
+        "toColumn": "SKDate"
+      },
+      {
+        "name": "42bb275f-2795-4e67-83e2-e84dfdb89ec3",
+        "fromTable": "Delivery",
+        "fromColumn": "Product Hierarchy",
+        "toTable": "Product",
+        "toColumn": "Product hierarchy"
+      },
+      {
+        "name": "7a76edb5-bbac-4c9f-9767-adc8fc1be8d4",
+        "fromTable": "Delivery",
+        "fromColumn": "Material Number",
+        "toTable": "Material",
+        "toColumn": "Material Number"
+      },
+      {
+        "name": "2abfe06b-524c-4d8f-9b3a-b38ee3e6eb77",
+        "fromTable": "Sales Order",
+        "fromColumn": "Treatment Location",
+        "toTable": "Customer Account",
+        "toColumn": "AccountNumber"
+      },
+      {
+        "name": "776a4b6c-31a3-4a08-8aa8-171584b627a3",
+        "fromTable": "Sales Order",
+        "fromColumn": "ClinID",
+        "toTable": "Contact",
+        "toColumn": "ClinID"
+      },
+      {
+        "name": "5952bd98-121b-4bdc-a5d1-be65da612723",
+        "fromTable": "Delivery",
+        "fromColumn": "Sales Order Number",
+        "toTable": "Sales Order",
+        "toColumn": "Order Number"
+      },
+      {
+        "name": "9c305ee7-a5ec-4f8c-830d-7fd285115ab8",
+        "fromTable": "Revenue",
+        "fromColumn": "Profit Center",
+        "toTable": "Profit Center",
+        "toColumn": "Profit Center"
+      },
+      {
+        "name": "31fce142-d3d6-4dbb-92f9-bc66f4312ae8",
+        "fromTable": "Delivery",
+        "fromColumn": "Profit Center",
+        "toTable": "Profit Center",
+        "toColumn": "Profit Center"
+      }
+    ],
+    "roles": [
+      {
+        "name": "FullAccessRole",
+        "modelPermission": "administrator"
+      },
+      {
+        "name": "Read",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-Global_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-Global_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ]
+      },
+      {
+        "name": "RLS",
+        "modelPermission": "read",
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN CALCULATETABLE(VALUES('SrcSAP User2Company'[BUKRS]),FILTER(ALL('SrcSAP User2Company'),'SrcSAP User2Company'[ADName] = USERNAME()))"
+          }
+        ]
+      },
+      {
+        "name": "EMEA",
+        "modelPermission": "read",
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"2000\",\"2010\",\"2050\",\"2100\",\"2130\",\"2150\",\"2200\",\"2300\",\"2350\",\"2400\",\"2450\",\"2500\",\"2550\",\"2600\",\"2650\",\"2655\",\"2665\",\"2670\",\"2800\"}"
+          }
+        ]
+      },
+      {
+        "name": "APAC",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-APAC_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-APAC_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"2100\",\"2700\",\"2710\",\"2720\",\"2750\",\"2800\",\"3100\",\"3150\",\"3200\",\"3250\",\"3300\",\"3350\",\"3500\",\"3510\",\"3550\",\"3600\",\"3650\",\"3700\",\"3800\",\"3810\"}"
+          }
+        ]
+      },
+      {
+        "name": "ANZ",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-ANZ_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-ANZ_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"2100\",\"3200\",\"3350\"}"
+          }
+        ]
+      },
+      {
+        "name": "ILAN",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-ILAN_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-ILAN_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] = \"4100\""
+          }
+        ]
+      },
+      {
+        "name": "Israel",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-IL_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-IL_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"1700\",\"1999\",\"4100\"}"
+          }
+        ]
+      },
+      {
+        "name": "International",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-INTL_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-INTL_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"2000\",\"2050\",\"2100\",\"2200\",\"2300\",\"2400\",\"2450\",\"2500\",\"2550\",\"2600\",\"2650\",\"2655\",\"2665\",\"2670\",\"2700\",\"2710\",\"2750\",\"2800\",\"3100\",\"3150\",\"3200\",\"3250\",\"3300\",\"3350\",\"3500\",\"3550\",\"3600\",\"3650\",\"3700\",\"3800\"}"
+          }
+        ]
+      },
+      {
+        "name": "LATAM",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-LATAM_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-LATAM_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"1400\",\"1500\",\"1520\",\"1550\",\"1800\",\"1810\",\"2100\",\"2660\",\"2800\"}"
+          }
+        ]
+      },
+      {
+        "name": "North America",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-NA_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-NA_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"1000\",\"1350\",\"1600\"}"
+          }
+        ]
+      },
+      {
+        "name": "Russia",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-Finance-FPnA-RU_NonProd@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-Finance-FPnA-RU_NonProd@aligntech.onmicrosoft.com",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Company",
+            "filterExpression": "Company[Company Code] IN {\"1350\",\"1360\",\"1370\"}"
+          }
+        ]
+      }
+    ],
+    "expressions": [
+      {
+        "name": "TopRows",
+        "kind": "m",
+        "expression": [
+          "let",
+          "    Source = 10 meta [IsParameterQuery=true, Type=\"Number\", IsParameterQueryRequired=true]",
+          "in",
+          "    Source"
+        ]
+      }
+    ],
+    "annotations": [
+      {
+        "name": "ClientCompatibilityLevel",
+        "value": "600"
+      }
+    ]
+  }
+}

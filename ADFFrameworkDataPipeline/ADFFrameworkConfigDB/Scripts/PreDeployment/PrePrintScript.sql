@@ -1,0 +1,1 @@
+﻿PRINT N'This is a pre-deployment script.'; 

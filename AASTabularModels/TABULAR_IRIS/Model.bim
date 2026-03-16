@@ -1,0 +1,3773 @@
+{
+  "name": "SemanticModel",
+  "compatibilityLevel": 1400,
+  "model": {
+    "culture": "ru-RU",
+    "dataSources": [
+      {
+        "type": "structured",
+        "name": "AlignDW",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "dev2alignbisql.database.windows.net",
+            "database": "devalignbidw"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "OAuth2",
+          "kind": "SQL",
+          "path": "dev2alignbisql.database.windows.net;devalignbidw",
+          "Expires": "Wed, 19 Feb 2020 14:33:59 GMT",
+          "RefreshToken": "********"
+        }
+      }
+    ],
+    "tables": [
+      {
+        "name": "_Measures",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Measures",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "sourceColumn": "[Measures]"
+          },
+          {
+            "type": "calculated",
+            "name": "Measures 2",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true
+          },
+          {
+            "type": "calculated",
+            "name": "Measures 3",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true
+          },
+          {
+            "type": "calculated",
+            "name": "RMA",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true
+          },
+          {
+            "type": "calculated",
+            "name": "Complaint",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true
+          },
+          {
+            "type": "calculated",
+            "name": "Milestone",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": [
+                "",
+                "DATATABLE (",
+                "    ",
+                "    \"Measures\", STRING,",
+                "        ",
+                "    { ",
+                "        {\"\"}",
+                "    } ",
+                ")"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "_base Total Tickets Count",
+            "expression": [
+              "SUM('Fact Ticket'[Tickets Count])",
+              "",
+              "",
+              "",
+              ""
+            ],
+            "isHidden": true,
+            "displayFolder": "_Base Measures\\Tickets"
+          },
+          {
+            "name": "Tickets Opened Count",
+            "description": "Calculates number of Tickets opened during selected report period context",
+            "expression": [
+              "",
+              "/* Calculates number of Tickets opened during selected report period context*/",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Ticket'[Tickets Count]),",
+              "    TREATAS (period,'Fact Ticket'[Ticket Open Date])",
+              ")",
+              "    "
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\Counts"
+          },
+          {
+            "name": "Tickets Closed Count",
+            "description": "Calculates number of Tickets closed during selected report period context",
+            "expression": [
+              "",
+              "/* Calculates number of Tickets closed during selected report period context*/",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    [_base Total Tickets Count],",
+              "    TREATAS (period,'Fact Ticket'[Ticket Closed Date])",
+              ")",
+              "    "
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\Counts"
+          },
+          {
+            "name": "Ticket Avr. Net Duration Hrs.",
+            "description": "Average resolution duration of closed tickets (Close Date - Open Date) in BUSINESS HOURS",
+            "expression": [
+              "",
+              "AVERAGEX('Fact Ticket','Fact Ticket'[Ticket Net Hrs])"
+            ],
+            "formatString": "0",
+            "displayFolder": "Tickets\\Averages"
+          },
+          {
+            "name": "Ticket Avr. Calendar Duration Hrs.",
+            "description": "Average resolution duration of closed tickets (Close Date - Open Date) in CALENDAR DAYS",
+            "expression": [
+              "",
+              "AVERAGEX('Fact Ticket','Fact Ticket'[Ticket Calendar Hrs])"
+            ],
+            "formatString": "0",
+            "displayFolder": "Tickets\\Averages"
+          },
+          {
+            "name": "Ticket Avr. Net Duration by Ageing bucket",
+            "description": "Tickets Net duration split by time buckets. USE WITH \"Ticket Ageing Hrs\" table",
+            "expression": [
+              "",
+              "",
+              "VAR allTickets=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>0)",
+              "",
+              "VAR selectedBucket=IF(HASONEVALUE('Ticket Ageing Hrs'[ID]),VALUES('Ticket Ageing Hrs'[ID]))",
+              "",
+              "RETURN ",
+              "SWITCH(",
+              "    selectedBucket,",
+              "    ",
+              "    1,",
+              "    VAR less24=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>0 && 'Fact Ticket'[Ticket Net Hrs]<=24)",
+              "    RETURN DIVIDE(less24,allTickets),",
+              "",
+              "    2,",
+              "    VAR T24_48=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>24 && 'Fact Ticket'[Ticket Net Hrs]<=48)",
+              "    RETURN DIVIDE(T24_48,allTickets),",
+              "",
+              "    3,",
+              "    VAR T48_72=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>48 && 'Fact Ticket'[Ticket Net Hrs]<=72)",
+              "    RETURN DIVIDE(T48_72,allTickets),",
+              "",
+              "    4,",
+              "    VAR greater72=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>72)",
+              "    RETURN DIVIDE(greater72,allTickets),",
+              "",
+              "    1",
+              ")"
+            ],
+            "formatString": "0.00%;-0.00%;0.00%",
+            "displayFolder": "Tickets\\by Ageing buckets"
+          },
+          {
+            "name": "Ticket Count by Ageing bucket",
+            "description": "Tickets count split by duration time buckets. USE WITH \"Ticket Ageing Hrs\" table",
+            "expression": [
+              "",
+              "",
+              "VAR allTickets=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>0)",
+              "",
+              "VAR selectedBucket=IF(HASONEVALUE('Ticket Ageing Hrs'[ID]),VALUES('Ticket Ageing Hrs'[ID]))",
+              "",
+              "RETURN ",
+              "SWITCH(",
+              "    selectedBucket,",
+              "    ",
+              "    1,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>0 && 'Fact Ticket'[Ticket Net Hrs]<=24),",
+              "    ",
+              "    2,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>24 && 'Fact Ticket'[Ticket Net Hrs]<=48),",
+              "    ",
+              "    3,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>48 && 'Fact Ticket'[Ticket Net Hrs]<=72),",
+              "    ",
+              "    4,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>72),",
+              "",
+              "    allTickets",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\by Ageing buckets"
+          },
+          {
+            "name": "Tickets currently Open",
+            "description": "Calculates number of tickets currently open (as of last data refresh time)",
+            "expression": [
+              "",
+              "SUM('Fact Ticket'[Is Ticket Open])"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\Counts"
+          },
+          {
+            "name": "Tickets currently Open (History)",
+            "description": "Calculates number of tickets that are open as of reporting date context (retrospective)",
+            "expression": [
+              "",
+              "VAR reportDate=MAX('Reporting Calendar'[Date])",
+              "",
+              "RETURN ",
+              "SUMX(",
+              "    'Ticket',",
+              "    VAR ClsDate=MAX([Ticket Closed Date],[Ticket Resolved Date])",
+              "",
+              "    RETURN",
+              "    IF(",
+              "        [Ticket Open Date]<=reportDate && ",
+              "        (ISBLANK(ClsDate) || (NOT ISBLANK(ClsDate) && reportDate<ClsDate)),",
+              "        1,BLANK())",
+              ")",
+              "",
+              "",
+              "",
+              "        "
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\Counts"
+          },
+          {
+            "name": "Scanners Install Base",
+            "expression": [
+              "",
+              "",
+              "VAR repDate=MAX('Reporting Calendar'[Date])",
+              "",
+              "VAR result=CALCULATE( COUNT('Fact Scanner Installation'[SKAsset]), 'Fact Scanner Installation'[Date]=repDate)",
+              "RETURN result"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Scanners\\Install Base"
+          },
+          {
+            "name": "Ticket Avr. Ageing Hrs.",
+            "description": "Avr. ticket age (open+closed). For open ticket Age=NOW - Open Date",
+            "expression": [
+              "",
+              "",
+              "AVERAGEX(",
+              "    'Ticket',",
+              "    ",
+              "    VAR dt=MAX([Ticket Closed Date Time],[Ticket Resolved Date Time])",
+              "    RETURN",
+              "    IF(",
+              "        ISBLANK(dt),",
+              "        NOW()-[Ticket Open Date Time],",
+              "        dt-[Ticket Open Date Time]",
+              "       )",
+              "",
+              ")",
+              "*24"
+            ],
+            "formatString": "0",
+            "displayFolder": "Tickets\\Averages"
+          },
+          {
+            "name": "Ticket Avr. Ageing Days",
+            "description": "Avr. ticket age (open+closed). For open ticket Age=NOW - Open Date",
+            "expression": [
+              "",
+              "",
+              "AVERAGEX(",
+              "    'Ticket',",
+              "    ",
+              "    VAR dt=MAX([Ticket Closed Date Time],[Ticket Resolved Date Time])",
+              "    RETURN",
+              "    IF(",
+              "        ISBLANK(dt),",
+              "        NOW()-[Ticket Open Date Time],",
+              "        dt-[Ticket Open Date Time]",
+              "       )",
+              "",
+              ")"
+            ],
+            "formatString": "0.00",
+            "displayFolder": "Tickets\\Averages"
+          },
+          {
+            "name": "Scanners IB Element",
+            "expression": [
+              " CALCULATE([Scanners Install Base], Asset[Asset Type] = \"iTero Element\")",
+              ""
+            ],
+            "displayFolder": "Scanners\\Install Base"
+          },
+          {
+            "name": "Scanners IB HD2.9",
+            "expression": " CALCULATE([Scanners Install Base], Asset[Asset Type] = \"iTero HD2.9\")",
+            "displayFolder": "Scanners\\Install Base"
+          },
+          {
+            "name": "Scanners IB Legacy",
+            "expression": [
+              " CALCULATE([Scanners Install Base], Asset[Asset Type] = \"Other\")",
+              ""
+            ],
+            "displayFolder": "Scanners\\Install Base"
+          },
+          {
+            "name": "Contract Count",
+            "expression": "SUM('Fact Sales Contract'[Contracts Count])",
+            "displayFolder": "Sales Contracts"
+          },
+          {
+            "name": "Audit Time (Achieved)",
+            "expression": [
+              "",
+              "",
+              "VAR allContracts=CALCULATE(COUNT('Fact Sales Contract'[SK SalesContract]), 'Fact Sales Contract'[Audit Time Elapsed]>0)",
+              "",
+              "VAR selectedBucket=IF(HASONEVALUE('Ticket Ageing Hrs'[ID]),VALUES('Ticket Ageing Hrs'[ID]))",
+              "",
+              "RETURN ",
+              "SWITCH(",
+              "    selectedBucket,",
+              "    1,",
+              "    VAR less24=CALCULATE( COUNT('Fact Sales Contract'[SK SalesContract]), 'Fact Sales Contract'[Audit Time Elapsed]>0 && 'Fact Sales Contract'[Audit Time Elapsed]<=24)",
+              "    RETURN DIVIDE(less24,allContracts),",
+              "1",
+              ")"
+            ],
+            "displayFolder": "Sales Contracts"
+          },
+          {
+            "name": "Audit Time Avr.",
+            "expression": " SUM('Fact Sales Contract'[Audit Time Elapsed])/SUM('Fact Sales Contract'[Contracts Count])"
+          },
+          {
+            "name": "RMA Items Count",
+            "description": "Calculates number of Tickets opened during selected report period context",
+            "expression": [
+              "",
+              "/* Calculates number of Tickets opened during selected report period context*/",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Ticket Item'[RMA Item Count]),",
+              "    TREATAS (period,'Fact Ticket Item'[Created Date])",
+              ")",
+              "    "
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\Counts"
+          },
+          {
+            "name": "RMA Opened Count",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Ticket RMA'[RMA Count]),",
+              "    TREATAS (period,'Fact Ticket RMA'[Ticket Open Date])",
+              ")",
+              "    "
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Complaints Count",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Ticket Complaint'[Complaint Count]),",
+              "    TREATAS (period,'Fact Ticket Complaint'[Created Date])",
+              ")",
+              "    "
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\Complaint"
+          },
+          {
+            "name": "RMA Opened % over Assets",
+            "expression": [
+              "",
+              "",
+              "[RMA Opened Count]",
+              "/",
+              "Calculate(",
+              "\t[RMA Opened Count]",
+              "\t, All('Ticket'[Issue Asset])",
+              ")",
+              ""
+            ],
+            "formatString": "0.00%;-0.00%;0.00%",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "This Month RMAs",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Last 3 Months RMAs",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Last 3 Months Average RMAs",
+            "expression": " 0.0",
+            "formatString": "#,0.00",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Yearly Average RMAs",
+            "expression": " 0.0",
+            "formatString": "#,0.00",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "% of Last 3 Months Average RMAs",
+            "expression": " [This Month RMAs] / [Last 3 Months Average RMAs]",
+            "formatString": "0.00%;-0.00%;0.00%",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "This Month Wand RMAs",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "This Month BU RMAs",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "RMA Average Trend",
+            "expression": " 0",
+            "formatString": "0.00%;-0.00%;0.00%",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "RMA - Return Time",
+            "expression": " 0",
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "RMA - Average Return Time",
+            "expression": [
+              " ",
+              "IfError ([RMA - Return Time] / [RMA Opened Count], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Base Unit Issues",
+            "expression": [
+              "",
+              "Calculate (",
+              "\t[RMA Opened Count]",
+              "\t, Filter (",
+              "\t\t'Ticket'",
+              "\t\t, 'Ticket'[Sub Issue Type] = \"iTero Element Base Unit\"",
+              "\t)",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Cable Issues",
+            "expression": [
+              "",
+              "Calculate (",
+              "\t[RMA Opened Count]",
+              "\t, Filter (",
+              "\t\t'Ticket'",
+              "\t\t, 'Ticket'[Sub Issue Type] = \"Main Power Cable\"",
+              "\t)",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Wand Issues",
+            "expression": [
+              "",
+              "Calculate (",
+              "\t[RMA Opened Count]",
+              "\t, Filter (",
+              "\t\t'Ticket'",
+              "\t\t, 'Ticket'[Sub Issue Type] = \"Wand\"",
+              "\t)",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Wand Disconnection Issues",
+            "expression": [
+              "",
+              "Calculate (",
+              "\t[RMA Opened Count]",
+              "\t, Filter (",
+              "\t\t'Ticket'",
+              "\t\t, 'Ticket'[Sub Issue Type] = \"Wand disconnections\"",
+              "\t)",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Base Unit Issues per Scanner",
+            "expression": [
+              "",
+              "IfError([Base Unit Issues] / [Scanners Install Base], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Cable Issues per Scanner",
+            "expression": [
+              "",
+              "IfError([Cable Issues] / [Scanners Install Base], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Wand Issues per Scanner",
+            "expression": [
+              "",
+              "IfError([Wand Issues] / [Scanners Install Base], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Wand Disconnection per Scanner",
+            "expression": [
+              "",
+              "IfError([Wand Disconnection Issues] / [Scanners Install Base], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Legacy Wand Issues",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "HD2.9 Wand Issues",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "HD2.9 FLIU Issues",
+            "expression": " 0",
+            "formatString": "#,0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Legacy Wand Issues per Scanner",
+            "expression": [
+              "",
+              "IfError ([Legacy Wand Issues] / [Scanners IB Legacy], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "HD2.9 Wand Issues per Scanner",
+            "expression": [
+              "",
+              "IfError ([HD2.9 Wand Issues] / [Scanners IB HD2.9], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "HD2.9 FLIU Issues per Scanner",
+            "expression": [
+              "",
+              "IfError ([HD2.9 FLIU Issues] / [Scanners IB HD2.9], 0)"
+            ],
+            "formatString": "#,0.0",
+            "displayFolder": "Tickets\\RMA"
+          },
+          {
+            "name": "Count of Contract Signed",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Sales Contract'[Contracts Count]),",
+              "    TREATAS (period,'Fact Sales Contract'[KeyDate ContractSigned]))",
+              "    "
+            ]
+          },
+          {
+            "name": "Count of Contract Shipped",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Sales Contract'[Contracts Count]),",
+              "    TREATAS (period,'Fact Sales Contract'[KeyDate Shipping]))",
+              "    "
+            ]
+          },
+          {
+            "name": "Average Age (Hours)",
+            "expression": [
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "Calculate (",
+              "\tSumX(",
+              "\t\tFilter(",
+              "\t\t\t'Fact Ticket RMA'",
+              "\t\t\t, 'Fact Ticket RMA'[RMA Count]>0",
+              "\t\t)",
+              "\t\t, If (",
+              "\t\t\tIsBlank ('Fact Ticket RMA'[Ticket Closed Date])",
+              "\t\t\t, Now()",
+              "\t\t\t, 'Fact Ticket RMA'[Ticket Closed Date]",
+              "\t\t)",
+              "\t\t- 'Fact Ticket RMA'[Ticket Open Date]",
+              "\t)",
+              "\t/",
+              "\tSum('Fact Ticket RMA'[RMA Count])",
+              "\t, TreatAs (period,'Fact Ticket Item'[Created Date])",
+              ")"
+            ],
+            "formatString": "#,0.0"
+          },
+          {
+            "name": "DOA Opened Count",
+            "expression": [
+              "",
+              "Calculate (",
+              "\t[RMA Opened Count]",
+              "\t, 'Ticket'[Priority] = \"5\"",
+              ")"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Ticket Count % by Ageing bucket",
+            "expression": [
+              "",
+              "",
+              "VAR allTickets=CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>0)",
+              "",
+              "VAR selectedBucket=IF(HASONEVALUE('Ticket Ageing Hrs'[ID]),VALUES('Ticket Ageing Hrs'[ID]))",
+              "",
+              "RETURN ",
+              "SWITCH(",
+              "    selectedBucket,",
+              "    ",
+              "    1,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>0 && 'Fact Ticket'[Ticket Net Hrs]<=24)/allTickets,",
+              "    ",
+              "    2,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>24 && 'Fact Ticket'[Ticket Net Hrs]<=48)/allTickets,",
+              "    ",
+              "    3,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>48 && 'Fact Ticket'[Ticket Net Hrs]<=72)/allTickets,",
+              "    ",
+              "    4,",
+              "    CALCULATE( COUNT('Fact Ticket'[SKTicket]), 'Fact Ticket'[Ticket Net Hrs]>72)/allTickets,",
+              "",
+              "    allTickets",
+              ")"
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
+          },
+          {
+            "name": "Total Closed Tickets %",
+            "expression": [
+              "",
+              "/* Calculates number of Tickets closed divided by amount of work days */",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    [_base Total Tickets Count],",
+              "    TREATAS (period,'Fact Ticket'[Ticket Closed Date])",
+              ")/CALCULATE(SUM('Reporting Calendar'[Is Week Day]),TREATAS(period,'Fact Ticket'[Ticket Closed Date]))",
+              "    "
+            ]
+          },
+          {
+            "name": "Lead time issue to resolution",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN ",
+              "CALCULATE(SUM('Ticket'[Ticket Net Days]),TREATAS(period,'Fact Ticket'[Ticket Resolved Date]))"
+            ]
+          },
+          {
+            "name": "Milestone Count",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Ticket Milestone'[Milestones Count]),",
+              "    TREATAS (period,'Fact Ticket Milestone'[Key Start Date])",
+              ")",
+              "    "
+            ]
+          },
+          {
+            "name": "Milestone Net Hours Total",
+            "expression": [
+              "",
+              "",
+              "VAR period=DISTINCT('Reporting Calendar'[Date])",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('Fact Ticket Milestone'[Milestone Net Hours]),",
+              "    TREATAS (period,'Fact Ticket Milestone'[Key Start Date])",
+              ")",
+              "    "
+            ]
+          },
+          {
+            "name": "Milestone Net Hours Avg",
+            "expression": [
+              "",
+              "",
+              "IFERROR(",
+              "\t[Milestone Net Hours Total] / [Milestone Count]",
+              "\t, BLANK()",
+              ")"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Ticket Ageing Hrs",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Ticket Age Hrs",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Ticket Age Hrs]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "ID",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "sourceColumn": "[ID]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "Sort Order",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "sourceColumn": "[Sort Order]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": [
+                "",
+                "DATATABLE (",
+                "    ",
+                "    \"Ticket Age Hrs\", STRING,",
+                "    \"ID\", INTEGER,",
+                "    \"Sort Order\", INTEGER,",
+                "        ",
+                "    { ",
+                "        {\"<=24\",1,1},",
+                "        {\">24 and <=48\",2,2},",
+                "        {\">48 and <=72\",3,3},",
+                "        {\">72\",4,4}",
+                "    } ",
+                ")"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Reporting Calendar",
+        "dataCategory": "Time",
+        "columns": [
+          {
+            "name": "CalendarMonth",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "CalendarMonth",
+            "displayFolder": "Month"
+          },
+          {
+            "name": "CalendarQuarter",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "CalendarQuarter",
+            "displayFolder": "Quarter"
+          },
+          {
+            "name": "Year",
+            "dataType": "int64",
+            "sourceColumn": "CalendarYear",
+            "displayFolder": "Year",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Month Name",
+            "dataType": "string",
+            "sourceColumn": "MonthNameLong",
+            "displayFolder": "Month"
+          },
+          {
+            "name": "Month Name Short",
+            "dataType": "string",
+            "sourceColumn": "MonthNameShort",
+            "displayFolder": "Month"
+          },
+          {
+            "name": "Month Year",
+            "dataType": "string",
+            "sourceColumn": "MonthYear",
+            "displayFolder": "Month"
+          },
+          {
+            "name": "Quarter Name",
+            "dataType": "string",
+            "sourceColumn": "QuarterNameLong",
+            "displayFolder": "Quarter"
+          },
+          {
+            "name": "Quarter Name Short",
+            "dataType": "string",
+            "sourceColumn": "QuarterNameShort",
+            "displayFolder": "Quarter"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "isKey": true,
+            "sourceColumn": "Date",
+            "formatString": "Short Date",
+            "displayFolder": "Date",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Week Of Year",
+            "dataType": "int64",
+            "sourceColumn": "WeekOfYear",
+            "displayFolder": "Week",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Is Week Day",
+            "dataType": "int64",
+            "sourceColumn": "IsWeekday"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"AlignDW\",",
+                "    DW_DimDate = Source{[Schema=\"DW\",Item=\"DimDate\"]}[Data],",
+                "    #\"Filtered Rows\" = Table.SelectRows(DW_DimDate, each [KeyDate] <> null and [KeyDate] >= #date(2017, 1, 1) and [KeyDate] < #date(2021, 1, 1)),",
+                "    #\"Removed Other Columns\" = Table.SelectColumns(#\"Filtered Rows\",{\"KeyDate\", \"CalendarMonth\", \"CalendarQuarter\", \"CalendarYear\", \"MonthNameLong\", \"MonthNameShort\", \"MonthYear\", \"QuarterNameLong\", \"QuarterNameShort\", \"WeekOfYear\",\"IsWeekday\"}),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(#\"Removed Other Columns\",{{\"WeekOfYear\", Int64.Type}}),",
+                "    #\"Renamed Columns\" = Table.RenameColumns(#\"Changed Type\",{{\"KeyDate\", \"Date\"}})",
+                "in",
+                "    #\"Renamed Columns\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "_Y-Q-M-D",
+            "levels": [
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "column": "Year"
+              },
+              {
+                "name": "Quarter Name Short",
+                "ordinal": 1,
+                "column": "Quarter Name Short"
+              },
+              {
+                "name": "Month Year",
+                "ordinal": 2,
+                "column": "Month Year"
+              },
+              {
+                "name": "Date",
+                "ordinal": 3,
+                "column": "Date"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Ticket",
+        "columns": [
+          {
+            "name": "SK Ticket",
+            "dataType": "int64",
+            "isHidden": true,
+            "isUnique": true,
+            "isNullable": false,
+            "sourceColumn": "SK Ticket"
+          },
+          {
+            "name": "Ticket ID",
+            "dataType": "string",
+            "isUnique": true,
+            "isNullable": false,
+            "sourceColumn": "Key Ticket"
+          },
+          {
+            "name": "Scanner SN",
+            "dataType": "string",
+            "sourceColumn": "Scanner SN"
+          },
+          {
+            "name": "Issue Type",
+            "dataType": "string",
+            "sourceColumn": "Issue Type"
+          },
+          {
+            "name": "Sub Issue Type",
+            "dataType": "string",
+            "sourceColumn": "Sub Issue Type"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date",
+            "formatString": "Short Date",
+            "displayFolder": "Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Open Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date Time",
+            "formatString": "dd.MM.yyyy H:mm:ss",
+            "displayFolder": "Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeCustom\"><DateTimes><DateTime LCID=\"1049\" Group=\"GeneralLongDateTime\" FormatString=\"dd.MM.yyyy H:mm:ss\" /></DateTimes></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Closed Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date Time",
+            "formatString": "dd.MM.yyyy H:mm:ss",
+            "displayFolder": "Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeCustom\"><DateTimes><DateTime LCID=\"1049\" Group=\"GeneralLongDateTime\" FormatString=\"dd.MM.yyyy H:mm:ss\" /></DateTimes></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date",
+            "formatString": "Short Date",
+            "displayFolder": "Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date",
+            "formatString": "Short Date",
+            "displayFolder": "Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Resolved Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date Time",
+            "formatString": "dd.MM.yyyy H:mm:ss",
+            "displayFolder": "Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeCustom\"><DateTimes><DateTime LCID=\"1049\" Group=\"GeneralLongDateTime\" FormatString=\"dd.MM.yyyy H:mm:ss\" /></DateTimes></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Origin",
+            "dataType": "string",
+            "sourceColumn": "Origin"
+          },
+          {
+            "type": "calculated",
+            "name": "Source System",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": "IF (LEN([Ticket ID])=18,\"SFDC\",\"MAT\")"
+          },
+          {
+            "name": "Issue Asset",
+            "dataType": "string",
+            "sourceColumn": "Issue Asset"
+          },
+          {
+            "name": "Priority",
+            "dataType": "string",
+            "sourceColumn": "Priority"
+          },
+          {
+            "name": "Ticket Net Hrs",
+            "dataType": "double",
+            "sourceColumn": "Ticket Net Hrs"
+          },
+          {
+            "name": "Ticket Net Days",
+            "dataType": "double",
+            "sourceColumn": "Ticket Net Days"
+          },
+          {
+            "name": "Ticket Aging",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Aging"
+          },
+          {
+            "name": "Is Ticket Open",
+            "dataType": "string",
+            "sourceColumn": "Is Ticket Open"
+          },
+          {
+            "name": "Record Type",
+            "dataType": "string",
+            "sourceColumn": "Record Type"
+          },
+          {
+            "name": "Ticket Type",
+            "dataType": "string",
+            "sourceColumn": "Ticket Type"
+          },
+          {
+            "name": "Is Ticket Resolved",
+            "dataType": "string",
+            "sourceColumn": "Is Ticket Resolved"
+          },
+          {
+            "name": "Company",
+            "dataType": "string",
+            "sourceColumn": "Company"
+          },
+          {
+            "name": "Contact Full Name",
+            "dataType": "string",
+            "sourceColumn": "Contact Full Name"
+          },
+          {
+            "name": "Entity Type",
+            "dataType": "string",
+            "sourceColumn": "Entity Type"
+          },
+          {
+            "name": "MAT Ticket ID",
+            "dataType": "int64",
+            "sourceColumn": "MAT Ticket ID"
+          },
+          {
+            "name": "Ticket Assigned To",
+            "dataType": "string",
+            "sourceColumn": "Ticket Assigned To"
+          },
+          {
+            "name": "Ticket Opened By",
+            "dataType": "string",
+            "sourceColumn": "Ticket Opened By"
+          },
+          {
+            "name": "Track Status",
+            "dataType": "string",
+            "sourceColumn": "Track Status"
+          },
+          {
+            "name": "Last Modified Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Last Modified Date"
+          },
+          {
+            "name": "First Interaction Resolution",
+            "dataType": "string",
+            "sourceColumn": "First Interaction Resolution"
+          },
+          {
+            "name": "Ticket Status",
+            "dataType": "string",
+            "sourceColumn": "Ticket Status"
+          },
+          {
+            "name": "Aging Since Last Update",
+            "dataType": "int64",
+            "sourceColumn": "Aging Since Last Update"
+          },
+          {
+            "name": "Order ID",
+            "dataType": "int64",
+            "sourceColumn": "Order ID"
+          },
+          {
+            "name": "Activity Count",
+            "dataType": "int64",
+            "sourceColumn": "Activity Count"
+          },
+          {
+            "name": "Last Activity Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Last Activity Date"
+          },
+          {
+            "name": "Complaint Exist",
+            "dataType": "string",
+            "sourceColumn": "Complaint Exist"
+          },
+          {
+            "name": "Ticket Complaint Number",
+            "dataType": "string",
+            "sourceColumn": "Ticket Complaint Number"
+          },
+          {
+            "name": "Is Safety",
+            "dataType": "string",
+            "sourceColumn": "Is Safety"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimTicket = Source{[Schema=\"TABIRIS\",Item=\"DimTicket\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTicket"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "columns": [
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "Account Number",
+            "dataType": "string",
+            "sourceColumn": "Account Number"
+          },
+          {
+            "name": "Account Name",
+            "dataType": "string",
+            "sourceColumn": "Account Name"
+          },
+          {
+            "name": "Shipping Country Code",
+            "dataType": "string",
+            "sourceColumn": "Shipping Country Code"
+          },
+          {
+            "name": "City",
+            "dataType": "string",
+            "sourceColumn": "City"
+          },
+          {
+            "name": "Key Account",
+            "dataType": "string",
+            "sourceColumn": "Key Account"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"AlignDW\",",
+                "    TABIRIS_DimAccount = Source{[Schema=\"TABIRIS\",Item=\"DimAccount\"]}[Data],",
+                "    #\"Removed Other Columns\" = Table.SelectColumns(TABIRIS_DimAccount,{\"SK Account\", \"Key Account\", \"Account Number\", \"Account Name\", \"Shipping Country Code\", \"City\"})",
+                "in",
+                "    #\"Removed Other Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Geography",
+        "columns": [
+          {
+            "name": "SKGeography",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SKGeography"
+          },
+          {
+            "name": "Country Code",
+            "dataType": "string",
+            "isKey": true,
+            "sourceColumn": "CountryCode",
+            "displayFolder": "Geography Attributes"
+          },
+          {
+            "name": "Country",
+            "dataType": "string",
+            "sourceColumn": "Country",
+            "displayFolder": "Geography Attributes"
+          },
+          {
+            "name": "Country Group",
+            "dataType": "string",
+            "sourceColumn": "CountryGroup",
+            "displayFolder": "Geography Attributes"
+          },
+          {
+            "name": "RegionPC",
+            "dataType": "string",
+            "sourceColumn": "RegionPC",
+            "displayFolder": "Geography Attributes"
+          },
+          {
+            "name": "Region Group",
+            "dataType": "string",
+            "sourceColumn": "RegionGroup",
+            "displayFolder": "Geography Attributes"
+          },
+          {
+            "name": "Global Region",
+            "dataType": "string",
+            "sourceColumn": "GlobalRegion",
+            "displayFolder": "Geography Attributes"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"AlignDW\",",
+                "    Custom_GeographyHierarchy = Source{[Schema=\"Custom\",Item=\"GeographyHierarchy\"]}[Data],",
+                "    #\"Removed Other Columns\" = Table.SelectColumns(Custom_GeographyHierarchy,{\"SKGeography\", \"CountryCode\", \"Country\", \"CountryGroup\", \"RegionPC\", \"RegionGroup\", \"GlobalRegion\"})",
+                "in",
+                "    #\"Removed Other Columns\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Geography",
+            "levels": [
+              {
+                "name": "Global Region",
+                "ordinal": 0,
+                "column": "Global Region"
+              },
+              {
+                "name": "Region Group",
+                "ordinal": 1,
+                "column": "Region Group"
+              },
+              {
+                "name": "RegionPC",
+                "ordinal": 2,
+                "column": "RegionPC"
+              },
+              {
+                "name": "Country Group",
+                "ordinal": 3,
+                "column": "Country Group"
+              },
+              {
+                "name": "Country",
+                "ordinal": 4,
+                "column": "Country"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Team",
+        "columns": [
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "Team Name",
+            "dataType": "string",
+            "sourceColumn": "Team Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"AlignDW\",",
+                "    TABIRIS_DimTeam = Source{[Schema=\"TABIRIS\",Item=\"DimTeam\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTeam"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sales Contract",
+        "columns": [
+          {
+            "name": "SK SalesContract",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK SalesContract"
+          },
+          {
+            "name": "Sales Contract ID",
+            "dataType": "string",
+            "sourceColumn": "Key SalesContract"
+          },
+          {
+            "name": "Payment Method",
+            "dataType": "string",
+            "sourceColumn": "Payment Method"
+          },
+          {
+            "name": "Contract Status",
+            "dataType": "string",
+            "sourceColumn": "Case Order Status"
+          },
+          {
+            "name": "Processing Completed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Processing Completed Date",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Contract Signed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Contract Signed Date",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Onboarding Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Onboarding Date",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Shipping Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Shipping Date",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "MIM Date",
+            "dataType": "dateTime",
+            "sourceColumn": "MIM Date",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Audit Completed Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Audit Completed Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Case Manufacturing Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Case Manufacturing Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Contract Signed Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Contract Signed Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "First Contact Email Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "First Contact Email Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Fourth Contact Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Fourth Contact Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "MiM Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "MiM Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Notification Sent to Trainer Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent to Trainer Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Third Contact Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Third Contact Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Invoice Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Invoice Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Leasing Status Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Effective Shipment Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Effective Shipment Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Final Received Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Final Received Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "iTero Scanner Rev Rec Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "iTero Scanner Rev Rec Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Onboarding Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Onboarding Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Processing Completed Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Processing Completed Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Shipping Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Shipping Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "Spare Delivery Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Spare Delivery Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "name": "VCT Training Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "VCT Training Date Time",
+            "displayFolder": "Milestone Dates"
+          },
+          {
+            "type": "calculated",
+            "name": "Lead time contract to ship",
+            "dataType": "dateTime",
+            "isDataTypeInferred": true,
+            "expression": "'Sales Contract'[Shipping Date Time]-'Sales Contract'[Contract Signed Date Time]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimSalesContract = Source{[Schema=\"TABIRIS\",Item=\"DimSalesContract\"]}[Data],",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(TABIRIS_DimSalesContract,{{\"MIM Date\", type date}, {\"Shipping Date\", type date}, {\"Onboarding Date\", type date}, {\"Contract Signed Date\", type date}, {\"Processing Completed Date\", type date}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Sales Contract",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK SalesContract",
+            "dataType": "int64",
+            "sourceColumn": "SK SalesContract"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "SK User",
+            "dataType": "int64",
+            "sourceColumn": "SK User"
+          },
+          {
+            "name": "KeyDate AuditCompleted",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate AuditCompleted"
+          },
+          {
+            "name": "KeyDate CaseManufacturing",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate CaseManufacturing"
+          },
+          {
+            "name": "KeyDate ContractSigned",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate ContractSigned"
+          },
+          {
+            "name": "KeyDate FirstContactEmail",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate FirstContactEmail"
+          },
+          {
+            "name": "KeyDate FourthContact",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate FourthContact"
+          },
+          {
+            "name": "KeyDate MiM",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate MiM"
+          },
+          {
+            "name": "KeyDate NotificationSenttoTrainer",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate NotificationSenttoTrainer"
+          },
+          {
+            "name": "KeyDate ThirdContact",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate ThirdContact"
+          },
+          {
+            "name": "KeyDate Invoice",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate Invoice"
+          },
+          {
+            "name": "KeyDate LeasingStatus",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate LeasingStatus"
+          },
+          {
+            "name": "KeyDate EffectiveShipment",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate EffectiveShipment"
+          },
+          {
+            "name": "KeyDate FinalReceived",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate FinalReceived"
+          },
+          {
+            "name": "KeyDate iTeroScannerRevRec",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate iTeroScannerRevRec"
+          },
+          {
+            "name": "KeyDate Onboarding",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate Onboarding"
+          },
+          {
+            "name": "KeyDate ProcessingCompleted",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate ProcessingCompleted"
+          },
+          {
+            "name": "KeyDate Shipping",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate Shipping"
+          },
+          {
+            "name": "KeyDate SpareDelivery",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate SpareDelivery"
+          },
+          {
+            "name": "KeyDate VCTTraining",
+            "dataType": "dateTime",
+            "sourceColumn": "KeyDate VCTTraining"
+          },
+          {
+            "name": "Audit Time Elapsed",
+            "dataType": "double",
+            "sourceColumn": "Audit Time Elapsed"
+          },
+          {
+            "name": "Processing Time Elapsed",
+            "dataType": "double",
+            "sourceColumn": "Processing Time Elapsed"
+          },
+          {
+            "name": "Shipment Time Elapsed",
+            "dataType": "double",
+            "sourceColumn": "Shipment Time Elapsed"
+          },
+          {
+            "name": "Contracts Count",
+            "dataType": "int64",
+            "sourceColumn": "Contracts Count"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactSalesContract = Source{[Schema=\"TABIRIS\",Item=\"FactSalesContract\"]}[Data]",
+                "in",
+                "    TABIRIS_FactSalesContract"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Asset",
+        "columns": [
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "Key Asset",
+            "dataType": "string",
+            "sourceColumn": "Key Asset"
+          },
+          {
+            "name": "Serial Number",
+            "dataType": "string",
+            "sourceColumn": "Serial Number"
+          },
+          {
+            "name": "Wand Number",
+            "dataType": "string",
+            "sourceColumn": "Wand Number"
+          },
+          {
+            "name": "Created Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Created Date Time"
+          },
+          {
+            "name": "Install Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Install Date Time"
+          },
+          {
+            "name": "Last Referenced Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Last Referenced Date Time"
+          },
+          {
+            "name": "Purchase Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Purchase Date Time"
+          },
+          {
+            "name": "Usage End Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Usage End Date Time"
+          },
+          {
+            "name": "First Registration Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "First Registration Date Time"
+          },
+          {
+            "name": "Last Registration Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Last Registration Date Time"
+          },
+          {
+            "name": "Asset Type",
+            "dataType": "string",
+            "sourceColumn": "Asset Type"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimAsset = Source{[Schema=\"TABIRIS\",Item=\"DimAsset\"]}[Data]",
+                "in",
+                "    TABIRIS_DimAsset"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Ticket Onboarding",
+        "columns": [
+          {
+            "name": "Ticket Number",
+            "dataType": "string",
+            "sourceColumn": "Ticket Number"
+          },
+          {
+            "name": "Ticket Status",
+            "dataType": "string",
+            "sourceColumn": "Ticket Status"
+          },
+          {
+            "name": "Ticket Assigned To",
+            "dataType": "string",
+            "sourceColumn": "Ticket Assigned To"
+          },
+          {
+            "name": "Company",
+            "dataType": "string",
+            "sourceColumn": "Company"
+          },
+          {
+            "name": "Contact Full Name",
+            "dataType": "string",
+            "sourceColumn": "Contact Full Name"
+          },
+          {
+            "name": "Origin",
+            "dataType": "string",
+            "sourceColumn": "Origin"
+          },
+          {
+            "name": "Processing Status",
+            "dataType": "string",
+            "sourceColumn": "Processing Status"
+          },
+          {
+            "name": "Shipping Status",
+            "dataType": "string",
+            "sourceColumn": "Shipping Status"
+          },
+          {
+            "name": "Ticket Opened By",
+            "dataType": "string",
+            "sourceColumn": "Ticket Opened By"
+          },
+          {
+            "name": "Is Ticket Open",
+            "dataType": "string",
+            "sourceColumn": "Is Ticket Open"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Open Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Ticket Cancelled Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Cancelled Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Cancelled Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Cancelled Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Closed Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Resolved Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Ticket First Contact Email Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket First Contact Email Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket First Contact Email Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket First Contact Email Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Ticket Third Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Third Contact Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Third Contact Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Third Contact Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Ticket Fourth Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Fourth Contact Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Fourth Contact Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Fourth Contact Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Notification Sent To Trainer Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent To Trainer Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Notification Sent To Trainer Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent To Trainer Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Leasing Status Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Leasing Status Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Onboarding Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Onboarding Date",
+            "formatString": "Short Date",
+            "displayFolder": "_Dates",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Onboarding Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Onboarding Date Time",
+            "displayFolder": "_Dates"
+          },
+          {
+            "name": "Track Status",
+            "dataType": "string",
+            "sourceColumn": "Track Status"
+          },
+          {
+            "name": "SK Ticket Onboarding",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Ticket Onboarding"
+          },
+          {
+            "name": "Key Ticket Onboarding",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Key Ticket Onboarding"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimTicketOnboarding = Source{[Schema=\"TABIRIS\",Item=\"DimTicketOnboarding\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTicketOnboarding"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket Onboarding",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK ParentTicket",
+            "dataType": "int64",
+            "sourceColumn": "SK ParentTicket"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date"
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date"
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date"
+          },
+          {
+            "name": "Ticket Cancelled Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Cancelled Date"
+          },
+          {
+            "name": "Ticket First Contact Email Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket First Contact Email Date"
+          },
+          {
+            "name": "Ticket Third Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Third Contact Date"
+          },
+          {
+            "name": "Ticket Fourth Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Fourth Contact Date"
+          },
+          {
+            "name": "Notification Sent To Trainer Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent To Trainer Date"
+          },
+          {
+            "name": "Leasing Status Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date"
+          },
+          {
+            "name": "Onboarding Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Onboarding Date"
+          },
+          {
+            "name": "Tickets Count",
+            "dataType": "int64",
+            "sourceColumn": "Tickets Count"
+          },
+          {
+            "name": "Ticket Net Hrs",
+            "dataType": "double",
+            "sourceColumn": "Ticket Net Hrs"
+          },
+          {
+            "name": "Ticket Calendar Hrs",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Calendar Hrs"
+          },
+          {
+            "name": "Ticket Aging",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Aging"
+          },
+          {
+            "name": "SK Ticket Onboarding",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket Onboarding"
+          },
+          {
+            "name": "Is Ticket Open",
+            "dataType": "int64",
+            "sourceColumn": "Is Ticket Open"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactTicketOnboarding = Source{[Schema=\"TABIRIS\",Item=\"FactTicketOnboarding\"]}[Data]",
+                "in",
+                "    TABIRIS_FactTicketOnboarding"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Ticket Item",
+        "columns": [
+          {
+            "name": "SK Ticket Item",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Ticket Item"
+          },
+          {
+            "name": "Key Ticket Item",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Key Ticket Item"
+          },
+          {
+            "name": "Created Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Created Date"
+          },
+          {
+            "name": "Is RMA",
+            "dataType": "int64",
+            "sourceColumn": "Is RMA"
+          },
+          {
+            "name": "Is DOA",
+            "dataType": "string",
+            "sourceColumn": "Is DOA"
+          },
+          {
+            "name": "Replaced Type",
+            "dataType": "string",
+            "sourceColumn": "Replaced Type"
+          },
+          {
+            "name": "Replaced SN",
+            "dataType": "string",
+            "sourceColumn": "Replaced SN"
+          },
+          {
+            "name": "Replacement SN",
+            "dataType": "string",
+            "sourceColumn": "Replacement SN"
+          },
+          {
+            "name": "Tracking Number",
+            "dataType": "string",
+            "sourceColumn": "Tracking Number"
+          },
+          {
+            "name": "Reported Issue",
+            "dataType": "string",
+            "sourceColumn": "Reported Issue"
+          },
+          {
+            "name": "Root Cause",
+            "dataType": "string",
+            "sourceColumn": "Root Cause"
+          },
+          {
+            "name": "Approved Status",
+            "dataType": "string",
+            "sourceColumn": "Approved Status"
+          },
+          {
+            "name": "Replacement Reason",
+            "dataType": "string",
+            "sourceColumn": "Replacement Reason"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimTicketItem = Source{[Schema=\"TABIRIS\",Item=\"DimTicketItem\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTicketItem"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket Item",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK Ticket Item",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket Item"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK Ticket",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "SK User",
+            "dataType": "int64",
+            "sourceColumn": "SK User"
+          },
+          {
+            "name": "RMA Item Count",
+            "dataType": "int64",
+            "sourceColumn": "RMA Item Count"
+          },
+          {
+            "name": "Created Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Created Date"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactTicketItem = Source{[Schema=\"TABIRIS\",Item=\"FactTicketItem\"]}[Data]",
+                "in",
+                "    TABIRIS_FactTicketItem"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Ticket Complaint",
+        "columns": [
+          {
+            "name": "SK Ticket Complaint",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Ticket Complaint"
+          },
+          {
+            "name": "Key Ticket Complaint",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Key Ticket Complaint"
+          },
+          {
+            "name": "Created Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Created Date"
+          },
+          {
+            "name": "Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Closed Date"
+          },
+          {
+            "name": "Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Resolved Date"
+          },
+          {
+            "name": "Cancelled Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Cancelled Date"
+          },
+          {
+            "name": "Contact Full Name",
+            "dataType": "string",
+            "sourceColumn": "Contact Full Name"
+          },
+          {
+            "name": "Issue Type",
+            "dataType": "string",
+            "sourceColumn": "Issue Type"
+          },
+          {
+            "name": "Sub Issue Type",
+            "dataType": "string",
+            "sourceColumn": "Sub Issue Type"
+          },
+          {
+            "name": "Issue Asset",
+            "dataType": "string",
+            "sourceColumn": "Issue Asset"
+          },
+          {
+            "name": "Last Modified Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Last Modified Date"
+          },
+          {
+            "name": "Origin",
+            "dataType": "string",
+            "sourceColumn": "Origin"
+          },
+          {
+            "name": "Priority",
+            "dataType": "string",
+            "sourceColumn": "Priority"
+          },
+          {
+            "name": "Status",
+            "dataType": "string",
+            "sourceColumn": "Status"
+          },
+          {
+            "name": "Ticket Type",
+            "dataType": "string",
+            "sourceColumn": "Ticket Type"
+          },
+          {
+            "name": "Ticket Number",
+            "dataType": "string",
+            "sourceColumn": "Ticket Number"
+          },
+          {
+            "name": "Record Type",
+            "dataType": "string",
+            "sourceColumn": "Record Type"
+          },
+          {
+            "name": "Ticket Assigned To",
+            "dataType": "string",
+            "sourceColumn": "Ticket Assigned To"
+          },
+          {
+            "name": "Ticket Opened By",
+            "dataType": "string",
+            "sourceColumn": "Ticket Opened By"
+          },
+          {
+            "name": "Additional Comments Other",
+            "dataType": "string",
+            "sourceColumn": "Additional Comments Other"
+          },
+          {
+            "name": "Additional Information",
+            "dataType": "string",
+            "sourceColumn": "Additional Information"
+          },
+          {
+            "name": "Complaint Handling And Assessment Done By",
+            "dataType": "string",
+            "sourceColumn": "Complaint Handling And Assessment Done By"
+          },
+          {
+            "name": "Complaint Status",
+            "dataType": "string",
+            "sourceColumn": "Complaint Status"
+          },
+          {
+            "name": "Customer Issue Description",
+            "dataType": "string",
+            "sourceColumn": "Customer Issue Description"
+          },
+          {
+            "name": "Customer Service Initial Investigation",
+            "dataType": "string",
+            "sourceColumn": "Customer Service Initial Investigation"
+          },
+          {
+            "name": "DidEvent Result In",
+            "dataType": "boolean",
+            "sourceColumn": "DidEvent Result In"
+          },
+          {
+            "name": "Duplicate Of",
+            "dataType": "string",
+            "sourceColumn": "Duplicate Of"
+          },
+          {
+            "name": "Evaluation Impact Level",
+            "dataType": "string",
+            "sourceColumn": "Evaluation Impact Level"
+          },
+          {
+            "name": "Hazard Situation",
+            "dataType": "string",
+            "sourceColumn": "Hazard Situation"
+          },
+          {
+            "name": "Investigation CAPA Reference",
+            "dataType": "string",
+            "sourceColumn": "Investigation CAPA Reference"
+          },
+          {
+            "name": "In What Country",
+            "dataType": "string",
+            "sourceColumn": "In What Country"
+          },
+          {
+            "name": "Is Further Investigation Needed",
+            "dataType": "boolean",
+            "sourceColumn": "Is Further Investigation Needed"
+          },
+          {
+            "name": "Is Regulatory Non Conformance",
+            "dataType": "boolean",
+            "sourceColumn": "Is Regulatory Non Conformance"
+          },
+          {
+            "name": "Is Reportable",
+            "dataType": "string",
+            "sourceColumn": "Is Reportable"
+          },
+          {
+            "name": "Is Safety",
+            "dataType": "string",
+            "sourceColumn": "Is Safety"
+          },
+          {
+            "name": "Is Safety Or Potentially",
+            "dataType": "string",
+            "sourceColumn": "Is Safety Or Potentially"
+          },
+          {
+            "name": "Is Valid Complaint",
+            "dataType": "string",
+            "sourceColumn": "Is Valid Complaint"
+          },
+          {
+            "name": "Justification Report Summary",
+            "dataType": "string",
+            "sourceColumn": "Justification Report Summary"
+          },
+          {
+            "name": "Rationale For Further Investigation CAPA Not Required",
+            "dataType": "string",
+            "sourceColumn": "Rationale For Further Investigation CAPA Not Required"
+          },
+          {
+            "name": "Risk Analysis DOC",
+            "dataType": "string",
+            "sourceColumn": "Risk Analysis DOC"
+          },
+          {
+            "name": "Root Cause",
+            "dataType": "string",
+            "sourceColumn": "Root Cause"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimTicketComplaint = Source{[Schema=\"TABIRIS\",Item=\"DimTicketComplaint\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTicketComplaint"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket Complaint",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK Ticket Complaint",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket Complaint"
+          },
+          {
+            "name": "Key Ticket Complaint",
+            "dataType": "string",
+            "sourceColumn": "Key Ticket Complaint"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK User",
+            "dataType": "int64",
+            "sourceColumn": "SK User"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "Contact Full Name",
+            "dataType": "string",
+            "sourceColumn": "Contact Full Name"
+          },
+          {
+            "name": "Complaint Count",
+            "dataType": "int64",
+            "sourceColumn": "Complaint Count"
+          },
+          {
+            "name": "Created Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Created Date"
+          },
+          {
+            "name": "Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Closed Date"
+          },
+          {
+            "name": "Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Resolved Date"
+          },
+          {
+            "name": "Cancelled Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Cancelled Date"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactTicketComplaint = Source{[Schema=\"TABIRIS\",Item=\"FactTicketComplaint\"]}[Data]",
+                "in",
+                "    TABIRIS_FactTicketComplaint"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Virtual Product",
+        "columns": [
+          {
+            "name": "SKVirtualProduct",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SKVirtualProduct"
+          },
+          {
+            "name": "Key Virtual Product",
+            "dataType": "int64",
+            "sourceColumn": "Key Virtual Product"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SKAsset"
+          },
+          {
+            "name": "Start Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Start Date"
+          },
+          {
+            "name": "Expiry Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Expiry Date"
+          },
+          {
+            "name": "AutoRenewal",
+            "dataType": "int64",
+            "sourceColumn": "AutoRenewal"
+          },
+          {
+            "name": "Serial Code",
+            "dataType": "string",
+            "sourceColumn": "Serial Code"
+          },
+          {
+            "name": "Category",
+            "dataType": "string",
+            "sourceColumn": "Category"
+          },
+          {
+            "name": "Name",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimVirtualProduct = Source{[Schema=\"TABIRIS\",Item=\"DimVirtualProduct\"]}[Data]",
+                "in",
+                "    TABIRIS_DimVirtualProduct"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SKTicket",
+            "dataType": "int64",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false,
+            "sourceColumn": "SKTicket"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date",
+            "formatString": "Short Date",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date",
+            "formatString": "Short Date",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date"
+          },
+          {
+            "name": "Tickets Count",
+            "dataType": "int64",
+            "sourceColumn": "Tickets Count"
+          },
+          {
+            "name": "Ticket Net Hrs",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Net Hrs"
+          },
+          {
+            "name": "Ticket Calendar Hrs",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Calendar Hrs"
+          },
+          {
+            "name": "Ticket Aging",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Aging"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "SK ParentTicket",
+            "dataType": "int64",
+            "sourceColumn": "SK ParentTicket"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "Is Ticket Open",
+            "dataType": "int64",
+            "sourceColumn": "Is Ticket Open"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"AlignDW\",",
+                "    TABIRIS_FactTicket = Source{[Schema=\"TABIRIS\",Item=\"FactTicket\"]}[Data],",
+                "    #\"Filtered Rows\" = Table.SelectRows(TABIRIS_FactTicket, each [Ticket Open Date] >= #date(2017, 1, 1)),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(#\"Filtered Rows\",{{\"Ticket Net Hrs\", Int64.Type}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Scanner Installation",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SKAsset",
+            "dataType": "int64",
+            "sourceColumn": "SKAsset"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "SKAccount",
+            "dataType": "int64",
+            "sourceColumn": "SKAccount"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactScannerInstallation = Source{[Schema=\"TABIRIS\",Item=\"FactScannerInstallation\"]}[Data]",
+                "in",
+                "    TABIRIS_FactScannerInstallation"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket RMA",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK ParentTicket",
+            "dataType": "int64",
+            "sourceColumn": "SK ParentTicket"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date"
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date"
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date"
+          },
+          {
+            "name": "RMA Count",
+            "dataType": "int64",
+            "sourceColumn": "RMA Count"
+          },
+          {
+            "name": "RMA Net Hrs",
+            "dataType": "double",
+            "sourceColumn": "RMA Net Hrs"
+          },
+          {
+            "name": "RMA Calendar Hrs",
+            "dataType": "int64",
+            "sourceColumn": "RMA Calendar Hrs"
+          },
+          {
+            "name": "RMA Aging",
+            "dataType": "int64",
+            "sourceColumn": "RMA Aging"
+          },
+          {
+            "name": "SK Ticket",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactTicketRMA = Source{[Schema=\"TABIRIS\",Item=\"FactTicketRMA\"]}[Data]",
+                "in",
+                "    TABIRIS_FactTicketRMA"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Ticket Milestone",
+        "columns": [
+          {
+            "name": "SK Ticket Milestone",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Ticket Milestone"
+          },
+          {
+            "name": "Key Business Hours",
+            "dataType": "string",
+            "sourceColumn": "Key Business Hours"
+          },
+          {
+            "name": "Key Ticket Milestone",
+            "dataType": "string",
+            "sourceColumn": "Key Ticket Milestone"
+          },
+          {
+            "name": "Key Ticket",
+            "dataType": "string",
+            "sourceColumn": "Key Ticket"
+          },
+          {
+            "name": "Is Completed",
+            "dataType": "string",
+            "sourceColumn": "Is Completed"
+          },
+          {
+            "name": "Is Deleted",
+            "dataType": "string",
+            "sourceColumn": "Is Deleted"
+          },
+          {
+            "name": "Is Violated",
+            "dataType": "string",
+            "sourceColumn": "Is Violated"
+          },
+          {
+            "name": "Target Response in Days",
+            "dataType": "double",
+            "sourceColumn": "Target Response in Days"
+          },
+          {
+            "name": "Target Response in Hrs",
+            "dataType": "double",
+            "sourceColumn": "Target Response in Hrs"
+          },
+          {
+            "name": "Target Response in Mins",
+            "dataType": "int64",
+            "sourceColumn": "Target Response in Mins"
+          },
+          {
+            "name": "Completion Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Completion Date"
+          },
+          {
+            "name": "Elapsed Time in Mins",
+            "dataType": "int64",
+            "sourceColumn": "Elapsed Time in Mins"
+          },
+          {
+            "name": "Elapsed Time in Days",
+            "dataType": "double",
+            "sourceColumn": "Elapsed Time in Days"
+          },
+          {
+            "name": "Elapsed Time in Hrs",
+            "dataType": "double",
+            "sourceColumn": "Elapsed Time in Hrs"
+          },
+          {
+            "name": "Start Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Start Date"
+          },
+          {
+            "name": "Target Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Target Date"
+          },
+          {
+            "name": "Milestone Name",
+            "dataType": "string",
+            "sourceColumn": "Milestone Name"
+          },
+          {
+            "name": "Milestone Description",
+            "dataType": "string",
+            "sourceColumn": "Milestone Description"
+          },
+          {
+            "name": "MileStone Net Hours",
+            "dataType": "int64",
+            "sourceColumn": "MileStone Net Hours"
+          },
+          {
+            "name": "Milestone Aging",
+            "dataType": "int64",
+            "sourceColumn": "Milestone Aging"
+          },
+          {
+            "name": "Milestones Count",
+            "dataType": "int64",
+            "sourceColumn": "Milestones Count"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimTicketMilestone = Source{[Schema=\"TABIRIS\",Item=\"DimTicketMilestone\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTicketMilestone"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket Milestone",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK Ticket Milestone",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket Milestone"
+          },
+          {
+            "name": "SK Ticket",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "MileStone Net Hours",
+            "dataType": "int64",
+            "sourceColumn": "MileStone Net Hours"
+          },
+          {
+            "name": "Milestone Aging",
+            "dataType": "int64",
+            "sourceColumn": "Milestone Aging"
+          },
+          {
+            "name": "Milestones Count",
+            "dataType": "int64",
+            "sourceColumn": "Milestones Count"
+          },
+          {
+            "name": "Key Start Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Key Start Date"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactTicketMilestone = Source{[Schema=\"TABIRIS\",Item=\"FactTicketMilestone\"]}[Data]",
+                "in",
+                "    TABIRIS_FactTicketMilestone"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Ticket Training",
+        "columns": [
+          {
+            "name": "SK Ticket Training",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SK Ticket Training"
+          },
+          {
+            "name": "Key Ticket Training",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Key Ticket Training"
+          },
+          {
+            "name": "Ticket Number",
+            "dataType": "string",
+            "sourceColumn": "Ticket Number"
+          },
+          {
+            "name": "Ticket Status",
+            "dataType": "string",
+            "sourceColumn": "Ticket Status"
+          },
+          {
+            "name": "Ticket Assigned To",
+            "dataType": "string",
+            "sourceColumn": "Ticket Assigned To"
+          },
+          {
+            "name": "Company",
+            "dataType": "string",
+            "sourceColumn": "Company"
+          },
+          {
+            "name": "Contact Full Name",
+            "dataType": "string",
+            "sourceColumn": "Contact Full Name"
+          },
+          {
+            "name": "Origin",
+            "dataType": "string",
+            "sourceColumn": "Origin"
+          },
+          {
+            "name": "Processing Status",
+            "dataType": "string",
+            "sourceColumn": "Processing Status"
+          },
+          {
+            "name": "Shipping Status",
+            "dataType": "string",
+            "sourceColumn": "Shipping Status"
+          },
+          {
+            "name": "Ticket Opened By",
+            "dataType": "string",
+            "sourceColumn": "Ticket Opened By"
+          },
+          {
+            "name": "Is Ticket Open",
+            "dataType": "string",
+            "sourceColumn": "Is Ticket Open"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date"
+          },
+          {
+            "name": "Ticket Open Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date Time"
+          },
+          {
+            "name": "Ticket Cancelled Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Cancelled Date"
+          },
+          {
+            "name": "Ticket Cancelled Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Cancelled Date Time"
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date"
+          },
+          {
+            "name": "Ticket Closed Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date Time"
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date"
+          },
+          {
+            "name": "Ticket Resolved Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date Time"
+          },
+          {
+            "name": "Ticket First Contact Email Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket First Contact Email Date"
+          },
+          {
+            "name": "Ticket First Contact Email Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket First Contact Email Date Time"
+          },
+          {
+            "name": "Ticket Third Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Third Contact Date"
+          },
+          {
+            "name": "Ticket Third Contact Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Third Contact Date Time"
+          },
+          {
+            "name": "Ticket Fourth Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Fourth Contact Date"
+          },
+          {
+            "name": "Ticket Fourth Contact Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Fourth Contact Date Time"
+          },
+          {
+            "name": "Notification Sent To Trainer Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent To Trainer Date"
+          },
+          {
+            "name": "Notification Sent To Trainer Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent To Trainer Date Time"
+          },
+          {
+            "name": "Leasing Status Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date"
+          },
+          {
+            "name": "Leasing Status Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date Time"
+          },
+          {
+            "name": "Training Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Training Date"
+          },
+          {
+            "name": "Training Date Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Training Date Time"
+          },
+          {
+            "name": "Track Status",
+            "dataType": "string",
+            "sourceColumn": "Track Status"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_DimTicketTraining = Source{[Schema=\"TABIRIS\",Item=\"DimTicketTraining\"]}[Data]",
+                "in",
+                "    TABIRIS_DimTicketTraining"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Ticket Training",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SK Ticket Training",
+            "dataType": "int64",
+            "sourceColumn": "SK Ticket Training"
+          },
+          {
+            "name": "SK Asset",
+            "dataType": "int64",
+            "sourceColumn": "SK Asset"
+          },
+          {
+            "name": "SK ParentTicket",
+            "dataType": "int64",
+            "sourceColumn": "SK ParentTicket"
+          },
+          {
+            "name": "SK Team",
+            "dataType": "int64",
+            "sourceColumn": "SK Team"
+          },
+          {
+            "name": "SK Account",
+            "dataType": "int64",
+            "sourceColumn": "SK Account"
+          },
+          {
+            "name": "Ticket Open Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Open Date"
+          },
+          {
+            "name": "Ticket Closed Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Closed Date"
+          },
+          {
+            "name": "Ticket Resolved Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Resolved Date"
+          },
+          {
+            "name": "Ticket Cancelled Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Cancelled Date"
+          },
+          {
+            "name": "Ticket First Contact Email Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket First Contact Email Date"
+          },
+          {
+            "name": "Ticket Third Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Third Contact Date"
+          },
+          {
+            "name": "Ticket Fourth Contact Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Ticket Fourth Contact Date"
+          },
+          {
+            "name": "Notification Sent To Trainer Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Notification Sent To Trainer Date"
+          },
+          {
+            "name": "Leasing Status Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Leasing Status Date"
+          },
+          {
+            "name": "Training Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Training Date"
+          },
+          {
+            "name": "Tickets Count",
+            "dataType": "int64",
+            "sourceColumn": "Tickets Count"
+          },
+          {
+            "name": "Ticket Net Hrs",
+            "dataType": "double",
+            "sourceColumn": "Ticket Net Hrs"
+          },
+          {
+            "name": "Ticket Calendar Hrs",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Calendar Hrs"
+          },
+          {
+            "name": "Ticket Aging",
+            "dataType": "int64",
+            "sourceColumn": "Ticket Aging"
+          },
+          {
+            "name": "Is Ticket Open",
+            "dataType": "int64",
+            "sourceColumn": "Is Ticket Open"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = AlignDW,",
+                "    TABIRIS_FactTicketTraining = Source{[Schema=\"TABIRIS\",Item=\"FactTicketTraining\"]}[Data]",
+                "in",
+                "    TABIRIS_FactTicketTraining"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "ce4bd4c9-db5c-415f-8994-d514b07e6cb6",
+        "fromTable": "Fact Ticket",
+        "fromColumn": "SKTicket",
+        "toTable": "Ticket",
+        "toColumn": "SK Ticket"
+      },
+      {
+        "name": "8f8cfd75-28c1-4acb-a563-47fa8a76b802",
+        "fromTable": "Fact Ticket",
+        "fromColumn": "SK Account",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "e9720a5c-f239-4c41-b380-e301298ae1e9",
+        "fromTable": "Account",
+        "fromColumn": "Shipping Country Code",
+        "toTable": "Geography",
+        "toColumn": "Country Code"
+      },
+      {
+        "name": "43ec4132-b7fa-4c3f-b6dc-fc0eac55ea97",
+        "fromTable": "Fact Ticket",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "8258a169-e6ec-4b2e-9135-018bd9ce5db7",
+        "fromTable": "Fact Sales Contract",
+        "fromColumn": "SK SalesContract",
+        "toTable": "Sales Contract",
+        "toColumn": "SK SalesContract"
+      },
+      {
+        "name": "aa8eb417-a8d2-4e1f-8702-e4b201c21c01",
+        "fromTable": "Fact Sales Contract",
+        "fromColumn": "SK Account",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "8c668af6-378e-4654-b3a9-d402379de10c",
+        "fromTable": "Fact Sales Contract",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "e268f017-9d80-474f-b91c-b5c7bf0f5b8d",
+        "fromTable": "Fact Scanner Installation",
+        "fromColumn": "SKAccount",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "3efd225c-782b-4957-bc30-9b5554be5d46",
+        "fromTable": "Fact Scanner Installation",
+        "fromColumn": "SKAsset",
+        "toTable": "Asset",
+        "toColumn": "SK Asset"
+      },
+      {
+        "name": "44907524-a9d1-4f10-a73f-9bd2138c5e54",
+        "fromTable": "Fact Ticket Onboarding",
+        "fromColumn": "SK Ticket Onboarding",
+        "toTable": "Ticket Onboarding",
+        "toColumn": "SK Ticket Onboarding"
+      },
+      {
+        "name": "4ff3e7a2-749d-431d-b7cd-f4ed6dc5ca81",
+        "fromTable": "Fact Ticket Onboarding",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "0078cbb7-d965-49c1-9ea0-2ea0f7d7d3c6",
+        "fromTable": "Fact Ticket Item",
+        "fromColumn": "SK Ticket Item",
+        "toTable": "Ticket Item",
+        "toColumn": "SK Ticket Item"
+      },
+      {
+        "name": "c23d55a1-967b-4ff4-9cb5-e764dd3ea091",
+        "fromTable": "Fact Ticket Item",
+        "fromColumn": "SK Asset",
+        "toTable": "Asset",
+        "toColumn": "SK Asset"
+      },
+      {
+        "name": "b38215b2-c513-4ea6-90c0-7d8c0a587c52",
+        "fromTable": "Fact Ticket Item",
+        "fromColumn": "SK Ticket",
+        "toTable": "Ticket",
+        "toColumn": "SK Ticket"
+      },
+      {
+        "name": "bd3e3726-0b6c-40bc-92d0-3c05f356cfa5",
+        "fromTable": "Fact Ticket Item",
+        "fromColumn": "SK Account",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "4cbb9d13-41b8-48a4-9aa5-d686e584cc83",
+        "fromTable": "Fact Ticket Item",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "a2cfcbfb-3c65-45ad-9594-134641cc7127",
+        "fromTable": "Fact Ticket Complaint",
+        "fromColumn": "SK Ticket Complaint",
+        "toTable": "Ticket Complaint",
+        "toColumn": "SK Ticket Complaint"
+      },
+      {
+        "name": "27f51314-f830-4703-a82e-57a069ca6afc",
+        "fromTable": "Fact Ticket Complaint",
+        "fromColumn": "SK Account",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "c1c037ff-8673-4b41-a5b2-17be1e14a912",
+        "fromTable": "Fact Ticket Complaint",
+        "fromColumn": "SK Asset",
+        "toTable": "Asset",
+        "toColumn": "SK Asset"
+      },
+      {
+        "name": "82832453-50c3-4318-aa04-59713474a131",
+        "fromTable": "Fact Ticket Complaint",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "87eb92ba-5f72-46db-998d-6355dbfc6fb1",
+        "fromTable": "Virtual Product",
+        "fromColumn": "SK Asset",
+        "toTable": "Asset",
+        "toColumn": "SK Asset"
+      },
+      {
+        "name": "de3a87a0-2d5e-43d0-ba95-d2189f22a566",
+        "fromTable": "Fact Ticket RMA",
+        "fromColumn": "SK Ticket",
+        "toTable": "Ticket",
+        "toColumn": "SK Ticket"
+      },
+      {
+        "name": "dfe05457-571a-4a28-b3ac-8b7dc20ecee5",
+        "fromTable": "Fact Ticket RMA",
+        "fromColumn": "SK Asset",
+        "toTable": "Asset",
+        "toColumn": "SK Asset"
+      },
+      {
+        "name": "137368e1-09d1-4f41-828b-c9b1f5904f4f",
+        "fromTable": "Fact Ticket RMA",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "694ed59a-2fb9-4b29-8bca-748b9b0a65d5",
+        "fromTable": "Fact Ticket RMA",
+        "fromColumn": "SK Account",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "7a28714d-6376-48a2-a337-453730cc8d2a",
+        "fromTable": "Fact Ticket Milestone",
+        "fromColumn": "SK Ticket Milestone",
+        "toTable": "Ticket Milestone",
+        "toColumn": "SK Ticket Milestone"
+      },
+      {
+        "name": "16f5c963-bcdf-4119-a6c2-4dd6c1a9d340",
+        "fromTable": "Fact Ticket Milestone",
+        "fromColumn": "SK Ticket",
+        "toTable": "Ticket",
+        "toColumn": "SK Ticket"
+      },
+      {
+        "name": "0e95c205-011b-4385-ba70-e780b4ed5da7",
+        "fromTable": "Fact Ticket Milestone",
+        "fromColumn": "SK Asset",
+        "toTable": "Asset",
+        "toColumn": "SK Asset"
+      },
+      {
+        "name": "b8296845-c851-4c83-a232-77a30ea6733a",
+        "fromTable": "Fact Ticket Milestone",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      },
+      {
+        "name": "48804118-4746-4319-925a-8b3f10c6d9ad",
+        "fromTable": "Fact Ticket Milestone",
+        "fromColumn": "SK Account",
+        "toTable": "Account",
+        "toColumn": "SK Account"
+      },
+      {
+        "name": "4256ddd1-942f-43a1-b335-6862631730cd",
+        "fromTable": "Fact Ticket Training",
+        "fromColumn": "SK Ticket Training",
+        "toTable": "Ticket Training",
+        "toColumn": "SK Ticket Training"
+      },
+      {
+        "name": "746d7656-0d86-49b1-a644-e94efa1ab373",
+        "fromTable": "Fact Ticket Training",
+        "fromColumn": "SK Team",
+        "toTable": "Team",
+        "toColumn": "SK Team"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "ClientCompatibilityLevel",
+        "value": "500"
+      }
+    ]
+  },
+  "id": "SemanticModel"
+}

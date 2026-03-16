@@ -1,0 +1,38 @@
+﻿CREATE TABLE [CTRL].[ADLObject] (
+    [ObjectID]                          INT             NOT NULL,
+    [SourceSystem]                      VARCHAR (32)    NOT NULL,
+    [IsActive]                          BIT             NOT NULL,
+    [DatabaseName]                      VARCHAR (64)    NULL,
+    [SchemaName]                        VARCHAR (64)    NULL,
+    [ObjectName]                        VARCHAR (128)   NOT NULL,
+    [PredicateColumn]                   VARCHAR (128)   NULL,
+    [PredicateExpression]               VARCHAR (512)   NULL,
+    [DataSliceValueDataType]            VARCHAR (32)    NULL,
+    [DataSliceStartValue]               SQL_VARIANT     NULL,
+    [DataSliceEndValue]                 SQL_VARIANT     NULL,
+    [IsFullLoad]                        BIT             NOT NULL,
+    [Status]                            VARCHAR (32)    NOT NULL,
+    [DateUpdated]                       DATETIME2 (3)   NOT NULL,
+    [IsInitialOnly]                     BIT             NOT NULL,
+    [LastSuccessfullADLSTimestamp]      DATETIME2 (0)   NULL,
+    [ColumnList]                        VARCHAR (8000)  NULL,
+    [QueryFilter]                       VARCHAR (4000)  NULL,
+    [JSONQuery]                         NVARCHAR (MAX)  NULL,
+    [SAPPredicateType]                  VARCHAR (32)    NULL,
+    [SAPPartitionOption]                VARCHAR (32)    NULL,
+    [SAPPartitionColumnName]            VARCHAR (20)    NULL,
+    [SAPPartitionLowerBound]            VARCHAR (20)    NULL,
+    [SAPPartitionUpperBound]            VARCHAR (20)    NULL,
+    [SAPMaxPartitionsNumber]            INT             NULL,
+    [APIURL]                            NVARCHAR (4000) NULL,
+    [APIDefaultDataSliceStartValueExpr] VARCHAR (100)   NULL,
+    [APIDefaultDataSliceEndValueExpr]   VARCHAR (100)   NULL,
+    [S3Bucket]                          VARCHAR (256)   NULL,
+    [S3Folder]                          VARCHAR (512)   NULL,
+    [S3FileDestination]                 VARCHAR (512)   NULL,
+    [SFDCIsDeleted]                     BIT             NULL,
+    [SAPTimestampOffsetminutes]         INT             NULL 
+ CONSTRAINT [PK_ADLObject] PRIMARY KEY CLUSTERED ([ObjectID] ASC)
+
+);
+

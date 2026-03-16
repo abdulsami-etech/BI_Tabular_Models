@@ -1,0 +1,2740 @@
+{
+  "name": "SemanticModel",
+  "compatibilityLevel": 1500,
+  "model": {
+    "culture": "en-US",
+    "discourageImplicitMeasures": true,
+    "dataSources": [
+      {
+        "name": "ADW_DataSource",
+        "connectionString": "Data Source=stgalignbisql.database.windows.net;Initial Catalog=stgalignbidw;Persist Security Info=True;User ID=largercuser",
+        "impersonationMode": "impersonateServiceAccount",
+        "provider": "System.Data.SqlClient"
+      }
+    ],
+    "tables": [
+      {
+        "name": "DimGeography",
+        "description": "Table that stores the Standard ShipTo Geography rollup based on Doctor country",
+        "columns": [
+          {
+            "name": "SKCountry",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SKCountry",
+            "sourceProviderType": "int",
+            "displayFolder": "Attributes",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "CountryCode",
+            "dataType": "string",
+            "isHidden": true,
+            "isKey": true,
+            "sourceColumn": "CountryCode",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "CountryName",
+            "dataType": "string",
+            "sourceColumn": "CountryName",
+            "sourceProviderType": "varchar",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "CountryGroup",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "CountryGroup",
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "Region",
+            "dataType": "string",
+            "sourceColumn": "Region",
+            "sourceProviderType": "varchar",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "RegionGroup",
+            "dataType": "string",
+            "sourceColumn": "RegionGroup",
+            "sourceProviderType": "varchar",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "GlobalRegion",
+            "dataType": "string",
+            "sourceColumn": "GlobalRegion",
+            "sourceProviderType": "varchar",
+            "displayFolder": "Attributes"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "DimGeography",
+            "source": {
+              "type": "query",
+              "query": [
+                "select SKGeography as SKCountry, CountryCode, Country as CountryName, CountryGroup,RegionPC as Region, RegionGroup, GlobalRegion ",
+                "from custom.GeographyHierarchy",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimCountry\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\",\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\"],\"SelectAll\":true}"
+              }
+            ]
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Standard",
+            "levels": [
+              {
+                "name": "RegionGroup",
+                "ordinal": 1,
+                "column": "RegionGroup"
+              },
+              {
+                "name": "GlobalRegion",
+                "ordinal": 0,
+                "column": "GlobalRegion"
+              },
+              {
+                "name": "Region",
+                "ordinal": 2,
+                "column": "Region"
+              },
+              {
+                "name": "CountryGroup",
+                "ordinal": 3,
+                "column": "CountryGroup"
+              },
+              {
+                "name": "CountryName",
+                "ordinal": 4,
+                "column": "CountryName"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "FactVolume",
+        "columns": [
+          {
+            "name": "CountryCode",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "CountryCode",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar",
+            "displayFolder": "System",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "StatusDate",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "StatusDate",
+            "formatString": "mm/dd/yyyy",
+            "isAvailableInMdx": false,
+            "displayFolder": "System",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "StatusCount",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "StatusCount",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "NewOrRestart",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "NewOrRestart",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "Plant",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Plant",
+            "isAvailableInMdx": false,
+            "displayFolder": "System",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "ProductHierarchy",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "ProductHierarchy",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "TreatmentOption",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "TreatmentOption",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "DeliverableType",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "DeliverableType",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "TotalAlignerQuantity",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "TotalAlignerQuantity",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "SAPOrderNumber",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SAPOrderNumber",
+            "isAvailableInMdx": false,
+            "displayFolder": "System",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "DeliverableQuantity",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "DeliverableQuantity",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "TreatmentCategory",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "TreatmentCategory",
+            "isAvailableInMdx": false,
+            "displayFolder": "System"
+          },
+          {
+            "name": "SKOrderStatus",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "SKOrderStatus",
+            "displayFolder": "System"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Volume_CQ",
+            "source": {
+              "type": "query",
+              "query": [
+                "  Declare @StartDate Date,@EndDate Date",
+                "  select top 1 @StartDate= QuarterStartDate , @EndDate = DateAdd(day,1,QuarterEndDate)",
+                "  from dw.dimdatetime where QuarterType = 'Current Quarter'",
+                "",
+                "  select  TreatmentCategory,Convert(bigint,SAPOrderNumber) as SAPOrderNumber, SKOrderStatus, StatusDate, CountryCode, NewOrRestart, Convert(int,Plant) Plant, ProductHierarchy, TreatmentOption, DeliverableType, TotalAlignerQuantity,DeliverableQuantity,StatusCount ",
+                "  from dw.factVolume",
+                "  where TreatmentCategory='Primary'  and IsKeyStatus=1 and SKOrderStatus in (40,80,100,108,110,118)",
+                "  and StatusDate >=@StartDate and StatusDate < @EndDate",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimCountry\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\",\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\"],\"SelectAll\":true}"
+              }
+            ]
+          },
+          {
+            "name": "Volume_PQ",
+            "source": {
+              "type": "query",
+              "query": [
+                "  Declare @StartDate Date,@EndDate Date",
+                "  select top 1 @StartDate= QuarterStartDate , @EndDate = DateAdd(day,1,QuarterEndDate)",
+                "  from dw.dimdatetime where QuarterType = 'Prior Quarter'",
+                "",
+                "  select  TreatmentCategory,Convert(bigint,SAPOrderNumber) as SAPOrderNumber, SKOrderStatus, StatusDate, CountryCode, NewOrRestart, Convert(int,Plant) Plant, ProductHierarchy, TreatmentOption, DeliverableType, TotalAlignerQuantity,DeliverableQuantity,StatusCount ",
+                "  from dw.factVolume",
+                "  where TreatmentCategory='Primary'  and IsKeyStatus=1 and SKOrderStatus in (40,80,100,108,110,118)",
+                "  and StatusDate >=@StartDate and StatusDate < @EndDate",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimCountry\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\",\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\"],\"SelectAll\":true}"
+              }
+            ]
+          },
+          {
+            "name": "Volume_History",
+            "source": {
+              "type": "query",
+              "query": [
+                "  Declare @StartDate Date,@EndDate Date",
+                "  select top 1 @StartDate= min(DateKey) , @EndDate = DateAdd(day,1,Max(DateKey))",
+                "  from dw.dimdatetime where YearType = 'Prior Year'",
+                "  ",
+                "  ",
+                "  select  TreatmentCategory,Convert(bigint,SAPOrderNumber) as SAPOrderNumber, SKOrderStatus, StatusDate, CountryCode, NewOrRestart, Convert(int,Plant) Plant, ProductHierarchy, TreatmentOption, DeliverableType, TotalAlignerQuantity,DeliverableQuantity,StatusCount ",
+                "  from dw.factVolume",
+                "  where TreatmentCategory='Primary'  and IsKeyStatus=1 and SKOrderStatus in (40,80,100,108,110,118)",
+                "  --and StatusDate >=@LyQtrStartDate and StatusDate <@ToDate",
+                "  and StatusDate >=@StartDate and StatusDate <@EndDate",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimCountry\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\",\"SKCountry\",\"CountryCode\",\"CountryName\",\"CountryGroup\",\"Region\",\"RegionGroup\",\"GlobalRegion\",\"iTeroReportingRegion\"],\"SelectAll\":true}"
+              }
+            ]
+          }
+        ],
+        "measures": [
+          {
+            "name": "All Cancellations",
+            "expression": [
+              "VAR varAllCancellations =",
+              "    CALCULATE ( SUM ( 'FactVolume'[StatusCount] ), 'FactVolume'[SKOrderStatus] = 108 )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varAllCancellations )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Gross CCA",
+            "expression": [
+              "",
+              "VAR varGrossCCA =",
+              "    CALCULATE ( SUM ( 'FactVolume'[StatusCount] ), 'FactVolume'[SKOrderStatus] = 100 )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varGrossCCA )"
+            ],
+            "formatString": "#,0",
+            "isHidden": true,
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "CCA",
+            "description": "Count of ClinCheck Accepted Cases by Doctor in a given period after removing any cancellations after CCA",
+            "expression": [
+              "VAR varCCA = [Gross CCA] - [Restricted Cancellations]",
+              "VAR varCCAFcst =",
+              "    CALCULATE ( SUM ( 'Forecast'[Value] ), 'Forecast'[Measure] = \"CCA\" )",
+              "RETURN",
+              "    SWITCH (",
+              "        [SelectedScen],",
+              "        \"Actual\", varCCA,",
+              "        \"Forecast\", CALCULATE ( varCCAFcst, 'Scenario'[Scenario] = \"Forecast\" ),",
+              "        \"AOP\", CALCULATE ( varCCAFcst, 'Scenario'[Scenario] = \"AOP\" ),",
+              "        \"LE\", CALCULATE ( varCCAFcst, 'Scenario'[Scenario] = \"LE\" )",
+              "    )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Restricted Cancellations",
+            "expression": [
+              "",
+              "VAR varRestrictedCancellations =",
+              "    CALCULATE ( SUM ( 'FactVolume'[StatusCount] ), 'FactVolume'[SKOrderStatus] = 118 )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varRestrictedCancellations )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Shipments",
+            "expression": [
+              "",
+              "VAR varShipments =",
+              "    CALCULATE ( SUM ( 'FactVolume'[StatusCount] ), 'FactVolume'[SKOrderStatus] = 110 )",
+              "VAR varShipmentsFcst =",
+              "    CALCULATE ( SUM ( 'Forecast'[Value] ), 'Forecast'[Measure] = \"Shipments\" )",
+              "RETURN",
+              "    SWITCH (",
+              "        [SelectedScen],",
+              "        \"Actual\", varShipments,",
+              "        \"Forecast\", CALCULATE ( varShipmentsFcst, 'Scenario'[Scenario] = \"Forecast\" ),",
+              "        \"AOP\", CALCULATE ( varShipmentsFcst, 'Scenario'[Scenario] = \"AOP\" ),",
+              "        \"LE\", CALCULATE ( varShipmentsFcst, 'Scenario'[Scenario] = \"LE\" )",
+              "    )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Net Receipts",
+            "expression": [
+              "VAR varNR = [Gross Gross Receipts] - [All Cancellations]",
+              "VAR varNRFcst =",
+              "    CALCULATE ( SUM ( 'Forecast'[Value] ), 'Forecast'[Measure] = \"Net Receipts\" )",
+              "RETURN",
+              "    SWITCH (",
+              "        [SelectedScen],",
+              "        \"Actual\", varNR,",
+              "        \"Forecast\", CALCULATE ( varNRFcst, 'Scenario'[Scenario] = \"Forecast\" ),",
+              "        \"AOP\", CALCULATE ( varNRFcst, 'Scenario'[Scenario] = \"AOP\" ),",
+              "        \"LE\", CALCULATE ( varNRFcst, 'Scenario'[Scenario] = \"LE\" )",
+              "    )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Value",
+            "description": "Use this measure along with DimMeasures Measure Name attribute to allow Measure names in slicers",
+            "expression": [
+              "VAR varSelectedValue =",
+              "    SELECTEDVALUE ( 'DimMeasures'[MeasureKey], 10 )",
+              "RETURN",
+              "    ",
+              "SWITCH (",
+              "    varSelectedValue,",
+              "    10, [Gross Receipts],",
+              "    20, [Net Receipts],",
+              "    30, [CCA],",
+              "    40, [Shipments],",
+              "    50, [Actual Cancellations],",
+              "    60, [All Cancellations],",
+              "    70, [ClinCheck Postings],",
+              "    80, [Total Aligner Quantity],",
+              "    90, [Total Deliverable Quantity],",
+              "    100, [Gross Gross Receipts]",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Others"
+          },
+          {
+            "name": "Restarts",
+            "description": "Count of Duplicate Primary Orders for the same Patient with an AMR Date submitted after cancelling previously submitted Order with Cancellation date in the same Quarter as Duplicate order",
+            "expression": [
+              "VAR varRestarts =",
+              "    CALCULATE (",
+              "        SUM ( 'FactVolume'[StatusCount] ),",
+              "        'FactVolume'[SKOrderStatus] = 80,",
+              "        'FactVolume'[NewOrRestart] = \"Restart\"",
+              "    )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varRestarts )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Gross Receipts",
+            "expression": [
+              "VAR varGR = [Gross Gross Receipts] - [Restarts]",
+              "VAR varGRFcst =",
+              "    CALCULATE ( SUM ( 'Forecast'[Value] ), 'Forecast'[Measure] = \"Gross Receipts\" )",
+              "RETURN",
+              "    SWITCH (",
+              "        [SelectedScen],",
+              "        \"Actual\", varGR,",
+              "        \"Forecast\", CALCULATE ( varGRFcst, 'Scenario'[Scenario] = \"Forecast\" ),",
+              "        \"AOP\", CALCULATE ( varGRFcst, 'Scenario'[Scenario] = \"AOP\" ),",
+              "        \"LE\", CALCULATE ( varGRFcst, 'Scenario'[Scenario] = \"LE\" )",
+              "    )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Gross Gross Receipts",
+            "description": "Count of All Primary Orders with an AMR Date",
+            "expression": [
+              "",
+              "VAR varGGR =",
+              "    CALCULATE ( SUM ( 'FactVolume'[StatusCount] ), 'FactVolume'[SKOrderStatus] = 80 )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varGGR )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Total Aligner Quantity",
+            "expression": [
+              "",
+              "VAR varTotAlignerQty =",
+              "    CALCULATE (",
+              "        SUM ( 'FactVolume'[TotalAlignerQuantity] ),",
+              "        'FactVolume'[SKOrderStatus] = 110",
+              "    )",
+              "RETURN",
+              "   SWITCH ( [SelectedScen], \"Actual\", varTotAlignerQty )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "ClinCheck Postings",
+            "expression": [
+              "",
+              "VAR varCCPostings =",
+              "    SUM ( 'CCPostings'[CCPostingsCount] )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varCCPostings )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Actual Cancellations",
+            "expression": [
+              "VAR varActCancellations = [All Cancellations] - [Restarts]",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varActCancellations )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "Total Deliverable Quantity",
+            "expression": [
+              "",
+              "VAR varDeliverableAlignerQty =",
+              "    CALCULATE (",
+              "        SUM ( 'FactVolume'[DeliverableQuantity] ),",
+              "        'FactVolume'[SKOrderStatus] = 110",
+              "    )",
+              "RETURN",
+              "    SWITCH ( [SelectedScen], \"Actual\", varDeliverableAlignerQty )"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Measures\\Key Volume KPIs"
+          },
+          {
+            "name": "CCALF",
+            "description": "CCA Load factor",
+            "expression": [
+              "",
+              "VAR LastDayInSelection =",
+              "    LASTNONBLANK ( DimDate[DateKey], CALCULATE ( SUM ( LoadFactor[LoadFactor] ) ) )",
+              "RETURN",
+              "    LOOKUPVALUE (",
+              "        LoadFactor[LoadFactor],",
+              "        LoadFactor[Measure], \"CCA\",",
+              "        LoadFactor[Date], LastDayInSelection",
+              "    )"
+            ],
+            "formatString": "#,##0.000000000",
+            "displayFolder": "Measures\\Load Factors"
+          },
+          {
+            "name": "NRLF",
+            "description": "Net Receipts Load Factor",
+            "expression": [
+              "",
+              "VAR LastDayInSelection =",
+              "    LASTNONBLANK ( DimDate[DateKey], CALCULATE ( SUM ( LoadFactor[LoadFactor] ) ) )",
+              "RETURN",
+              "    LOOKUPVALUE (",
+              "        LoadFactor[LoadFactor],",
+              "        LoadFactor[Measure], \"Net Receipts\",",
+              "        LoadFactor[Date], LastDayInSelection",
+              "    )"
+            ],
+            "formatString": "#,##0.000000000",
+            "displayFolder": "Measures\\Load Factors"
+          },
+          {
+            "name": "GRLF",
+            "description": "Gross Receipts Load Factor",
+            "expression": [
+              "",
+              "VAR LastDayInSelection =",
+              "    LASTNONBLANK ( DimDate[DateKey], CALCULATE ( SUM ( LoadFactor[LoadFactor] ) ) )",
+              "RETURN",
+              "    LOOKUPVALUE (",
+              "        LoadFactor[LoadFactor],",
+              "        LoadFactor[Measure], \"Gross Receipts\",",
+              "        LoadFactor[Date], LastDayInSelection",
+              "    )"
+            ],
+            "formatString": "#,##0.000000000",
+            "displayFolder": "Measures\\Load Factors"
+          },
+          {
+            "name": "ShipLF",
+            "description": "Shipments Load Factor",
+            "expression": [
+              "",
+              "VAR LastDayInSelection =",
+              "    LASTNONBLANK ( DimDate[DateKey], CALCULATE ( SUM ( LoadFactor[LoadFactor] ) ) )",
+              "RETURN",
+              "    LOOKUPVALUE (",
+              "        LoadFactor[LoadFactor],",
+              "        LoadFactor[Measure], \"Shipments\",",
+              "        LoadFactor[Date], LastDayInSelection",
+              "    )"
+            ],
+            "formatString": "#,##0.000000000",
+            "displayFolder": "Measures\\Load Factors"
+          },
+          {
+            "name": "SelectedScen",
+            "expression": "SELECTEDVALUE ( 'Scenario'[Scenario], \"Actual\" )",
+            "isHidden": true,
+            "displayFolder": "Measures\\Others"
+          }
+        ]
+      },
+      {
+        "name": "DimDate",
+        "dataCategory": "Time",
+        "columns": [
+          {
+            "name": "SKDate",
+            "dataType": "int64",
+            "sourceColumn": "SKDate",
+            "sourceProviderType": "int",
+            "displayFolder": "Day",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "MonthNameShort",
+            "dataType": "string",
+            "sourceColumn": "MonthNameShort",
+            "sortByColumn": "MonthOfYear",
+            "sourceProviderType": "varchar",
+            "displayFolder": "Month",
+            "dataCategory": "Months"
+          },
+          {
+            "name": "QuarterNameShort",
+            "dataType": "string",
+            "sourceColumn": "QuarterNameShort",
+            "sourceProviderType": "varchar",
+            "displayFolder": "Quarter",
+            "dataCategory": "Quarters"
+          },
+          {
+            "name": "WeekOfYear",
+            "dataType": "int64",
+            "sourceColumn": "WeekOfYear",
+            "sourceProviderType": "tinyint",
+            "displayFolder": "Week",
+            "dataCategory": "WeekOfYear",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "DayType",
+            "dataType": "string",
+            "sourceColumn": "DayType",
+            "displayFolder": "Types"
+          },
+          {
+            "name": "MonthType",
+            "dataType": "string",
+            "sourceColumn": "MonthType",
+            "displayFolder": "Types"
+          },
+          {
+            "name": "QuarterType",
+            "dataType": "string",
+            "sourceColumn": "QuarterType",
+            "displayFolder": "Types"
+          },
+          {
+            "name": "YearType",
+            "dataType": "string",
+            "sourceColumn": "YearType",
+            "displayFolder": "Types"
+          },
+          {
+            "name": "DateKey",
+            "dataType": "dateTime",
+            "isUnique": true,
+            "isKey": true,
+            "sourceColumn": "DateKey",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Day",
+            "dataCategory": "Date"
+          },
+          {
+            "name": "DayOfWeek",
+            "dataType": "int64",
+            "sourceColumn": "DayOfWeek",
+            "displayFolder": "Day",
+            "dataCategory": "DayOfWeek",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "DayOfWeekNameShort",
+            "dataType": "string",
+            "sourceColumn": "DayOfWeekNameShort",
+            "sortByColumn": "DayOfWeek",
+            "displayFolder": "Day",
+            "dataCategory": "DayOfWeek"
+          },
+          {
+            "name": "DayOfMonth",
+            "dataType": "int64",
+            "sourceColumn": "DayOfMonth",
+            "displayFolder": "Day",
+            "dataCategory": "DayOfMonth",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "DayOfQuarter",
+            "dataType": "int64",
+            "sourceColumn": "DayOfQuarter",
+            "displayFolder": "Day",
+            "dataCategory": "DayOfQuarter",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "DayOfYear",
+            "dataType": "int64",
+            "sourceColumn": "DayOfYear",
+            "displayFolder": "Day",
+            "dataCategory": "DayOfYear",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "MonthNameNumeric",
+            "dataType": "string",
+            "sourceColumn": "MonthNameNumeric",
+            "displayFolder": "Month",
+            "dataCategory": "Months"
+          },
+          {
+            "name": "MonthOfYear",
+            "dataType": "int64",
+            "sourceColumn": "MonthOfYear",
+            "displayFolder": "Month",
+            "dataCategory": "MonthOfYear",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "WeekStartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "WeekStartDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Week",
+            "dataCategory": "DateStart"
+          },
+          {
+            "name": "WeekEndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "WeekEndDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Week",
+            "dataCategory": "DateEnded"
+          },
+          {
+            "name": "WeekYear",
+            "dataType": "int64",
+            "sourceColumn": "WeekYear",
+            "displayFolder": "Week",
+            "dataCategory": "Years",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "WeekOfQuarter",
+            "dataType": "int64",
+            "sourceColumn": "WeekOfQuarter",
+            "displayFolder": "Week",
+            "dataCategory": "WeekOfQuarter",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "CalQWeekStartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "CalQWeekStartDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Cal Q Week"
+          },
+          {
+            "name": "CalQWeekEndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "CalQWeekEndDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Cal Q Week"
+          },
+          {
+            "name": "CalQWeekOfQuarter",
+            "dataType": "int64",
+            "sourceColumn": "CalQWeekOfQuarter",
+            "displayFolder": "Cal Q Week",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "CalYWeekStartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "CalYWeekStartDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Cal Q Week"
+          },
+          {
+            "name": "CalYWeekEndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "CalYWeekEndDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Cal Q Week"
+          },
+          {
+            "name": "CalYWeekOfYear",
+            "dataType": "int64",
+            "sourceColumn": "CalYWeekOfYear",
+            "displayFolder": "Cal Q Week",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "QuarterOfYear",
+            "dataType": "int64",
+            "sourceColumn": "QuarterOfYear",
+            "displayFolder": "Quarter",
+            "dataCategory": "QuarterOfYear",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Year",
+            "dataType": "int64",
+            "sourceColumn": "Year",
+            "displayFolder": "Year",
+            "dataCategory": "Years",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "MonthStartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "MonthStartDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Month",
+            "dataCategory": "DateStart"
+          },
+          {
+            "name": "MonthEndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "MonthEndDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Month",
+            "dataCategory": "DateEnded"
+          },
+          {
+            "name": "QuarterStartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "QuarterStartDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Quarter",
+            "dataCategory": "DateStart"
+          },
+          {
+            "name": "QuarterEndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "QuarterEndDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Quarter",
+            "dataCategory": "DateEnded"
+          },
+          {
+            "name": "YearStartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "YearStartDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Year",
+            "dataCategory": "DateStart"
+          },
+          {
+            "name": "YearEndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "YearEndDate",
+            "formatString": "mm/dd/yyyy",
+            "displayFolder": "Year",
+            "dataCategory": "DateEnded"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "DimDate",
+            "source": {
+              "type": "query",
+              "query": [
+                "  Declare @LyStartDate Date, @ToDate Date",
+                "  select top 1 @LyStartDate= DateKey",
+                "  from dw.dimdatetime where YearType = 'Prior Year'",
+                "  select top 1  @ToDate = DateAdd(Quarter,1,QuarterStartDate)",
+                "  from dw.dimdatetime where QuarterType = 'Current Quarter'",
+                "  order by 1  ",
+                "  --select top 1 * from DW.DimDateTime",
+                "  --where DateKey >=@LyQtrStartDate and DateKey <@ToDate",
+                "  ",
+                "  SELECT SKDate,DateKey, DayOfWeek,Left(ltrim(DayOfWeekName),3) DayOfWeekNameShort, DayOfMonth,DayOfQuarter,DayOfYear",
+                "  , MonthNameNumeric, MonthOfYear, left(ltrim(MonthNameShort),3) as MonthNameShort, MonthStartDate, MonthEndDate",
+                "  , WeekStartDate, WeekEndDate, WeekOfYear, WeekYear, WeekOfQuarter",
+                "  , CalQWeekStartDate, CalQWeekEndDate, CalQWeekOfQuarter, CalYWeekStartDate, CalYWeekEndDate, CalYWeekOfYear",
+                "  , QuarterOfYear, QuarterNameShort, QuarterStartDate, QuarterEndDate",
+                "  , DayType, MonthType, QuarterType, YearType",
+                "  , Year, Convert(date,Concat('01/01/',Str(Year))) YearStartDate, Convert(date,Concat('12/31/',Str(Year))) YearEndDate",
+                "  from dw.dimdatetime ",
+                "  where DateKey >=@LyStartDate and DateKey < @ToDate"
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimDate\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"SKDate\",\"KeyDate\",\"Date\",\"CalendarDay\",\"CalendarMonth\",\"CalendarQuarter\",\"CalendarYear\",\"DayNameLong\",\"DayNameShort\",\"DayNumberOfWeek\",\"DayNumberOfYear\",\"DaySuffix\",\"FiscalWeek\",\"FiscalMonth\",\"FiscalQuarter\",\"FiscalYear\",\"FirstDayOfMonth\",\"FirstDayOfQuarter\",\"FirstDayOfWeek\",\"FirstDayOfYear\",\"HolidayName\",\"IsHoliday\",\"IsLastDayOfMonth\",\"IsWeekday\",\"LastDayOfMonth\",\"LastDayOfQuarter\",\"LastDayOfWeek\",\"LastDayOfYear\",\"MonthNameLong\",\"MonthNameShort\",\"MonthYear\",\"QuarterNameLong\",\"QuarterNameShort\",\"WeekOfMonth\",\"WeekOfYear\"],\"SelectAll\":true}"
+              },
+              {
+                "name": "QueryEditorSerialization",
+                "value": [
+                  "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>Declare @CurrentDateOverride date ",
+                  "",
+                  "    -- SET NOCOUNT ON added to prevent extra result sets from",
+                  "    -- interfering with SELECT statements.",
+                  "    SET NOCOUNT ON;",
+                  "    set xact_abort on;",
+                  "",
+                  "    declare @currentDate date = dateadd(day, 0, cast(getDate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time' as date)); --current day is yesterday",
+                  "    --- Override CurrentDate from the parameter ",
+                  "    if @CurrentDateOverride is not null ",
+                  "        set @currentDate= @CurrentDateOverride ",
+                  "",
+                  "    --select @currentDate",
+                  "    set datefirst 1;",
+                  "    declare @currentYear int =year(@currentDate); ",
+                  "    declare @currentQuarter date = DATEADD(quarter, DATEDIFF(quarter, 0, @currentDate), 0); ",
+                  "    declare @currentMonth date = DATEADD(month, DATEDIFF(month, 0, @currentDate), 0); ",
+                  "    declare @currentWeek date = DATEADD(DAY, 1-DATEPART(WEEKDAY, @currentDate), @currentDate);",
+                  "",
+                  "    ; with diff as (--to simplify code",
+                  "        select KeyDate",
+                  "            ,  datediff(dd, Cast(@currentDate as date), KeyDate) as dayDiff",
+                  "            ,  datediff(week, @currentWeek, DATEADD(DAY, 1-DATEPART(WEEKDAY, KeyDate), KeyDate)) as weekDiff",
+                  "            ,  datediff(month, @currentMonth, DATEADD(month, DATEDIFF(month, 0, KeyDate), 0)) as monthDiff",
+                  "            ,  datediff(QUARTER, @currentQuarter, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, KeyDate), 0)) as qtrDiff",
+                  "            ,  year(KeyDate) - @currentYear  as yearDiff",
+                  "        from Dw.DimDate ",
+                  "    )",
+                  "    select dt.*",
+                  "    ,case when dt.KeyDate = Convert(date, getdate()    AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time') then 1 else 0 end as CurrentDay ",
+                  "    ,DayType = Case when dayDiff = 0 then 'Current Day' ",
+                  "                       when dayDiff = -1 then 'Previous Day' ",
+                  "                       when dayDiff <-1 then 'Historical Days' ",
+                  "                       when dayDiff >= 0 then 'Future Days' ",
+                  "                       end",
+                  "        , WeekType = case when weekDiff = -52 then 'Same Week Prior Year'",
+                  "                             when weekDiff <= -2 then 'Historical Weeks' ",
+                  "                             when weekDiff = -1 then 'Prior Week' ",
+                  "                             when weekDiff = 0 then 'Current Week' ",
+                  "                             else 'Future Weeks' ",
+                  "                             end",
+                  "        , MonthType = case when monthDiff = -12 then 'Same Month Prior Year' ",
+                  "                              when monthDiff <= -2 then 'Historical Months' ",
+                  "                              when monthDiff = -1 then 'Prior Month' ",
+                  "                              when monthDiff = 0 then 'Current Month' ",
+                  "                              else 'Future Months' ",
+                  "                              end ",
+                  "        , QuarterType= case when qtrDiff = -4 then 'Same Quarter Prior Year' ",
+                  "                               when qtrDiff <= -2 then 'Historical Quarters' ",
+                  "                               when qtrDiff = -1 then 'Prior Quarter' ",
+                  "                               when qtrDiff = 0 then 'Current Quarter' ",
+                  "                               else 'Future Quarters' ",
+                  "                               end",
+                  "        , YearType =case when yearDiff <= -2 then 'Historical Years' ",
+                  "                            when yearDiff = -1 then 'Prior Year' ",
+                  "                            when yearDiff = 0 then 'Current Year' ",
+                  "                            else 'Future Years' ",
+                  "                            end",
+                  "    from DW.DimDate  dt",
+                  "    inner join diff on diff.KeyDate = dt.KeyDate",
+                  "    where skdate>='20200101'</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+                ]
+              }
+            ]
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Calendar",
+            "levels": [
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "column": "Year"
+              },
+              {
+                "name": "Quarter",
+                "ordinal": 1,
+                "column": "QuarterNameShort"
+              },
+              {
+                "name": "Month",
+                "ordinal": 2,
+                "column": "MonthNameNumeric"
+              },
+              {
+                "name": "Date",
+                "ordinal": 3,
+                "column": "DateKey"
+              }
+            ]
+          },
+          {
+            "name": "YQWD",
+            "levels": [
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "column": "Year"
+              },
+              {
+                "name": "Quarter",
+                "ordinal": 1,
+                "column": "QuarterNameShort"
+              },
+              {
+                "name": "CalQWeekStartDate",
+                "ordinal": 2,
+                "column": "CalQWeekStartDate"
+              },
+              {
+                "name": "Date",
+                "ordinal": 3,
+                "column": "DateKey"
+              }
+            ]
+          }
+        ],
+        "annotations": [
+          {
+            "name": "_TM_ExtProp_QueryDefinition",
+            "value": [
+              "Declare @CurrentDateOverride date ",
+              "",
+              "    -- SET NOCOUNT ON added to prevent extra result sets from",
+              "    -- interfering with SELECT statements.",
+              "    SET NOCOUNT ON;",
+              "    set xact_abort on;",
+              "",
+              "    declare @currentDate date = dateadd(day, 0, cast(getDate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time' as date)); --current day is yesterday",
+              "    --- Override CurrentDate from the parameter ",
+              "    if @CurrentDateOverride is not null ",
+              "        set @currentDate= @CurrentDateOverride ",
+              "",
+              "    --select @currentDate",
+              "    set datefirst 1;",
+              "    declare @currentYear int =year(@currentDate); ",
+              "    declare @currentQuarter date = DATEADD(quarter, DATEDIFF(quarter, 0, @currentDate), 0); ",
+              "    declare @currentMonth date = DATEADD(month, DATEDIFF(month, 0, @currentDate), 0); ",
+              "    declare @currentWeek date = DATEADD(DAY, 1-DATEPART(WEEKDAY, @currentDate), @currentDate);",
+              "",
+              "    ; with diff as (--to simplify code",
+              "        select KeyDate",
+              "            ,  datediff(dd, Cast(@currentDate as date), KeyDate) as dayDiff",
+              "            ,  datediff(week, @currentWeek, DATEADD(DAY, 1-DATEPART(WEEKDAY, KeyDate), KeyDate)) as weekDiff",
+              "            ,  datediff(month, @currentMonth, DATEADD(month, DATEDIFF(month, 0, KeyDate), 0)) as monthDiff",
+              "            ,  datediff(QUARTER, @currentQuarter, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, KeyDate), 0)) as qtrDiff",
+              "            ,  year(KeyDate) - @currentYear  as yearDiff",
+              "        from Dw.DimDate ",
+              "    )",
+              "    select dt.*",
+              "    ,case when dt.KeyDate = Convert(date, getdate()    AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time') then 1 else 0 end as CurrentDay ",
+              "    ,DayType = Case when dayDiff = 0 then 'Current Day' ",
+              "                       when dayDiff = -1 then 'Previous Day' ",
+              "                       when dayDiff <-1 then 'Historical Days' ",
+              "                       when dayDiff >= 0 then 'Future Days' ",
+              "                       end",
+              "        , WeekType = case when weekDiff = -52 then 'Same Week Prior Year'",
+              "                             when weekDiff <= -2 then 'Historical Weeks' ",
+              "                             when weekDiff = -1 then 'Prior Week' ",
+              "                             when weekDiff = 0 then 'Current Week' ",
+              "                             else 'Future Weeks' ",
+              "                             end",
+              "        , MonthType = case when monthDiff = -12 then 'Same Month Prior Year' ",
+              "                              when monthDiff <= -2 then 'Historical Months' ",
+              "                              when monthDiff = -1 then 'Prior Month' ",
+              "                              when monthDiff = 0 then 'Current Month' ",
+              "                              else 'Future Months' ",
+              "                              end ",
+              "        , QuarterType= case when qtrDiff = -4 then 'Same Quarter Prior Year' ",
+              "                               when qtrDiff <= -2 then 'Historical Quarters' ",
+              "                               when qtrDiff = -1 then 'Prior Quarter' ",
+              "                               when qtrDiff = 0 then 'Current Quarter' ",
+              "                               else 'Future Quarters' ",
+              "                               end",
+              "        , YearType =case when yearDiff <= -2 then 'Historical Years' ",
+              "                            when yearDiff = -1 then 'Prior Year' ",
+              "                            when yearDiff = 0 then 'Current Year' ",
+              "                            else 'Future Years' ",
+              "                            end",
+              "    from DW.DimDate  dt",
+              "    inner join diff on diff.KeyDate = dt.KeyDate",
+              "    where skdate>='20200101'"
+            ]
+          },
+          {
+            "name": "QueryEditorSerialization",
+            "value": [
+              "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>Declare @CurrentDateOverride date ",
+              "",
+              "    -- SET NOCOUNT ON added to prevent extra result sets from",
+              "    -- interfering with SELECT statements.",
+              "    SET NOCOUNT ON;",
+              "    set xact_abort on;",
+              "",
+              "    declare @currentDate date = dateadd(day, 0, cast(getDate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time' as date)); --current day is yesterday",
+              "    --- Override CurrentDate from the parameter ",
+              "    if @CurrentDateOverride is not null ",
+              "        set @currentDate= @CurrentDateOverride ",
+              "",
+              "    --select @currentDate",
+              "    set datefirst 1;",
+              "    declare @currentYear int =year(@currentDate); ",
+              "    declare @currentQuarter date = DATEADD(quarter, DATEDIFF(quarter, 0, @currentDate), 0); ",
+              "    declare @currentMonth date = DATEADD(month, DATEDIFF(month, 0, @currentDate), 0); ",
+              "    declare @currentWeek date = DATEADD(DAY, 1-DATEPART(WEEKDAY, @currentDate), @currentDate);",
+              "",
+              "    ; with diff as (--to simplify code",
+              "        select KeyDate",
+              "            ,  datediff(dd, Cast(@currentDate as date), KeyDate) as dayDiff",
+              "            ,  datediff(week, @currentWeek, DATEADD(DAY, 1-DATEPART(WEEKDAY, KeyDate), KeyDate)) as weekDiff",
+              "            ,  datediff(month, @currentMonth, DATEADD(month, DATEDIFF(month, 0, KeyDate), 0)) as monthDiff",
+              "            ,  datediff(QUARTER, @currentQuarter, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, KeyDate), 0)) as qtrDiff",
+              "            ,  year(KeyDate) - @currentYear  as yearDiff",
+              "        from Dw.DimDate ",
+              "    )",
+              "    select dt.*",
+              "    ,case when dt.KeyDate = Convert(date, getdate()    AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time') then 1 else 0 end as CurrentDay ",
+              "    ,DayType = Case when dayDiff = 0 then 'Current Day' ",
+              "                       when dayDiff = -1 then 'Previous Day' ",
+              "                       when dayDiff <-1 then 'Historical Days' ",
+              "                       when dayDiff >= 0 then 'Future Days' ",
+              "                       end",
+              "        , WeekType = case when weekDiff = -52 then 'Same Week Prior Year'",
+              "                             when weekDiff <= -2 then 'Historical Weeks' ",
+              "                             when weekDiff = -1 then 'Prior Week' ",
+              "                             when weekDiff = 0 then 'Current Week' ",
+              "                             else 'Future Weeks' ",
+              "                             end",
+              "        , MonthType = case when monthDiff = -12 then 'Same Month Prior Year' ",
+              "                              when monthDiff <= -2 then 'Historical Months' ",
+              "                              when monthDiff = -1 then 'Prior Month' ",
+              "                              when monthDiff = 0 then 'Current Month' ",
+              "                              else 'Future Months' ",
+              "                              end ",
+              "        , QuarterType= case when qtrDiff = -4 then 'Same Quarter Prior Year' ",
+              "                               when qtrDiff <= -2 then 'Historical Quarters' ",
+              "                               when qtrDiff = -1 then 'Prior Quarter' ",
+              "                               when qtrDiff = 0 then 'Current Quarter' ",
+              "                               else 'Future Quarters' ",
+              "                               end",
+              "        , YearType =case when yearDiff <= -2 then 'Historical Years' ",
+              "                            when yearDiff = -1 then 'Prior Year' ",
+              "                            when yearDiff = 0 then 'Current Year' ",
+              "                            else 'Future Years' ",
+              "                            end",
+              "    from DW.DimDate  dt",
+              "    inner join diff on diff.KeyDate = dt.KeyDate",
+              "    where skdate>='20200101'</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "DimMeasures",
+        "columns": [
+          {
+            "name": "MeasureKey",
+            "dataType": "int64",
+            "isHidden": true,
+            "isUnique": true,
+            "sourceColumn": "MeasureKey"
+          },
+          {
+            "name": "Measure Name",
+            "dataType": "string",
+            "sourceColumn": "Measure Name",
+            "sortByColumn": "MeasureKey"
+          },
+          {
+            "name": "Measure Group",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Measure Group",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "Measure Folder",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Measure Folder",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "Measure String",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Measure String",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "FormatString",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "FormatString",
+            "isAvailableInMdx": false
+          }
+        ],
+        "partitions": [
+          {
+            "name": "DimMeasures",
+            "source": {
+              "type": "query",
+              "query": [
+                "Select 10 as MeasureKey, 'Gross Receipts' as [Measure Name],  'Gross Receipts' as [Measure Group], 'Volume Measures' as [Measure Folder], '[Gross Receipts]' as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 20 as MeasureKey, 'Net Receipts' as [Measure Name],  'Net Receipts' as [Measure Group], 'Volume Measures' as [Measure Folder], '[Net Receipts]' as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 30 as MeasureKey, 'CCA' as [Measure Name],  'CCA' as [Measure Group], 'Volume Measures'  as [Measure Folder], '[CCA]'  as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 40 as MeasureKey, 'Shipments' as [Measure Name],  'Shipments'  as [Measure Group], 'Volume Measures'  as [Measure Folder], '[Shipments]'  as [Measure String],'#,###' as FormatString",
+                "union ",
+                "Select 50 as MeasureKey, 'Actual Cancellations' as [Measure Name],  'Actual Cancellations'  as [Measure Group], 'Volume Measures'  [Measure Folder], '[Actual Cancellations]'  as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 60 as MeasureKey, 'All Cancellations' as [Measure Name],  'All Cancellations'  as [Measure Group], 'Volume Measures'  [Measure Folder], '[All Cancellations]'  as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 70 as MeasureKey, 'ClinCheck Postings' as [Measure Name],  'ClinCheck Postings'  as [Measure Group], 'Volume Measures'  [Measure Folder], '[ClinCheck Postings]'  as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 80 as MeasureKey, 'Total Aligner Quantity' as [Measure Name],  'Total Aligner Quantity'  as [Measure Group], 'Volume Measures'  [Measure Folder], '[Total Aligner Quantity]'  as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 90 as MeasureKey, 'Total Deliverable Quantity' as [Measure Name],  'Total Deliverable Quantity'  as [Measure Group], 'Volume Measures'  [Measure Folder], '[Total Deliverable Quantity]'  as [Measure String],'#,###' as FormatString",
+                "union",
+                "Select 100 as MeasureKey, 'Gross Gross Receipts' as [Measure Name],  'Gross Gross Receipts' as [Measure Group], 'Volume Measures' as [Measure Folder], '[Gross Gross Receipts]' as [Measure String],'#,###' as FormatString",
+                "",
+                "",
+                "",
+                " "
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimAccount\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"AccountNumber\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "DimOrderStatus",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "FormatString",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "FormatString",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "OrderStatusKey",
+            "dataType": "int64",
+            "isHidden": true,
+            "isKey": true,
+            "sourceColumn": "OrderStatusKey",
+            "isAvailableInMdx": false,
+            "summarizeBy": "none"
+          },
+          {
+            "name": "OrderStatus Name",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "OrderStatus Name",
+            "isAvailableInMdx": false
+          }
+        ],
+        "partitions": [
+          {
+            "name": "DimOrderStatus",
+            "source": {
+              "type": "query",
+              "query": [
+                "Select 80 as OrderStatusKey, 'AMR' as [OrderStatus Name],'#,###' as FormatString",
+                "union",
+                "Select 100 as OrderStatusKey, 'CCA' as [OrderStatus Name],'#,###' as FormatString",
+                "union",
+                "Select 110 as OrderStatusKey, 'Shipments' as [OrderStatus Name],'#,###' as FormatString",
+                "union ",
+                "Select 108 as OrderStatusKey, 'Cancellations' as [OrderStatus Name],'#,###' as FormatString",
+                " "
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimAccount\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"AccountNumber\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "LastRefreshTimeStmap",
+        "columns": [
+          {
+            "name": "LastRefreshTime",
+            "dataType": "dateTime",
+            "sourceColumn": "LastRefreshTime",
+            "formatString": "dddd, MMMM d, yyyy h:mm AM/PM",
+            "sourceProviderType": "datetimeoffset"
+          },
+          {
+            "name": "LastRefreshTimeUTC",
+            "dataType": "dateTime",
+            "sourceColumn": "LastRefreshTimeUTC"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "LastRefreshTimeStmap",
+            "dataView": "full",
+            "source": {
+              "type": "query",
+              "query": [
+                "select max(ADLSTimeStmap ) AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time'      as LastRefreshTime , max(ADLSTimeStmap ) AS LastRefreshTimeUTC ",
+                "from (",
+                " select max(ADLSTimeStamp)  ADLSTimeStmap   from SrcSAP.LIPS sfo  with (nolock)",
+                " union all",
+                " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcMESCorp.uda_order uo  with (nolock)",
+                " union all",
+                " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcIDS.tblPuOrderStatusHistory  with (nolock)",
+                " union all",
+                " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcSFDC.Apttus_Config2__Order__C  with (nolock)",
+                " ) ADLSTimeStmap",
+                "",
+                " "
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "QueryEditorSerialization",
+                "value": [
+                  "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>select min(ADLSTimeStmap ) AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time'      as LastRefreshTime  from (",
+                  " select max(ADLSTimeStamp)  ADLSTimeStmap   from SrcSFDC.Apttus_Config2__Order__c sfo  with (nolock)",
+                  " union all",
+                  " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcMESCorp.uda_order uo  with (nolock)",
+                  " union all",
+                  " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcIDS.tblPuOrderStatusHistory  with (nolock)",
+                  " ) ADLSTimeStmap</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+                ]
+              }
+            ]
+          }
+        ],
+        "annotations": [
+          {
+            "name": "_TM_ExtProp_QueryDefinition",
+            "value": [
+              "select min(ADLSTimeStmap ) AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time'      as LastRefreshTime  from (",
+              " select max(ADLSTimeStamp)  ADLSTimeStmap   from SrcSFDC.Apttus_Config2__Order__c sfo  with (nolock)",
+              " union all",
+              " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcMESCorp.uda_order uo  with (nolock)",
+              " union all",
+              " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcIDS.tblPuOrderStatusHistory  with (nolock)",
+              " ) ADLSTimeStmap"
+            ]
+          },
+          {
+            "name": "_TM_ExtProp_DbTableName",
+            "value": "LastRefreshTimeStmap"
+          },
+          {
+            "name": "QueryEditorSerialization",
+            "value": [
+              "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>select min(ADLSTimeStmap ) AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time'      as LastRefreshTime  from (",
+              " select max(ADLSTimeStamp)  ADLSTimeStmap   from SrcSFDC.Apttus_Config2__Order__c sfo  with (nolock)",
+              " union all",
+              " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcMESCorp.uda_order uo  with (nolock)",
+              " union all",
+              " select max(ADLSTimeStamp)  ADLSTimeStmap from SrcIDS.tblPuOrderStatusHistory  with (nolock)",
+              " ) ADLSTimeStmap</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "CCPostings",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "SAPTreatmentOption",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "SAPTreatmentOption",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "SAPDeliverableType",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "SAPDeliverableType",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "ProductHierarchy",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "ProductHierarchy",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "CCPostingDate",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "CCPostingDate",
+            "formatString": "mm/dd/yyyy",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "date"
+          },
+          {
+            "name": "CCPostingsCount",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "CCPostingsCount",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "CountryCode",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "CountryCode",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "TreatmentCategory",
+            "dataType": "string",
+            "sourceColumn": "TreatmentCategory",
+            "isAvailableInMdx": false
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CCPostings",
+            "source": {
+              "type": "query",
+              "query": [
+                "  Declare @LyQtrStartDate Date, @ToDate Date",
+                "  select top 1 @LyQtrStartDate= QuarterStartDate , @ToDate = DateAdd(day,1,convert(date,Getdate()))",
+                "  from dw.dimdatetime where QuarterType = 'Same Quarter Prior Year'",
+                "  ",
+                "select SAPTreatmentOption,CountryCode, SAPDeliverableType, ProductHierarchy, CCPostingDate,TreatmentCategory, Count(1) CCPostingsCount",
+                "from (",
+                "select fl.DgnWorkOrderNumber ,dc.CountryCode  ,cst.SAPTreatmentOption, csd.SAPDeliverableType, cst.ProductHierarchy, saph.zzdeli_cate TreatmentCategory,Min(dt.KeyDate) CCPostingDate",
+                "from dwTops.FactLotHistory fl ",
+                "inner join DWTops.DimOPeration dop on fl.SKOperation= dop.SKOperation",
+                "inner join dwtops.DimDoctor dd on fl.SKDoctor = dd.SKDoctor",
+                "inner join dw.DimCountry dc on dd.SKCountry = dc.SKCountry",
+                "inner join SrcSAP.VBAK saph on fl.DgnWorkOrderNumber = convert(bigint,saph.VBELN)",
+                "inner join SrcSAP.VBAP sapd on saph.VBELN = sapd.VBELN",
+                "inner join SrcSAPFile.TreatmentOption cst on cst.SAPTreatmentOption = sapd.zzTREAT_OPT",
+                "inner join SrcSAPFile.DeliverableType csd on csd.SAPDeliverableType = sapd.zzDELI_TYPE",
+                "inner join DW.DimDate dt on fl.SKStartDate = dt.SKDate",
+                "where dop.OperationName in ('ClinCheck','MTP') --and saph.zzdeli_cate='Primary'",
+                "and sapd.pstyv='Z000' and cst.ProductHierarchy is not null",
+                "group by fl.DgnWorkOrderNumber,dc.CountryCode ,cst.SAPTreatmentOption, csd.SAPDeliverableType,cst.ProductHierarchy,saph.zzdeli_cate ",
+                ") a",
+                "where CCPostingDate  >=@LyQtrStartDate and CCPostingDate <@ToDate",
+                "group by SAPTreatmentOption,CountryCode, SAPDeliverableType, ProductHierarchy, CCPostingDate,TreatmentCategory",
+                "order by 1",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimDate\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"SKDate\",\"KeyDate\",\"Date\",\"CalendarDay\",\"CalendarMonth\",\"CalendarQuarter\",\"CalendarYear\",\"DayNameLong\",\"DayNameShort\",\"DayNumberOfWeek\",\"DayNumberOfYear\",\"DaySuffix\",\"FiscalWeek\",\"FiscalMonth\",\"FiscalQuarter\",\"FiscalYear\",\"FirstDayOfMonth\",\"FirstDayOfQuarter\",\"FirstDayOfWeek\",\"FirstDayOfYear\",\"HolidayName\",\"IsHoliday\",\"IsLastDayOfMonth\",\"IsWeekday\",\"LastDayOfMonth\",\"LastDayOfQuarter\",\"LastDayOfWeek\",\"LastDayOfYear\",\"MonthNameLong\",\"MonthNameShort\",\"MonthYear\",\"QuarterNameLong\",\"QuarterNameShort\",\"WeekOfMonth\",\"WeekOfYear\"],\"SelectAll\":true}"
+              },
+              {
+                "name": "QueryEditorSerialization",
+                "value": [
+                  "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>Declare @CurrentDateOverride date ",
+                  "",
+                  "    -- SET NOCOUNT ON added to prevent extra result sets from",
+                  "    -- interfering with SELECT statements.",
+                  "    SET NOCOUNT ON;",
+                  "    set xact_abort on;",
+                  "",
+                  "    declare @currentDate date = dateadd(day, 0, cast(getDate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time' as date)); --current day is yesterday",
+                  "    --- Override CurrentDate from the parameter ",
+                  "    if @CurrentDateOverride is not null ",
+                  "        set @currentDate= @CurrentDateOverride ",
+                  "",
+                  "    --select @currentDate",
+                  "    set datefirst 1;",
+                  "    declare @currentYear int =year(@currentDate); ",
+                  "    declare @currentQuarter date = DATEADD(quarter, DATEDIFF(quarter, 0, @currentDate), 0); ",
+                  "    declare @currentMonth date = DATEADD(month, DATEDIFF(month, 0, @currentDate), 0); ",
+                  "    declare @currentWeek date = DATEADD(DAY, 1-DATEPART(WEEKDAY, @currentDate), @currentDate);",
+                  "",
+                  "    ; with diff as (--to simplify code",
+                  "        select KeyDate",
+                  "            ,  datediff(dd, Cast(@currentDate as date), KeyDate) as dayDiff",
+                  "            ,  datediff(week, @currentWeek, DATEADD(DAY, 1-DATEPART(WEEKDAY, KeyDate), KeyDate)) as weekDiff",
+                  "            ,  datediff(month, @currentMonth, DATEADD(month, DATEDIFF(month, 0, KeyDate), 0)) as monthDiff",
+                  "            ,  datediff(QUARTER, @currentQuarter, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, KeyDate), 0)) as qtrDiff",
+                  "            ,  year(KeyDate) - @currentYear  as yearDiff",
+                  "        from Dw.DimDate ",
+                  "    )",
+                  "    select dt.*",
+                  "    ,case when dt.KeyDate = Convert(date, getdate()    AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time') then 1 else 0 end as CurrentDay ",
+                  "    ,DayType = Case when dayDiff = 0 then 'Current Day' ",
+                  "                       when dayDiff = -1 then 'Previous Day' ",
+                  "                       when dayDiff <-1 then 'Historical Days' ",
+                  "                       when dayDiff >= 0 then 'Future Days' ",
+                  "                       end",
+                  "        , WeekType = case when weekDiff = -52 then 'Same Week Prior Year'",
+                  "                             when weekDiff <= -2 then 'Historical Weeks' ",
+                  "                             when weekDiff = -1 then 'Prior Week' ",
+                  "                             when weekDiff = 0 then 'Current Week' ",
+                  "                             else 'Future Weeks' ",
+                  "                             end",
+                  "        , MonthType = case when monthDiff = -12 then 'Same Month Prior Year' ",
+                  "                              when monthDiff <= -2 then 'Historical Months' ",
+                  "                              when monthDiff = -1 then 'Prior Month' ",
+                  "                              when monthDiff = 0 then 'Current Month' ",
+                  "                              else 'Future Months' ",
+                  "                              end ",
+                  "        , QuarterType= case when qtrDiff = -4 then 'Same Quarter Prior Year' ",
+                  "                               when qtrDiff <= -2 then 'Historical Quarters' ",
+                  "                               when qtrDiff = -1 then 'Prior Quarter' ",
+                  "                               when qtrDiff = 0 then 'Current Quarter' ",
+                  "                               else 'Future Quarters' ",
+                  "                               end",
+                  "        , YearType =case when yearDiff <= -2 then 'Historical Years' ",
+                  "                            when yearDiff = -1 then 'Prior Year' ",
+                  "                            when yearDiff = 0 then 'Current Year' ",
+                  "                            else 'Future Years' ",
+                  "                            end",
+                  "    from DW.DimDate  dt",
+                  "    inner join diff on diff.KeyDate = dt.KeyDate",
+                  "    where skdate>='20200101'</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+                ]
+              }
+            ]
+          }
+        ],
+        "annotations": [
+          {
+            "name": "_TM_ExtProp_QueryDefinition",
+            "value": [
+              "Declare @CurrentDateOverride date ",
+              "",
+              "    -- SET NOCOUNT ON added to prevent extra result sets from",
+              "    -- interfering with SELECT statements.",
+              "    SET NOCOUNT ON;",
+              "    set xact_abort on;",
+              "",
+              "    declare @currentDate date = dateadd(day, 0, cast(getDate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time' as date)); --current day is yesterday",
+              "    --- Override CurrentDate from the parameter ",
+              "    if @CurrentDateOverride is not null ",
+              "        set @currentDate= @CurrentDateOverride ",
+              "",
+              "    --select @currentDate",
+              "    set datefirst 1;",
+              "    declare @currentYear int =year(@currentDate); ",
+              "    declare @currentQuarter date = DATEADD(quarter, DATEDIFF(quarter, 0, @currentDate), 0); ",
+              "    declare @currentMonth date = DATEADD(month, DATEDIFF(month, 0, @currentDate), 0); ",
+              "    declare @currentWeek date = DATEADD(DAY, 1-DATEPART(WEEKDAY, @currentDate), @currentDate);",
+              "",
+              "    ; with diff as (--to simplify code",
+              "        select KeyDate",
+              "            ,  datediff(dd, Cast(@currentDate as date), KeyDate) as dayDiff",
+              "            ,  datediff(week, @currentWeek, DATEADD(DAY, 1-DATEPART(WEEKDAY, KeyDate), KeyDate)) as weekDiff",
+              "            ,  datediff(month, @currentMonth, DATEADD(month, DATEDIFF(month, 0, KeyDate), 0)) as monthDiff",
+              "            ,  datediff(QUARTER, @currentQuarter, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, KeyDate), 0)) as qtrDiff",
+              "            ,  year(KeyDate) - @currentYear  as yearDiff",
+              "        from Dw.DimDate ",
+              "    )",
+              "    select dt.*",
+              "    ,case when dt.KeyDate = Convert(date, getdate()    AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time') then 1 else 0 end as CurrentDay ",
+              "    ,DayType = Case when dayDiff = 0 then 'Current Day' ",
+              "                       when dayDiff = -1 then 'Previous Day' ",
+              "                       when dayDiff <-1 then 'Historical Days' ",
+              "                       when dayDiff >= 0 then 'Future Days' ",
+              "                       end",
+              "        , WeekType = case when weekDiff = -52 then 'Same Week Prior Year'",
+              "                             when weekDiff <= -2 then 'Historical Weeks' ",
+              "                             when weekDiff = -1 then 'Prior Week' ",
+              "                             when weekDiff = 0 then 'Current Week' ",
+              "                             else 'Future Weeks' ",
+              "                             end",
+              "        , MonthType = case when monthDiff = -12 then 'Same Month Prior Year' ",
+              "                              when monthDiff <= -2 then 'Historical Months' ",
+              "                              when monthDiff = -1 then 'Prior Month' ",
+              "                              when monthDiff = 0 then 'Current Month' ",
+              "                              else 'Future Months' ",
+              "                              end ",
+              "        , QuarterType= case when qtrDiff = -4 then 'Same Quarter Prior Year' ",
+              "                               when qtrDiff <= -2 then 'Historical Quarters' ",
+              "                               when qtrDiff = -1 then 'Prior Quarter' ",
+              "                               when qtrDiff = 0 then 'Current Quarter' ",
+              "                               else 'Future Quarters' ",
+              "                               end",
+              "        , YearType =case when yearDiff <= -2 then 'Historical Years' ",
+              "                            when yearDiff = -1 then 'Prior Year' ",
+              "                            when yearDiff = 0 then 'Current Year' ",
+              "                            else 'Future Years' ",
+              "                            end",
+              "    from DW.DimDate  dt",
+              "    inner join diff on diff.KeyDate = dt.KeyDate",
+              "    where skdate>='20200101'"
+            ]
+          },
+          {
+            "name": "QueryEditorSerialization",
+            "value": [
+              "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>Declare @CurrentDateOverride date ",
+              "",
+              "    -- SET NOCOUNT ON added to prevent extra result sets from",
+              "    -- interfering with SELECT statements.",
+              "    SET NOCOUNT ON;",
+              "    set xact_abort on;",
+              "",
+              "    declare @currentDate date = dateadd(day, 0, cast(getDate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time' as date)); --current day is yesterday",
+              "    --- Override CurrentDate from the parameter ",
+              "    if @CurrentDateOverride is not null ",
+              "        set @currentDate= @CurrentDateOverride ",
+              "",
+              "    --select @currentDate",
+              "    set datefirst 1;",
+              "    declare @currentYear int =year(@currentDate); ",
+              "    declare @currentQuarter date = DATEADD(quarter, DATEDIFF(quarter, 0, @currentDate), 0); ",
+              "    declare @currentMonth date = DATEADD(month, DATEDIFF(month, 0, @currentDate), 0); ",
+              "    declare @currentWeek date = DATEADD(DAY, 1-DATEPART(WEEKDAY, @currentDate), @currentDate);",
+              "",
+              "    ; with diff as (--to simplify code",
+              "        select KeyDate",
+              "            ,  datediff(dd, Cast(@currentDate as date), KeyDate) as dayDiff",
+              "            ,  datediff(week, @currentWeek, DATEADD(DAY, 1-DATEPART(WEEKDAY, KeyDate), KeyDate)) as weekDiff",
+              "            ,  datediff(month, @currentMonth, DATEADD(month, DATEDIFF(month, 0, KeyDate), 0)) as monthDiff",
+              "            ,  datediff(QUARTER, @currentQuarter, DATEADD(QUARTER, DATEDIFF(QUARTER, 0, KeyDate), 0)) as qtrDiff",
+              "            ,  year(KeyDate) - @currentYear  as yearDiff",
+              "        from Dw.DimDate ",
+              "    )",
+              "    select dt.*",
+              "    ,case when dt.KeyDate = Convert(date, getdate()    AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific standard time') then 1 else 0 end as CurrentDay ",
+              "    ,DayType = Case when dayDiff = 0 then 'Current Day' ",
+              "                       when dayDiff = -1 then 'Previous Day' ",
+              "                       when dayDiff <-1 then 'Historical Days' ",
+              "                       when dayDiff >= 0 then 'Future Days' ",
+              "                       end",
+              "        , WeekType = case when weekDiff = -52 then 'Same Week Prior Year'",
+              "                             when weekDiff <= -2 then 'Historical Weeks' ",
+              "                             when weekDiff = -1 then 'Prior Week' ",
+              "                             when weekDiff = 0 then 'Current Week' ",
+              "                             else 'Future Weeks' ",
+              "                             end",
+              "        , MonthType = case when monthDiff = -12 then 'Same Month Prior Year' ",
+              "                              when monthDiff <= -2 then 'Historical Months' ",
+              "                              when monthDiff = -1 then 'Prior Month' ",
+              "                              when monthDiff = 0 then 'Current Month' ",
+              "                              else 'Future Months' ",
+              "                              end ",
+              "        , QuarterType= case when qtrDiff = -4 then 'Same Quarter Prior Year' ",
+              "                               when qtrDiff <= -2 then 'Historical Quarters' ",
+              "                               when qtrDiff = -1 then 'Prior Quarter' ",
+              "                               when qtrDiff = 0 then 'Current Quarter' ",
+              "                               else 'Future Quarters' ",
+              "                               end",
+              "        , YearType =case when yearDiff <= -2 then 'Historical Years' ",
+              "                            when yearDiff = -1 then 'Prior Year' ",
+              "                            when yearDiff = 0 then 'Current Year' ",
+              "                            else 'Future Years' ",
+              "                            end",
+              "    from DW.DimDate  dt",
+              "    inner join diff on diff.KeyDate = dt.KeyDate",
+              "    where skdate>='20200101'</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Treatment Option",
+        "columns": [
+          {
+            "name": "TreatmentOptionKey",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "TreatmentOptionKey",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "SAPTreatmentOption",
+            "dataType": "string",
+            "isHidden": true,
+            "isKey": true,
+            "sourceColumn": "SAPTreatmentOption",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Treatment Option",
+            "dataType": "string",
+            "sourceColumn": "Treatment Option",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "High level",
+            "dataType": "string",
+            "sourceColumn": "High level",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Reporting Level",
+            "dataType": "string",
+            "sourceColumn": "Reporting Level",
+            "displayFolder": "Attributes"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Treatment Option",
+            "source": {
+              "type": "query",
+              "query": [
+                "select TreatmentOptionKey,SAPTreatmentOption, TreatmentOption [Treatment Option]",
+                ",TreatmentOptionHighLevel [High level] ",
+                ",TreatmentOptionReportingLevel  [Reporting Level] ",
+                "from SrcSAPFile.TreatmentOption"
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimAccount\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"AccountNumber\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Product",
+        "columns": [
+          {
+            "name": "Product hierarchy",
+            "dataType": "string",
+            "isKey": true,
+            "sourceColumn": "Product hierarchy",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Product Hierarchy Desc",
+            "dataType": "string",
+            "sourceColumn": "Product Hierarchy Desc",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Product Category",
+            "dataType": "string",
+            "sourceColumn": "ProductCategory",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Product Classification",
+            "dataType": "string",
+            "sourceColumn": "ProductClassification",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Product Group",
+            "dataType": "string",
+            "sourceColumn": "ProductGroup",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Product Segment",
+            "dataType": "string",
+            "sourceColumn": "ProductSegment",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Product SubGroup",
+            "dataType": "string",
+            "sourceColumn": "ProductSubGroup",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Business Segment",
+            "dataType": "string",
+            "sourceColumn": "BusinessSegment",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Number of the level in the product hierarchy",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Number of the level in the product hierarchy",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 1 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 1 A",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 2 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 2 A",
+            "sortByColumn": "Level2Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level2Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level2Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 3 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 3 A",
+            "sortByColumn": "Level3Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level3Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level3Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 4 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 4 A",
+            "sortByColumn": "Level4Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level4Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level4Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 5 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 5 A",
+            "sortByColumn": "Level5Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level5Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level5Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 6 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 6 A",
+            "sortByColumn": "Level6Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level6Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level6Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 7 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 7 A",
+            "sortByColumn": "Level7Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level7Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level7Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 8 A",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 8 A",
+            "sortByColumn": "Level8Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level8Sorted",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Level8Sorted",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 1 S",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 1 S",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 2 S",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 2 S",
+            "sortByColumn": "Level2Sort",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 3 S",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 3 S",
+            "sortByColumn": "Level3Sort",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 4 S",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 4 S",
+            "sortByColumn": "Level4Sort",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 5 S",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 5 S",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level 6 S",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level 6 S",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level2Sort",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level2Sort",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level3Sort",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level3Sort",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level4Sort",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level4Sort",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level5Sort",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level5Sort",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Level6Sort",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Level6Sort",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Product",
+            "source": {
+              "type": "query",
+              "query": [
+                "select * from tabSAP.DimProduct",
+                "where businesssegment='Clear Aligner'"
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimAccount\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"AccountNumber\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Std Product Hierarchy",
+            "levels": [
+              {
+                "name": "Level 6 S",
+                "ordinal": 5,
+                "column": "Level 6 S"
+              },
+              {
+                "name": "Level 5 S",
+                "ordinal": 4,
+                "column": "Level 5 S"
+              },
+              {
+                "name": "Level 4 S",
+                "ordinal": 3,
+                "column": "Level 4 S"
+              },
+              {
+                "name": "Level 3 S",
+                "ordinal": 2,
+                "column": "Level 3 S"
+              },
+              {
+                "name": "Level 2 S",
+                "ordinal": 1,
+                "column": "Level 2 S"
+              },
+              {
+                "name": "Level 1 S",
+                "ordinal": 0,
+                "column": "Level 1 S"
+              }
+            ]
+          },
+          {
+            "name": "Alternate Product Hierarchy",
+            "levels": [
+              {
+                "name": "Level 8 A",
+                "ordinal": 7,
+                "column": "Level 8 A"
+              },
+              {
+                "name": "Level 7 A",
+                "ordinal": 6,
+                "column": "Level 7 A"
+              },
+              {
+                "name": "Level 6 A",
+                "ordinal": 5,
+                "column": "Level 6 A"
+              },
+              {
+                "name": "Level 5 A",
+                "ordinal": 4,
+                "column": "Level 5 A"
+              },
+              {
+                "name": "Level 4 A",
+                "ordinal": 3,
+                "column": "Level 4 A"
+              },
+              {
+                "name": "Level 3 A",
+                "ordinal": 2,
+                "column": "Level 3 A"
+              },
+              {
+                "name": "Level 2 A",
+                "ordinal": 1,
+                "column": "Level 2 A"
+              },
+              {
+                "name": "Level 1 A",
+                "ordinal": 0,
+                "column": "Level 1 A"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Plant",
+        "columns": [
+          {
+            "name": "Country Code",
+            "dataType": "string",
+            "sourceColumn": "CountryCode",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Plant",
+            "dataType": "string",
+            "isHidden": true,
+            "isKey": true,
+            "sourceColumn": "Plant",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Plant Name",
+            "dataType": "string",
+            "sourceColumn": "Plant Name",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "Country",
+            "dataType": "string",
+            "sourceColumn": "Country",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "CountryGroup",
+            "dataType": "string",
+            "sourceColumn": "CountryGroup",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "RegionPC",
+            "dataType": "string",
+            "sourceColumn": "RegionPC",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "RegionGroup",
+            "dataType": "string",
+            "sourceColumn": "RegionGroup",
+            "displayFolder": "Attributes"
+          },
+          {
+            "name": "SecRegion",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "SecRegion",
+            "isAvailableInMdx": false,
+            "displayFolder": "Attributes"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Plant",
+            "source": {
+              "type": "query",
+              "query": [
+                "select  Plant, [Plant Text] as [Plant Name],[Country Key] as CountryCode, g.Country, g.CountryGroup, g.RegionPC, g.RegionGroup, g.SecRegion ",
+                "from tabsap.dimPlant p",
+                "left join custom.GeographyHierarchy g on",
+                "g.CountryCode= p.[Country Key]",
+                "where plant in (select distinct werks from SrcSAP.LIPS where pstyv='Z001')",
+                "order by 1",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"DimAccount\",\"Schema\":\"DW\",\"Database\":\"pralignbidw\",\"IncludedColumns\":[\"AccountNumber\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Forecast",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "Scenario",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Scenario",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "CountryGroup",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "CountryGroup",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "Measure",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Measure",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "PeriodDate",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "PeriodDate",
+            "formatString": "mm/dd/yyyy",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "date"
+          },
+          {
+            "name": "Channel",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Channel",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "TreatmentType",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "TreatmentType",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "ProfitCenter",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "ProfitCenter",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "Value",
+            "dataType": "decimal",
+            "sourceColumn": "Value",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "decimal"
+          },
+          {
+            "name": "SecRegion",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "SecRegion",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Forecast",
+            "source": {
+              "type": "query",
+              "query": [
+                "SELECT",
+                "     [Scenario]",
+                "    ,[CountryGroup]",
+                "    ,[Measure]",
+                "    ,[PeriodDate]",
+                "    ,[Channel]",
+                "    ,[TreatmentType]",
+                "    ,[ProfitCenter]",
+                "    ,[Value]",
+                "    ,[SecRegion]",
+                "FROM",
+                "    [DW].[FactForecast]"
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"FactForecast\",\"Schema\":\"DW\",\"Database\":\"stgalignbidw\",\"IncludedColumns\":[\"Scenario\",\"CountryGroup\",\"Measure\",\"PeriodDate\",\"Channel\",\"TreatmentType\",\"ProfitCenter\",\"Value\",\"SecRegion\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Scenario",
+        "columns": [
+          {
+            "name": "Scenario",
+            "dataType": "string",
+            "isKey": true,
+            "sourceColumn": "Scenario",
+            "sortByColumn": "ScenarioKey",
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "ScenarioKey",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "ScenarioKey"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Scenario",
+            "source": {
+              "type": "query",
+              "query": [
+                "select 1 as ScenarioKey, 'Actual' as Scenario",
+                "union",
+                "select 2 as ScenarioKey, 'Forecast' as Scenario",
+                "union",
+                "select 3 as ScenarioKey, 'AOP' as Scenario",
+                "union",
+                "select 4 as ScenarioKey, 'LE' as Scenario"
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"FactForecast\",\"Schema\":\"DW\",\"Database\":\"stgalignbidw\",\"IncludedColumns\":[\"Scenario\",\"CountryGroup\",\"Measure\",\"PeriodDate\",\"Channel\",\"TreatmentType\",\"ProfitCenter\",\"Value\",\"SecRegion\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Channel",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "Channel",
+            "dataType": "string",
+            "sourceColumn": "Channel",
+            "sortByColumn": "SKChannel",
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "SKChannel",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "SKChannel"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Channel",
+            "source": {
+              "type": "query",
+              "query": [
+                "select [Reporting Channel] as SKChannel, [Reporting Channel Text] as Channel",
+                "from TABSAP.DimReportingChannel"
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"FactForecast\",\"Schema\":\"DW\",\"Database\":\"stgalignbidw\",\"IncludedColumns\":[\"Scenario\",\"CountryGroup\",\"Measure\",\"PeriodDate\",\"Channel\",\"TreatmentType\",\"ProfitCenter\",\"Value\",\"SecRegion\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "LoadFactor",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "Measure",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Measure",
+            "isAvailableInMdx": false,
+            "sourceProviderType": "varchar"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "Date",
+            "formatString": "mm/dd/yyyy",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "LoadFactor",
+            "dataType": "decimal",
+            "sourceColumn": "LoadFactor",
+            "isAvailableInMdx": false
+          },
+          {
+            "name": "Scenario",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Scenario",
+            "isAvailableInMdx": false
+          }
+        ],
+        "partitions": [
+          {
+            "name": "LoadFactor",
+            "source": {
+              "type": "query",
+              "query": [
+                "select Case Measure when 'ClinCheck Accepted' then 'CCA' else Measure end Measure, Date, LoadFactor,'Actual' Scenario",
+                " from SrcFCST.LoadFactor",
+                ""
+              ],
+              "dataSource": "ADW_DataSource"
+            },
+            "annotations": [
+              {
+                "name": "TabularEditor_TableSchema",
+                "value": "{\"Name\":\"FactForecast\",\"Schema\":\"DW\",\"Database\":\"stgalignbidw\",\"IncludedColumns\":[\"Scenario\",\"CountryGroup\",\"Measure\",\"PeriodDate\",\"Channel\",\"TreatmentType\",\"ProfitCenter\",\"Value\",\"SecRegion\"],\"SelectAll\":false}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Time Moving",
+        "isHidden": true,
+        "calculationGroup": {
+          "precedence": 20,
+          "calculationItems": [
+            {
+              "name": "Current",
+              "description": "Current",
+              "expression": "SELECTEDMEASURE()",
+              "ordinal": 0
+            },
+            {
+              "name": "MTD",
+              "expression": [
+                "IF (",
+                "    OR (",
+                "        ISINSCOPE ( 'DimDate'[DateKey] ),",
+                "        ISINSCOPE ( 'DimDate'[MonthNameNumeric] )",
+                "    ),",
+                "    CALCULATE ( SELECTEDMEASURE (), DATESMTD ( 'DimDate'[DateKey] ) ),",
+                "    BLANK ()",
+                ")"
+              ],
+              "ordinal": 1
+            },
+            {
+              "name": "QTD",
+              "expression": [
+                "IF (",
+                "    ISINSCOPE ( 'DimDate'[DateKey] ) || ISINSCOPE ( 'DimDate'[MonthNameNumeric] )",
+                "        || ISINSCOPE ( 'DimDate'[QuarterNameShort] ),",
+                "    //IF (",
+                "    //    SELECTEDVALUE ( 'DimDate'[MonthType] ) = \"Future Months\",",
+                "    //    BLANK (),",
+                "    CALCULATE (",
+                "        SELECTEDMEASURE (),",
+                "        DATESQTD ( 'DimDate'[DateKey] )",
+                "    ) //)",
+                "    ,",
+                "    BLANK ()",
+                ")"
+              ],
+              "ordinal": 2
+            },
+            {
+              "name": "YTD",
+              "expression": [
+                "CALCULATE (",
+                "        SELECTEDMEASURE (),",
+                "        DATESYTD ( 'DimDate'[DateKey] )",
+                "    )"
+              ],
+              "ordinal": 3
+            }
+          ]
+        },
+        "columns": [
+          {
+            "name": "To Date",
+            "dataType": "string",
+            "sourceColumn": "Name",
+            "sortByColumn": "Ordinal"
+          },
+          {
+            "name": "Ordinal",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Ordinal"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "mode": "import",
+            "source": {
+              "type": "calculationGroup"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Time Compare",
+        "isHidden": true,
+        "calculationGroup": {
+          "precedence": 10,
+          "calculationItems": [
+            {
+              "name": "Current",
+              "description": "Current",
+              "expression": "SELECTEDMEASURE()",
+              "ordinal": 0
+            },
+            {
+              "name": "LY",
+              "expression": "CALCULATE ( SELECTEDMEASURE (), DATEADD ( 'DimDate'[DateKey], -1, YEAR ) )",
+              "ordinal": 1
+            },
+            {
+              "name": "YoY",
+              "expression": [
+                "VAR CurrentMeasure =",
+                "    SELECTEDMEASURE ()",
+                "VAR PriorMeasure =",
+                "    CALCULATE ( SELECTEDMEASURE (), 'Time Compare'[Time Compare] = \"LY\" )",
+                "RETURN",
+                "    IF (",
+                "        CurrentMeasure = BLANK ()",
+                "            || PriorMeasure = BLANK (),",
+                "        BLANK (),",
+                "        CurrentMeasure - PriorMeasure",
+                "    )"
+              ],
+              "ordinal": 2
+            },
+            {
+              "name": "YoY%",
+              "expression": [
+                "VAR YoY =",
+                "    CALCULATE ( SELECTEDMEASURE (), 'Time Compare'[Time Compare] = \"YOY\" )",
+                "VAR LY =",
+                "    CALCULATE ( SELECTEDMEASURE (), 'Time Compare'[Time Compare] = \"LY\" )",
+                "RETURN",
+                "    DIVIDE ( YOY, LY )"
+              ],
+              "ordinal": 3,
+              "formatStringDefinition": {
+                "expression": " \"0.00%;-0.00%;0.00%\""
+              }
+            }
+          ]
+        },
+        "columns": [
+          {
+            "name": "Time Compare",
+            "dataType": "string",
+            "sourceColumn": "Name",
+            "sortByColumn": "Ordinal"
+          },
+          {
+            "name": "Ordinal",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "Ordinal"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "mode": "import",
+            "source": {
+              "type": "calculationGroup"
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "8216bdf8-243d-4ac0-aaec-2a4761a11a53",
+        "fromTable": "FactVolume",
+        "fromColumn": "CountryCode",
+        "toTable": "DimGeography",
+        "toColumn": "CountryCode"
+      },
+      {
+        "name": "8eeccdb8-895d-4db0-9787-d9061735a508",
+        "fromTable": "CCPostings",
+        "fromColumn": "SAPTreatmentOption",
+        "toTable": "Treatment Option",
+        "toColumn": "SAPTreatmentOption"
+      },
+      {
+        "name": "e95fb658-a00d-4f8a-88b2-43d22a57bd62",
+        "fromTable": "FactVolume",
+        "fromColumn": "TreatmentOption",
+        "toTable": "Treatment Option",
+        "toColumn": "SAPTreatmentOption"
+      },
+      {
+        "name": "5c443886-6689-4cb7-8c1f-d5a18009d042",
+        "fromTable": "FactVolume",
+        "fromColumn": "ProductHierarchy",
+        "toTable": "Product",
+        "toColumn": "Product hierarchy"
+      },
+      {
+        "name": "11020895-9fd5-482e-b8b5-3b75865c501e",
+        "fromTable": "CCPostings",
+        "fromColumn": "ProductHierarchy",
+        "toTable": "Product",
+        "toColumn": "Product hierarchy"
+      },
+      {
+        "name": "7f54a041-362e-40b3-89e7-8d8402d603f1",
+        "fromTable": "FactVolume",
+        "fromColumn": "Plant",
+        "toTable": "Plant",
+        "toColumn": "Plant"
+      },
+      {
+        "name": "bd97cfca-ba05-495d-8314-c8ebf67cdd38",
+        "fromTable": "CCPostings",
+        "fromColumn": "CountryCode",
+        "toTable": "DimGeography",
+        "toColumn": "CountryCode"
+      },
+      {
+        "name": "0c0e9bf9-4ac8-48d1-87e2-526fbdc3e689",
+        "fromTable": "Forecast",
+        "fromColumn": "Scenario",
+        "toTable": "Scenario",
+        "toColumn": "Scenario"
+      },
+      {
+        "name": "a1e22ec1-ca8d-49e9-b49e-31edcc705a8a",
+        "toCardinality": "many",
+        "fromTable": "Forecast",
+        "fromColumn": "CountryGroup",
+        "toTable": "DimGeography",
+        "toColumn": "CountryGroup",
+        "annotations": [
+          {
+            "name": "BestPracticeAnalyzer_IgnoreRules",
+            "value": "{\"RuleIDs\":[\"CHECK_IF_BI-DIRECTIONAL_AND_MANY-TO-MANY_RELATIONSHIPS_ARE_VALID\"]}"
+          }
+        ]
+      },
+      {
+        "name": "320cd5e9-42c1-4375-961e-7eb3d1227c6c",
+        "fromTable": "CCPostings",
+        "fromColumn": "CCPostingDate",
+        "toTable": "DimDate",
+        "toColumn": "DateKey"
+      },
+      {
+        "name": "99fdffa6-25ed-4b3e-beca-08480cbc27d8",
+        "fromTable": "FactVolume",
+        "fromColumn": "StatusDate",
+        "toTable": "DimDate",
+        "toColumn": "DateKey"
+      },
+      {
+        "name": "d3362695-5cda-430f-8a47-0671cfc34fbf",
+        "fromTable": "Forecast",
+        "fromColumn": "PeriodDate",
+        "toTable": "DimDate",
+        "toColumn": "DateKey"
+      },
+      {
+        "name": "34645d44-5326-407c-bcb3-799cbd3425f9",
+        "fromTable": "LoadFactor",
+        "fromColumn": "Date",
+        "toTable": "DimDate",
+        "toColumn": "DateKey"
+      },
+      {
+        "name": "390cacd3-f26a-4f47-9bfb-d05fb487c1d4",
+        "fromTable": "LoadFactor",
+        "fromColumn": "Scenario",
+        "toTable": "Scenario",
+        "toColumn": "Scenario"
+      }
+    ],
+    "roles": [
+      {
+        "name": "VolumeGlobalRole",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "BI-DW-AAS-Volume-Global@aligntech.onmicrosoft.com",
+            "memberId": "BI-DW-AAS-Volume-Global@aligntech.onmicrosoft.com#AzureAD",
+            "identityProvider": "AzureAD"
+          },
+          {
+            "memberName": "jpillai@aligntech.com",
+            "memberId": "jpillai@aligntech.com#AzureAD",
+            "identityProvider": "AzureAD"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "FactVolume"
+          }
+        ]
+      },
+      {
+        "name": "FullRole",
+        "modelPermission": "administrator",
+        "members": [
+          {
+            "memberName": "skhadilkar@aligntech.com",
+            "memberId": "skhadilkar@aligntech.com#AzureAD",
+            "identityProvider": "AzureAD"
+          }
+        ]
+      }
+    ],
+    "annotations": [
+      {
+        "name": "ClientCompatibilityLevel",
+        "value": "600"
+      },
+      {
+        "name": "TabularEditor_SerializeOptions",
+        "value": "{\"IgnoreInferredObjects\":true,\"IgnoreInferredProperties\":true,\"IgnoreTimestamps\":true,\"SplitMultilineStrings\":true,\"PrefixFilenames\":false,\"LocalTranslations\":false,\"LocalPerspectives\":false,\"LocalRelationships\":false,\"Levels\":[\"Data Sources\",\"Perspectives\",\"Relationships\",\"Roles\",\"Tables\",\"Tables/Columns\",\"Tables/Hierarchies\",\"Tables/Measures\",\"Tables/Partitions\",\"Translations\"]}"
+      }
+    ]
+  },
+  "id": "SemanticModel"
+}

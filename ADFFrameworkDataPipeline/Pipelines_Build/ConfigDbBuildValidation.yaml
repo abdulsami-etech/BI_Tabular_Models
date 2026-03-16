@@ -1,0 +1,16 @@
+trigger: none
+
+variables:
+  BuildConfiguration: release
+
+pool:
+  name: Hosted VS2017
+
+steps:
+- task: MSBuild@1
+  displayName: 'Build Config DB project'
+  inputs:
+    solution: ADFFrameworkConfigDB/ADFFrameworkConfigDB.sqlproj
+    configuration: '$(BuildConfiguration)'
+    msbuildArguments: '/t:build /p:CmdLineInMemoryStorage=True'
+    createLogFile: true

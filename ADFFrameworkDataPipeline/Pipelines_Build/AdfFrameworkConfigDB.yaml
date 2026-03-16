@@ -1,0 +1,59 @@
+trigger: none
+
+variables:
+  BuildConfiguration: release
+
+pool:
+  name: Hosted VS2017
+
+steps:
+- task: MSBuild@1
+  displayName: 'Build Config DB project'
+  inputs:
+    solution: ADFFrameworkConfigDB/ADFFrameworkConfigDB.sqlproj
+    configuration: '$(BuildConfiguration)'
+    msbuildArguments: '/t:build /p:CmdLineInMemoryStorage=True'
+    createLogFile: true
+
+- task: PowerShell@2
+  displayName: 'List Contents'
+  inputs:
+    targetType: 'inline'
+    script: |
+      Write-Host "List root contents ::"
+      Get-ChildItem "ADFFrameworkConfigDB" -erroraction silentlycontinue ;
+      Write-Host "List bin contents ::"
+      Get-ChildItem "ADFFrameworkConfigDB\bin" -erroraction silentlycontinue ;
+      Write-Host "List output contents ::"
+      Get-ChildItem "ADFFrameworkConfigDB\bin\$(BuildConfiguration)"-erroraction silentlycontinue ;
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to default working directory'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)'
+    Contents: |
+     ADFFrameworkConfigDB\bin\$(BuildConfiguration)\ADFFrameworkConfigDB.dacpac
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PowerShell@2
+  displayName: 'List artifact directory'
+  inputs:
+    targetType: 'inline'
+    script: |
+      Write-Host "List artifact directory contents ::"
+      Get-ChildItem "$env:ARTIFACT_DIRECTORY" -erroraction silentlycontinue ;
+  env:
+    ARTIFACT_DIRECTORY: $(Build.ArtifactStagingDirectory)
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Pipeline Artifacts'
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)'
+    artifact: 'CfgDB_DACPAC_Artifact'
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Script Artifact'
+  inputs:
+    targetPath: 'Powershell'
+    artifact: PsScripts
+  enabled: true
