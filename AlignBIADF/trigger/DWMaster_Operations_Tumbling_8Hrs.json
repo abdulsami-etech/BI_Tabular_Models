@@ -1,0 +1,29 @@
+{
+	"name": "DWMaster_Operations_Tumbling_8Hrs",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "DW_Master",
+				"type": "PipelineReference"
+			},
+			"parameters": {
+				"SchemaName": "DWSAP",
+				"ObjectList": "109,110,111,112"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Hour",
+			"interval": 8,
+			"startTime": "2021-10-20T04:15:00Z",
+			"delay": "00:00:00",
+			"maxConcurrency": 1,
+			"retryPolicy": {
+				"intervalInSeconds": 30
+			},
+			"dependsOn": []
+		}
+	}
+}

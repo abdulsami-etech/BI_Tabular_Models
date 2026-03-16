@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_MES_FAB_CN",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SQLServer_CN_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "MES_FAB_CN"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2021-07-12T14:19:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

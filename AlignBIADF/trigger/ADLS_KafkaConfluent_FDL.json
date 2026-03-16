@@ -1,0 +1,30 @@
+{
+	"name": "ADLS_KafkaConfluent_FDL",
+	"properties": {
+		"description": "This trigger will run 6 times on daily basis",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_KafkaConfluent_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "28001",
+					"KafkaAlertRecipientsKeyVaultSecretName": "KafkaAlertRecipientsFDL",
+					"RegionList": "NA"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 4,
+				"startTime": "2022-03-15T06:25:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

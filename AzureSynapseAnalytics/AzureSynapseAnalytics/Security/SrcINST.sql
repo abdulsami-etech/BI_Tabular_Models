@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcINST]
+    AUTHORIZATION [dbo];
+

@@ -1,0 +1,22 @@
+{
+    "name": "MESItero",
+    "properties": {
+        "annotations": [],
+        "type": "SqlServer",
+        "typeProperties": {
+            "connectionString": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "AzureKeyVault",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "MESIteroConnectionString"
+            }
+        },
+        "connectVia": {
+            "referenceName": "AlignSelfhostedIR",
+            "type": "IntegrationRuntimeReference"
+        },
+        "description": "Connects to MES Itero Israel Server"
+    }
+}

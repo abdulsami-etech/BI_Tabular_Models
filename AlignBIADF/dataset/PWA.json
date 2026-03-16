@@ -1,0 +1,12 @@
+{
+	"name": "PWA",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "PWA",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "PostgreSqlTable",
+		"schema": []
+	}
+}

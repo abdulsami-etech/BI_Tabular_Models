@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcMES_FAB_MX1].[AT_AT_QCI_TEST_OUT] (
+    [LZBatchID]            INT            NOT NULL,
+    [ADLSBatchID]          INT            NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)  NOT NULL,
+    [atr_key]              BIGINT         NOT NULL,
+    [atr_name]             NVARCHAR (64)  NOT NULL,
+    [purge_status]         INT            NULL,
+    [creation_time]        DATETIME       NULL,
+    [creation_time_u]      DATETIME       NULL,
+    [creation_time_z]      NVARCHAR (64)  NULL,
+    [last_modified_time]   DATETIME       NULL,
+    [last_modified_time_u] DATETIME       NULL,
+    [last_modified_time_z] NVARCHAR (64)  NULL,
+    [xfr_insert_pid]       INT            NULL,
+    [xfr_update_pid]       INT            NULL,
+    [trx_id]               CHAR (38)      NOT NULL,
+    [parent_key]           BIGINT         NULL,
+    [pd_xfr_update_pid]    INT            NULL,
+    [src_xfr_update_pid]   INT            NULL,
+    [comment_S]            NVARCHAR (256) NULL,
+    [dataItemName_S]       NVARCHAR (80)  NULL,
+    [dataItemValue_S]      NVARCHAR (80)  NULL,
+    [jobId_S]              NVARCHAR (80)  NULL,
+    [jobRepCount_I]        BIGINT         NULL,
+    [lowerSpecLimit_S]     NVARCHAR (80)  NULL,
+    [result_S]             NVARCHAR (80)  NULL,
+    [shift_S]              NVARCHAR (80)  NULL,
+    [slaName_S]            NVARCHAR (80)  NULL,
+    [upperSpecLimit_S]     NVARCHAR (80)  NULL,
+    [purged]               INT            NULL
+)
+WITH (HEAP, DISTRIBUTION = ROUND_ROBIN);
+

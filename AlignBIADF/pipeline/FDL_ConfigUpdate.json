@@ -1,0 +1,250 @@
+{
+	"name": "FDL_ConfigUpdate",
+	"properties": {
+		"activities": [
+			{
+				"name": "Update Config",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Insert Log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[Update_SAPConfig]",
+					"storedProcedureParameters": {
+						"Isinitial": {
+							"value": {
+								"value": "@pipeline().parameters.ADL_IsInitial",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Objectid": {
+							"value": {
+								"value": "@pipeline().parameters.ADL_ObjectID",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Objectname": {
+							"value": {
+								"value": "@pipeline().parameters.DW_ObjectName",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Insert Log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"DataSliceEndValue": {
+								"type": "String",
+								"value": null
+							},
+							"DataSliceStartValue": {
+								"type": "String",
+								"value": null
+							},
+							"ErrorMessage": {
+								"type": "String",
+								"value": null
+							},
+							"FileSizeInBytes": {
+								"type": "Int64",
+								"value": null
+							},
+							"LogID": {
+								"type": "Int32",
+								"value": null
+							},
+							"LogType": {
+								"type": "String",
+								"value": "FDLRecon"
+							},
+							"ObjectID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.ADL_ObjectID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"RowsInserted": {
+								"type": "Int32",
+								"value": null
+							},
+							"RowsUpdated": {
+								"type": "Int32",
+								"value": null
+							},
+							"SinkName": {
+								"type": "String",
+								"value": null
+							},
+							"SinkPathRAW": {
+								"type": "String",
+								"value": null
+							},
+							"BatchID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.ADL_ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On Failure - Update ETL Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Config",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Update config').error.Message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"SinkName": {
+							"value": "ADLSv2_SAPRecon",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"DW_ObjectName": {
+				"type": "string"
+			},
+			"ADL_ObjectID": {
+				"type": "int"
+			},
+			"ADL_IsInitial": {
+				"type": "int"
+			}
+		},
+		"folder": {
+			"name": "Finance"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,642 @@
+{
+	"name": "SFDC_Metadata_Tables",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy table metadata to temp",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SFDCAPI Piepline",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "SFDC/sobjects/ToProcess",
+							"wildcardFileName": "*.json"
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "truncate table TEMP.SFDCTablesMetadata",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['encoding']"
+								},
+								"sink": {
+									"name": "encoding",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['maxBatchSize']"
+								},
+								"sink": {
+									"name": "maxBatchSize",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "['activateable']"
+								},
+								"sink": {
+									"name": "activateable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['createable']"
+								},
+								"sink": {
+									"name": "createable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['custom']"
+								},
+								"sink": {
+									"name": "custom",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['customSetting']"
+								},
+								"sink": {
+									"name": "customSetting",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['deletable']"
+								},
+								"sink": {
+									"name": "deletable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['deprecatedAndHidden']"
+								},
+								"sink": {
+									"name": "deprecatedAndHidden",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['feedEnabled']"
+								},
+								"sink": {
+									"name": "feedEnabled",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['keyPrefix']"
+								},
+								"sink": {
+									"name": "keyPrefix",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['label']"
+								},
+								"sink": {
+									"name": "label",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['labelPlural']"
+								},
+								"sink": {
+									"name": "labelPlural",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['layoutable']"
+								},
+								"sink": {
+									"name": "layoutable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['mergeable']"
+								},
+								"sink": {
+									"name": "mergeable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['name']"
+								},
+								"sink": {
+									"name": "TableName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['queryable']"
+								},
+								"sink": {
+									"name": "queryable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['replicateable']"
+								},
+								"sink": {
+									"name": "replicateable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['retrieveable']"
+								},
+								"sink": {
+									"name": "retrieveable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['searchable']"
+								},
+								"sink": {
+									"name": "searchable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['triggerable']"
+								},
+								"sink": {
+									"name": "triggerable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['undeletable']"
+								},
+								"sink": {
+									"name": "undeletable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['updateable']"
+								},
+								"sink": {
+									"name": "updateable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['urls']['rowTemplate']"
+								},
+								"sink": {
+									"name": "rowTemplate",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['urls']['describe']"
+								},
+								"sink": {
+									"name": "describe",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['urls']['sobject']"
+								},
+								"sink": {
+									"name": "sobject",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['sobjects']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ADLSv2JSONSink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "files",
+							"Path": "SFDC/sobjects/ToProcess",
+							"FileName": "*.json"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBConfig_Temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "TEMP.SFDCTablesMetadata"
+						}
+					}
+				]
+			},
+			{
+				"name": "Stored procedure for table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy table metadata to temp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[LoadSFDCTableMetadata]"
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SFDCAPI Piepline",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "For Each child item",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SFDC_Master_API",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SourceSystem": {
+							"value": "@pipeline().parameters.SourceSystem",
+							"type": "Expression"
+						},
+						"ConnectionString": {
+							"value": "@pipeline().parameters.ConnectionString",
+							"type": "Expression"
+						},
+						"TokenSecretName": {
+							"value": "@pipeline().parameters.TokenSecretName",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure for table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Copy table metadata to temp",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy table metadata to temp",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Stored procedure for table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure for table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Metadata",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2JSONSink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "files",
+							"Path": "SFDC/sobjects/ToProcess",
+							"FileName": "*.json"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "JsonReadSettings"
+					}
+				}
+			},
+			{
+				"name": "For Each child item",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata').output.childitems",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Delete existing json files",
+							"type": "Delete",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Path": "SFDC/sobjects/ToProcess",
+										"FileName": "*.json"
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": "*.json"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystem": {
+				"type": "string"
+			},
+			"ConnectionString": {
+				"type": "string"
+			},
+			"TokenSecretName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Metadata"
+		},
+		"annotations": []
+	}
+}

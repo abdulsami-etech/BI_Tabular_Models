@@ -1,0 +1,23 @@
+{
+	"name": "AzureSQLDB_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSQLDB_Generic",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"ConnStringSecretName": {
+					"value": "@dataset().dsConnStringSecretName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"dsConnStringSecretName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	}
+}

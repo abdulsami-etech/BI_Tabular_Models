@@ -1,0 +1,20 @@
+{
+	"name": "O365",
+	"properties": {
+		"annotations": [],
+		"type": "Office365",
+		"typeProperties": {
+			"office365TenantId": "9ac44c96-980a-481b-ae23-d8f56b82c605",
+			"servicePrincipalTenantId": "9ac44c96-980a-481b-ae23-d8f56b82c605",
+			"servicePrincipalId": "fb2174be-ef25-4946-981c-7ebbf7c510b3",
+			"servicePrincipalKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "PowerbIShellAppKey"
+			}
+		}
+	}
+}

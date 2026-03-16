@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcNASA]
+    AUTHORIZATION [dbo];
+

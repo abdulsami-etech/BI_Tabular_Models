@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_TPSharing_EMEA",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "TPSharingEMEA"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2021-01-06T11:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

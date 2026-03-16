@@ -1,0 +1,15 @@
+﻿CREATE TABLE [SrcSAP].[TKEL] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [PALEDGER]      NVARCHAR (2)  NOT NULL,
+    [CURTP]         NVARCHAR (2)  NOT NULL,
+    [WAERS]         NVARCHAR (5)  NOT NULL,
+    [PERFLAG]       NVARCHAR (1)  NOT NULL,
+    [PERIV]         NVARCHAR (2)  NOT NULL,
+    [PERFLAG2]      NVARCHAR (1)  NOT NULL,
+    [PERIV2]        NVARCHAR (2)  NOT NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([PALEDGER]));
+

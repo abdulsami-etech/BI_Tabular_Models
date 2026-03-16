@@ -1,0 +1,565 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name"
+		},
+		"LS_AASProcessing_AzureFunction": {
+			"type": "string"
+		},
+		"SQLDW": {
+			"type": "string"
+		},
+		"SQLDBConfig": {
+			"type": "string"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/AAS_Model_Processing_Delta_Logs')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "RefreshTables",
+						"type": "AzureFunctionActivity",
+						"dependsOn": [
+							{
+								"activity": "Calculate Delta Partitions",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"functionName": {
+								"value": "RefreshTables?dbname=@{pipeline().parameters.ModelName}",
+								"type": "Expression"
+							},
+							"method": "GET"
+						},
+						"linkedServiceName": {
+							"referenceName": "[parameters('LS_AASProcessing_AzureFunction')]",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "DbrefreshId",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "RefreshTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "dbrefreshId",
+							"value": {
+								"value": "@activity('RefreshTables').output.dbrefreshid",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Token",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DbrefreshId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "aastoken",
+							"value": {
+								"value": "@activity('RefreshTables').output.token",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "aas_con",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Token",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "aascon",
+							"value": {
+								"value": "@activity('RefreshTables').output.aas_conn",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Check Model Refresh Status",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "token_generation_time",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(variables('until_flag'),true)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CallStatus",
+									"type": "AzureFunctionActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"functionName": {
+											"value": "@concat('CallStatus?dbrefreshid=',variables('dbrefreshId'),'&aas_conn=',variables('aascon'),'&token=',variables('aastoken'),'&token_generation_time=',variables('token_generation_time'))",
+											"type": "Expression"
+										},
+										"method": "GET"
+									},
+									"linkedServiceName": {
+										"referenceName": "[parameters('LS_AASProcessing_AzureFunction')]",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "CallStatus",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@or(equals(activity('CallStatus').output.status,'failed'),equals(activity('CallStatus').output.status,'succeeded'))",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "Wait20Sec",
+												"type": "Wait",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"waitTimeInSeconds": 20
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "set_until_flag",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "until_flag",
+													"value": true
+												}
+											}
+										]
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "Calculate Delta Partitions",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DWSAP].[CalculateRevVolCogsDeltaPartitions]",
+							"storedProcedureParameters": {
+								"dbname": {
+									"value": {
+										"value": "@pipeline().parameters.ModelName",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"isfullprocess": {
+									"value": {
+										"value": "@pipeline().parameters.Full1Delta0",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "[parameters('SQLDW')]",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Model Refresh Output",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Check Model Refresh Status",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat(variables('aascon'),variables('dbrefreshId'))",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Authorization": {
+									"value": "@variables('aastoken')",
+									"type": "Expression"
+								},
+								"Content-Type": "application/json"
+							}
+						}
+					},
+					{
+						"name": "ForEach JSON Object",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Model Processing Logs Header",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Model Refresh Output').output.objects",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "Model Processing Logs",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[CTRL].[Load_ModelProcessingLogs]",
+										"storedProcedureParameters": {
+											"dbname": {
+												"value": {
+													"value": "@pipeline().parameters.ModelName",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"partition": {
+												"value": {
+													"value": "@item().partition",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"refreshid": {
+												"value": {
+													"value": "@variables('dbrefreshId')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"status": {
+												"value": {
+													"value": "@item().status",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"successtime": {
+												"value": {
+													"value": "@activity('Model Refresh Output').output.endTime",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"table": {
+												"value": {
+													"value": "@item().table",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "[parameters('SQLDBConfig')]",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Model Processing Logs Header",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Model Refresh Output",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[CTRL].[Load_ModelProcessingLogsHeader]",
+							"storedProcedureParameters": {
+								"dbname": {
+									"value": {
+										"value": "@pipeline().parameters.ModelName",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"isfullprocess": {
+									"value": {
+										"value": "@pipeline().parameters.Full1Delta0",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"refreshid": {
+									"value": {
+										"value": "@variables('dbrefreshId')",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"starttime": {
+									"value": {
+										"value": "@{activity('Model Refresh Output').output.startTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"status": {
+									"value": {
+										"value": "@{activity('Model Refresh Output').output.status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "[parameters('SQLDBConfig')]",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Get Error Message",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ForEach JSON Object",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Model Refresh Output').output.messages",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Model Processing Error Logs",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[CTRL].[Load_ModelProcessingErrorLogs]",
+										"storedProcedureParameters": {
+											"dbname": {
+												"value": {
+													"value": "@pipeline().parameters.ModelName",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"message": {
+												"value": {
+													"value": "@item().message",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"refreshid": {
+												"value": {
+													"value": "@variables('dbrefreshId')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"status": {
+												"value": {
+													"value": "@activity('Model Refresh Output').output.status",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"type": {
+												"value": {
+													"value": "@item().type",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "[parameters('SQLDBConfig')]",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "token_generation_time",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "aas_con",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "aascon",
+							"value": {
+								"value": "@activity('RefreshTables').output.token_generation_time",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"parameters": {
+					"ModelName": {
+						"type": "string"
+					},
+					"Full1Delta0": {
+						"type": "string"
+					},
+					"FunctionApp": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"dbrefreshId": {
+						"type": "String"
+					},
+					"aastoken": {
+						"type": "String"
+					},
+					"aascon": {
+						"type": "String"
+					},
+					"until_flag": {
+						"type": "Boolean"
+					},
+					"token_generation_time": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "AASModelProcessing"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-12-15T13:26:31Z"
+			},
+			"dependsOn": []
+		}
+	]
+}

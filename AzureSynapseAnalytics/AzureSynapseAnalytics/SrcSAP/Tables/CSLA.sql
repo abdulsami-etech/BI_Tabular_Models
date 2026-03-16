@@ -1,0 +1,31 @@
+﻿CREATE TABLE [SrcSAP].[CSLA] (
+    [LZBatchID]     INT            NOT NULL,
+    [ADLSBatchID]   INT            NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0)  NOT NULL,
+    [MANDT]         NVARCHAR (3)   NOT NULL,
+    [KOKRS]         NVARCHAR (4)   NOT NULL,
+    [LSTAR]         NVARCHAR (6)   NOT NULL,
+    [DATBI]         NVARCHAR (8)   NOT NULL,
+    [DATAB]         NVARCHAR (8)   NOT NULL,
+    [LEINH]         NVARCHAR (3)   NOT NULL,
+    [LATYP]         NVARCHAR (1)   NOT NULL,
+    [LATYPI]        NVARCHAR (1)   NOT NULL,
+    [ERSDA]         NVARCHAR (8)   NOT NULL,
+    [USNAM]         NVARCHAR (12)  NOT NULL,
+    [KSTTY]         NVARCHAR (8)   NOT NULL,
+    [AUSEH]         NVARCHAR (3)   NOT NULL,
+    [AUSFK]         DECIMAL (5, 2) NOT NULL,
+    [VKSTA]         NVARCHAR (10)  NOT NULL,
+    [LARK1]         NVARCHAR (1)   NOT NULL,
+    [LARK2]         NVARCHAR (1)   NOT NULL,
+    [SPRKZ]         NVARCHAR (1)   NOT NULL,
+    [HRKFT]         NVARCHAR (4)   NOT NULL,
+    [FIXVO]         NVARCHAR (1)   NOT NULL,
+    [TARKZ]         NVARCHAR (3)   NOT NULL,
+    [YRATE]         NVARCHAR (1)   NOT NULL,
+    [TARKZ_I]       NVARCHAR (3)   NOT NULL,
+    [MANIST]        NVARCHAR (1)   NOT NULL,
+    [MANPLAN]       NVARCHAR (1)   NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [KOKRS], [LSTAR], [DATBI]), DISTRIBUTION = HASH([KOKRS]));
+

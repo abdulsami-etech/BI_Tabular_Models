@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_MES_AFAB_CN",
+	"properties": {
+		"description": "Run every one hour",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "MES_AFAB_CN",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2021-08-02T20:10:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

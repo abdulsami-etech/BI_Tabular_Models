@@ -1,0 +1,770 @@
+{
+	"name": "ADLSv2_IDS_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "ADLS"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy to Raw",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Get Source Query",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RelationalSource",
+						"query": {
+							"value": "@activity('Get Source Query').output.FirstRow.Query",
+							"type": "Expression"
+						},
+						"readBehavior": "query"
+					},
+					"sink": {
+						"type": "AzureBlobFSSink"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "IDS",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ADLSv2",
+						"type": "DatasetReference",
+						"parameters": {
+							"Path": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Is LZ",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Copy to Raw",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(bool(pipeline().parameters.IsLZ), greater(int(activity('Copy to Raw').output.rowsCopied), 0))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Insert Object File",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectFileUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@pipeline().parameters.ObjectID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"FileName": {
+										"value": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"Status": {
+										"value": "Ready",
+										"type": "string"
+									},
+									"IsFullLoad": {
+										"value": {
+											"value": "@pipeline().parameters.IsFullLoad",
+											"type": "Expression"
+										},
+										"type": "boolean"
+									},
+									"FileSizeInBytes": {
+										"value": {
+											"value": "@activity('Copy to Raw').output.dataWritten",
+											"type": "Expression"
+										},
+										"type": "int64"
+									},
+									"FilePath": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										}
+									},
+									"ADLSBatchID": {
+										"value": {
+											"value": "@pipeline().parameters.BatchID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Destinations": {
+										"value": {
+											"value": "@pipeline().parameters.Destinations",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set Max Predicate If Empty",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Is LZ",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@empty(variables('DataSliceEndValue'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Set Max Predicate",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DataSliceEndValue",
+								"value": {
+									"value": "@string(pipeline().parameters.DataSliceStartValue)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Set Max Predicate If Empty",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+					"storedProcedureParameters": {
+						"ObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.ObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@variables('DataSliceEndValue')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"ADLSTimestamp": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": {
+								"value": "@activity('Copy to Raw').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": "0",
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": {
+								"value": "@activity('Copy to Raw').output.dataWritten",
+								"type": "Expression"
+							},
+							"type": "int64"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@pipeline().parameters.DataSliceStartValue",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": {
+								"value": "@variables('DataSliceEndValue')",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On Failure - Copy to Raw",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy to Raw",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Copy to Raw').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@pipeline().parameters.DataSliceStartValue",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": {
+								"value": "@variables('DataSliceEndValue')",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "If Need To Get Max Predicate Value",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(not(empty(pipeline().parameters.PredicateColumn)), empty(pipeline().parameters.DataSliceEndValue))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set End Date",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DataSliceEndValue",
+								"value": {
+									"value": "@pipeline().parameters.DataSliceEndValue",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Get Max Predicate Value",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RelationalSource",
+									"query": {
+										"value": "@pipeline().parameters.MaxPredicateValueQuery",
+										"type": "Expression"
+									}
+								},
+								"dataset": {
+									"referenceName": "IDS",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Set Data Slice End Value",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Max Predicate Value",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DataSliceEndValue",
+								"value": {
+									"value": "@replace(replace(last(split(string(first(activity('Get Max Predicate Value').output.value)), '\":')), '\"', ''), '}', '')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "On failure - Get Max Predicate Value",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Get Max Predicate Value",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Get Max Predicate Value').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": {
+											"value": "@pipeline().parameters.DataSliceStartValue",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": {
+											"value": "@variables('DataSliceEndValue')",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Source Query",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If Need To Get Max Predicate Value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select Query from CTRL.ADLGetObjectQuery (', string(pipeline().parameters.ObjectID), ',', if(equals(variables('DataSliceEndValue'), ''), 'null', concat('''',variables('DataSliceEndValue'), '''')), ',', if(bool(pipeline().parameters.IsFullLoad), '1', '0'), ')')",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On failure - Get Source Query",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get Source Query",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get Source Query').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@pipeline().parameters.DataSliceStartValue",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": {
+								"value": "@variables('DataSliceEndValue')",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "Int"
+			},
+			"ObjectID": {
+				"type": "Int"
+			},
+			"RawFilePath": {
+				"type": "String"
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"IsLZ": {
+				"type": "Bool"
+			},
+			"PredicateColumn": {
+				"type": "String"
+			},
+			"DataSliceStartValue": {
+				"type": "String"
+			},
+			"DataSliceEndValue": {
+				"type": "String"
+			},
+			"TempFolder": {
+				"type": "String"
+			},
+			"IsFullLoad": {
+				"type": "Bool"
+			},
+			"MaxPredicateValueQuery": {
+				"type": "String"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			},
+			"Destinations": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"DataSliceEndValue": {
+				"type": "String"
+			},
+			"Query": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

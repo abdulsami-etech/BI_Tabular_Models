@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcEventHub]
+    AUTHORIZATION [dbo];
+

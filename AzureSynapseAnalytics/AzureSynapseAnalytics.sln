@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "AzureSynapseAnalytics", "AzureSynapseAnalytics\AzureSynapseAnalytics.sqlproj", "{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SynapseUnitTest", "SynapseUnitTest\SynapseUnitTest.csproj", "{90ED599B-DAF9-4A47-AA16-8CD41002FE4C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC984D88-E577-4C51-BAF1-03F16DF6A2B1}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{90ED599B-DAF9-4A47-AA16-8CD41002FE4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90ED599B-DAF9-4A47-AA16-8CD41002FE4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90ED599B-DAF9-4A47-AA16-8CD41002FE4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90ED599B-DAF9-4A47-AA16-8CD41002FE4C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FD0EB1FA-377B-49EC-8A45-C0D9A2A31530}
+	EndGlobalSection
+EndGlobal

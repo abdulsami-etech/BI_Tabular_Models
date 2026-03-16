@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_SAP_DailyMaster",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "SAP",
+					"Destination": "LZ",
+					"ObjectList": "60019,60020,60026,60028,60029,60030,60031,60032,60033,60034,60047,60048,60049,60050,60051,60052,60054,60055,60056,60057,60058,60059,60060,60063,60064,60065,60066,60067,60068,60069,60071,60072,60073,60074,60075,60076,60077,60078,60090,60095,60110,61038"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2021-09-15T04:25:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

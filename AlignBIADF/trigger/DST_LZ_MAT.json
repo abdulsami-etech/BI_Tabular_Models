@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_MAT",
+	"properties": {
+		"description": "AlertGroup = Azure Pipeline iTero",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "MAT",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-02-28T02:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

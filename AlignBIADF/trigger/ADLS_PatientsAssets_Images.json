@@ -1,0 +1,29 @@
+{
+	"name": "ADLS_PatientsAssets_Images",
+	"properties": {
+		"description": "From Images source",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "80000",
+					"SourceSystem": "Images"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2021-06-08T13:42:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

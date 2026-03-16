@@ -1,0 +1,38 @@
+{
+	"name": "ADLS_Kainexus",
+	"properties": {
+		"description": "Daily once Starts 4 AM PST",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_API_User_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "KaiNexus",
+					"ConnectionString": "KaiNexusConnectionString",
+					"TokenSecretName": "KaiNexusConnectionString"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-07-29T21:39:00",
+				"timeZone": "Pacific Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						4
+					]
+				}
+			}
+		}
+	}
+}

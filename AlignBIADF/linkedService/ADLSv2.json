@@ -1,0 +1,12 @@
+{
+	"name": "ADLSv2",
+	"properties": {
+		"description": "AD",
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://dev2alignbiadl.dfs.core.windows.net"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

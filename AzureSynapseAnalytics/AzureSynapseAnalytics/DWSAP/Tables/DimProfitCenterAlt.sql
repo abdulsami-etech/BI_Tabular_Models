@@ -1,0 +1,12 @@
+﻿CREATE TABLE [DWSAP].[DimProfitCenterAlt] (
+    [Level 1 A]      NVARCHAR (255) NULL,
+    [Level 2 A]      NVARCHAR (255) NULL,
+    [Level 3 A]      NVARCHAR (255) NULL,
+    [Level 4 A]      NVARCHAR (255) NULL,
+    [Level 5 A]      NVARCHAR (255) NULL,
+    [Level 6 A]      NVARCHAR (255) NULL,
+    [PROFIT CTR A]   NVARCHAR (255) NULL,
+    [PRFIT CENTER A] NVARCHAR (255) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN);
+

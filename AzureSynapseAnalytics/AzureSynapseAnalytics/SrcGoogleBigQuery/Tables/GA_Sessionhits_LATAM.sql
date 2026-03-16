@@ -1,0 +1,48 @@
+CREATE TABLE [SrcGoogleBigQuery].[GA_Sessionhits_LATAM]
+(
+	[LZBatchID] [int] NOT NULL,
+	[ADLSBatchID] [int] NOT NULL,
+	[ADLSTimestamp] [datetime2](0) NOT NULL,
+	[Id] [nvarchar](50) NOT NULL,
+	[ClientId] [nvarchar](75) NULL,
+	[FullVisitorId] [nvarchar](30) NOT NULL,
+	[VisitNumber] [int] NULL,
+	[VisitId] [bigint] NULL,
+	[VisitStartTime] [bigint] NULL,
+	[VisitStartDateTime] [datetime] NULL,
+	[VisitDate] [datetime] NULL,
+	[DataSource] [nvarchar](30) NULL,
+	[ExperimentId] [nvarchar](30) NULL,
+	[ExperimentVariant] [nvarchar](10) NULL,
+	[HitNumber] [int] NULL,
+	[Hour] [int] NULL,
+	[IsEntrance] [bit] NULL,
+	[IsExit] [bit] NULL,
+	[IsInteraction] [bit] NULL,
+	[Minute] [int] NULL,
+	[Time] [int] NULL,
+	[Referer] [nvarchar](4000) NULL,
+	[HasSocialSourceReferral] [nvarchar](10) NULL,
+	[SocialInteractionAction] [nvarchar](30) NULL,
+	[SocialNetwork] [nvarchar](30) NULL,
+	[Type] [nvarchar](10) NULL,
+	[PagePath] [nvarchar](4000) NULL,
+	[PagePathLevel1] [nvarchar](4000) NULL,
+	[PagePathLevel2] [nvarchar](4000) NULL,
+	[PagePathLevel3] [nvarchar](4000) NULL,
+	[PagePathLevel4] [nvarchar](4000) NULL,
+	[Hostname] [nvarchar](100) NULL,
+	[PageTitle] [nvarchar](2000) NULL,
+	[SearchKeyword] [nvarchar](200) NULL,
+	[EventCategory] [nvarchar](50) NULL,
+	[EventAction] [nvarchar](200) NULL,
+	[EventLabel] [nvarchar](400) NULL,
+	[EventValue] [int] NULL,
+	[Index] [int] NULL,
+	[Value] [nvarchar](200) NULL
+)
+WITH
+(
+	DISTRIBUTION = HASH ( [Id] ),
+	CLUSTERED COLUMNSTORE INDEX
+)

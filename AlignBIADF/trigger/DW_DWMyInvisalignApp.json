@@ -1,0 +1,35 @@
+{
+	"name": "DW_DWMyInvisalignApp",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWMyInvisalignApp"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-11-12T16:09:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						15
+					],
+					"hours": [
+						9
+					]
+				}
+			}
+		}
+	}
+}

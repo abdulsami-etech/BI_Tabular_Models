@@ -1,0 +1,15 @@
+{
+	"name": "eloomiDataset",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "eloomiLinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureMySqlTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": "categories"
+		}
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"name": "SQLServer_Generic_PL",
+	"properties": {
+		"parameters": {
+			"ConnStringSecretName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": {
+					"value": "@linkedService().ConnStringSecretName",
+					"type": "Expression"
+				}
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignPolandSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

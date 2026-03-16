@@ -1,0 +1,2 @@
+﻿CREATE USER [Datalake-BI-Align] FOR EXTERNAL PROVIDER;
+

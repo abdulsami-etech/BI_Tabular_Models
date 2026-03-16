@@ -1,0 +1,2 @@
+﻿CREATE SCHEMA [SrcSFDC_Sensitive] AUTHORIZATION [dbo]
+

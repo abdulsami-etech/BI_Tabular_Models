@@ -1,0 +1,2 @@
+﻿CREATE VIEW [TABSAP].[DimSoldShipBillText]
+AS SELECT DISTINCT REPLACE(LTRIM(REPLACE(KUNNR, '0', ' ')),' ','0') AS AccountNumber, NAME1 AS AccountName FROM SrcSAP.KNA1;

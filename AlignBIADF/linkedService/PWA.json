@@ -1,0 +1,17 @@
+{
+	"name": "PWA",
+	"properties": {
+		"annotations": [],
+		"type": "PostgreSql",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "PWA-ConnectionString"
+			}
+		}
+	}
+}

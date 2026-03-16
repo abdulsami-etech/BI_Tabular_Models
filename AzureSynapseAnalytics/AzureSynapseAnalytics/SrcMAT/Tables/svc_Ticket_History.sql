@@ -1,0 +1,31 @@
+﻿CREATE TABLE [SrcMAT].[svc_Ticket_History] (
+    [LZBatchID]                        INT             NOT NULL,
+    [ADLSBatchID]                      INT             NOT NULL,
+    [ADLSTimestamp]                    DATETIME2 (0)   NOT NULL,
+    [TicketHistoryID]                  INT             NOT NULL,
+    [TicketID]                         INT             NOT NULL,
+    [TicketInitiatorBusinessPartnerID] INT             NOT NULL,
+    [TicketInitiatorContactID]         INT             NOT NULL,
+    [TicketTeamID]                     SMALLINT        NOT NULL,
+    [TicketAssignedToContactID]        INT             NOT NULL,
+    [PriorityID]                       SMALLINT        NOT NULL,
+    [TicketOriginTypeID]               SMALLINT        NOT NULL,
+    [TicketIssueTypeID]                SMALLINT        NOT NULL,
+    [TicketIssueSubTypeID]             SMALLINT        NOT NULL,
+    [TicketIssueAssetID]               SMALLINT        NOT NULL,
+    [TicketIssueEntityTypeID]          SMALLINT        NOT NULL,
+    [TicketIssueEntityID]              INT             NOT NULL,
+    [TicketSubject]                    NVARCHAR (200)  NOT NULL,
+    [TicketDescription]                NVARCHAR (4000) NOT NULL,
+    [RowStatusID]                      TINYINT         NOT NULL,
+    [DateCreated]                      DATETIME        NOT NULL,
+    [CreatedByUserID]                  INT             NOT NULL,
+    [DateUpdated]                      DATETIME        NOT NULL,
+    [UpdatedByUserID]                  INT             NOT NULL,
+    [DateResolved]                     DATETIME        NULL,
+    [TicketIssueEntityTypeDescription] NVARCHAR (1000) NULL,
+    [IsComplaint]                      BIT             NOT NULL,
+    [IsSafety]                         BIT             NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([TicketHistoryID]));
+

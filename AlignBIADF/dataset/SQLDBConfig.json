@@ -1,0 +1,13 @@
+{
+	"name": "SQLDBConfig",
+	"properties": {
+		"description": "Dataset for Azure SQL DB",
+		"linkedServiceName": {
+			"referenceName": "SQLDBConfig",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

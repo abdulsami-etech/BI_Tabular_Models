@@ -1,0 +1,379 @@
+{
+	"name": "SFDC_Master_API",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get object list",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get access token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLGetObjectList]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.SourceSystem",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Iterate through objects",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Execute API Internal",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "ADLSv2_API_Internal",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Token": {
+										"value": "@concat('Bearer ',activity('Get access token').output.value)",
+										"type": "Expression"
+									},
+									"BatchID": {
+										"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+										"type": "Expression"
+									},
+									"ObjectID": {
+										"value": "@{item().ObjectID}",
+										"type": "Expression"
+									},
+									"ObjectName": {
+										"value": "@{item().ObjectName}",
+										"type": "Expression"
+									},
+									"SourceSystem": {
+										"value": "@pipeline().parameters.SourceSystem",
+										"type": "Expression"
+									},
+									"DataSliceStartValue": {
+										"value": "@item().DataSliceStartValue",
+										"type": "Expression"
+									},
+									"DataSliceEndValue": {
+										"value": "@item().DataSliceEndValue",
+										"type": "Expression"
+									},
+									"APIDefaultDataSliceStartValueExpr": {
+										"value": "@item().APIDefaultDataSliceStartValueExpr",
+										"type": "Expression"
+									},
+									"APIDefaultDataSliceEndValueExpr": {
+										"value": "@item().APIDefaultDataSliceEndValueExpr",
+										"type": "Expression"
+									},
+									"CurrentTimestamp": {
+										"value": "@item().CurrentTimestamp",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "On failure - Execute API Internal",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Execute API Internal",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through objects",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SourceSystem",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.SourceSystem",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get Existing Token",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select datediff(mi, getdate(), CTRL.GetSourceSystemProperty('@{pipeline().parameters.SourceSystem}', 'APITokenExpirationDate')) as MinutesLeft",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Refresh Token If Not Valid",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Existing Token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\nnot(empty(string(activity('Get Existing Token').output.firstRow.MinutesLeft))),\nless(activity('Get Existing Token').output.firstRow.MinutesLeft,30)\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Generate_Token",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SFDC_Generate_Token",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceSystem": {
+										"value": "@pipeline().parameters.SourceSystem",
+										"type": "Expression"
+									},
+									"TokenSecretName": {
+										"value": "@pipeline().parameters.TokenSecretName",
+										"type": "Expression"
+									},
+									"ConnectionString": {
+										"value": "@pipeline().parameters.ConnectionString",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get access token",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Refresh Token If Not Valid",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://',first(split(pipeline().DataFactory, 'alignbiadfci')),'alignkeyvault','.vault.azure.net/secrets/',pipeline().parameters.TokenSecretName,'?api-version=7.0')",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystem": {
+				"type": "string",
+				"defaultValue": "MedalliaAPI"
+			},
+			"ConnectionString": {
+				"type": "string",
+				"defaultValue": "MedalliaConnectionString"
+			},
+			"TokenSecretName": {
+				"type": "string",
+				"defaultValue": "MedalliaSecurityToken"
+			}
+		},
+		"variables": {
+			"TokenValue_URL": {
+				"type": "String"
+			},
+			"Security Token Version": {
+				"type": "String"
+			},
+			"Connection String": {
+				"type": "String"
+			},
+			"Token": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Metadata"
+		},
+		"annotations": []
+	}
+}

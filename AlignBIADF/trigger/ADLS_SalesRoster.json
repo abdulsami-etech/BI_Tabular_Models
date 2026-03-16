@@ -1,0 +1,36 @@
+{
+	"name": "ADLS_SalesRoster",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_JSON_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "Workday"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-03-05T18:33:00.000Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						10
+					]
+				}
+			}
+		}
+	}
+}

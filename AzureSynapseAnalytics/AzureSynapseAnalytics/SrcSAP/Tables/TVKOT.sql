@@ -1,0 +1,11 @@
+﻿CREATE TABLE [SrcSAP].[TVKOT] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRAS]         NVARCHAR (1)  NOT NULL,
+    [VKORG]         NVARCHAR (4)  NOT NULL,
+    [VTEXT]         NVARCHAR (20) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRAS], [VKORG]), DISTRIBUTION = HASH([VKORG]));
+

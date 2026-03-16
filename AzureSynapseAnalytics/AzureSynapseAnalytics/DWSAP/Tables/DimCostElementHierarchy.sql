@@ -1,0 +1,13 @@
+﻿CREATE TABLE [DWSAP].[DimCostElementHierarchy] (
+    [Level 1]      NVARCHAR (255) NULL,
+    [Level 2]      NVARCHAR (255) NULL,
+    [Level 3]      NVARCHAR (255) NULL,
+    [Level 4]      NVARCHAR (255) NULL,
+    [Level 5]      NVARCHAR (255) NULL,
+    [Level 6]      NVARCHAR (255) NULL,
+    [Level 7]      NVARCHAR (255) NULL,
+    [ZCOSTELEMENT] NVARCHAR (255) NULL,
+    [COST ELEMENT] NVARCHAR (255) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN);
+

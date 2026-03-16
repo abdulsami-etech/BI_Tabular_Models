@@ -1,0 +1,30 @@
+﻿CREATE TABLE [SrcSAP].[T001K] (
+    [LZBatchID]     INT            NOT NULL,
+    [ADLSBatchID]   INT            NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0)  NOT NULL,
+    [MANDT]         NVARCHAR (3)   NOT NULL,
+    [BWKEY]         NVARCHAR (4)   NOT NULL,
+    [BUKRS]         NVARCHAR (4)   NOT NULL,
+    [BWMOD]         NVARCHAR (4)   NOT NULL,
+    [XBKNG]         NVARCHAR (1)   NOT NULL,
+    [MLBWA]         NVARCHAR (1)   NOT NULL,
+    [MLBWV]         NVARCHAR (1)   NOT NULL,
+    [XVKBW]         NVARCHAR (1)   NOT NULL,
+    [ERKLAERKOM]    NVARCHAR (1)   NOT NULL,
+    [UPROF]         NVARCHAR (4)   NOT NULL,
+    [WBPRO]         NVARCHAR (4)   NOT NULL,
+    [MLAST]         NVARCHAR (1)   NOT NULL,
+    [MLASV]         NVARCHAR (1)   NOT NULL,
+    [BDIFP]         DECIMAL (5, 2) NOT NULL,
+    [XLBPD]         NVARCHAR (1)   NOT NULL,
+    [XEWRX]         NVARCHAR (1)   NOT NULL,
+    [X2FDO]         NVARCHAR (1)   NOT NULL,
+    [PRSFR]         NVARCHAR (1)   NOT NULL,
+    [MLCCS]         NVARCHAR (1)   NOT NULL,
+    [XEFRE]         NVARCHAR (1)   NOT NULL,
+    [EFREJ]         NVARCHAR (4)   NOT NULL,
+    [/FMP/PRSFR]    NVARCHAR (1)   NOT NULL,
+    [/FMP/PRFRGR]   NVARCHAR (4)   NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [BWKEY]), DISTRIBUTION = HASH([BWKEY]));
+

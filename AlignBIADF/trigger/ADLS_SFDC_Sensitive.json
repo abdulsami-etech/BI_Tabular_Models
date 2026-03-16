@@ -1,0 +1,25 @@
+{
+	"name": "ADLS_SFDC_Sensitive",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SFDC_Sensitive_Master",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2021-08-17T00:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

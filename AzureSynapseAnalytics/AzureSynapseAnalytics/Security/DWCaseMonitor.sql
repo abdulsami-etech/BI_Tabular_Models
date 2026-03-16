@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWCaseMonitor]
+    AUTHORIZATION [dbo];
+

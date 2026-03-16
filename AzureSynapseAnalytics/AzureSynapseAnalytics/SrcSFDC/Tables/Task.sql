@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcSFDC].[Task] (
+    [LZBatchID]             INT            NOT NULL,
+    [ADLSBatchID]           INT            NOT NULL,
+    [ADLSTimestamp]         DATETIME2 (0)  NOT NULL,
+    [AccountId]             NCHAR (36)     NULL,
+    [ActivityDate]          DATETIME2 (7)  NULL,
+    [Attainment__c]         DECIMAL (18)   NULL,
+    [Call_Counter__c]       DECIMAL (18)   NULL,
+    [Call_Type__c]          NVARCHAR (510) NULL,
+    [CallDurationInSeconds] INT            NULL,
+    [CallObject]            NVARCHAR (510) NULL,
+    [CallType]              NVARCHAR (255) NULL,
+    [CreatedDate]           DATETIME2 (7)  NOT NULL,
+    [Description]           NVARCHAR (MAX) NULL,
+    [Id]                    NCHAR (18)     NOT NULL,
+    [IsClosed]              BIT            NOT NULL,
+    [LastModifiedById]      NCHAR (36)     NULL,
+    [LastModifiedDate]      DATETIME2 (7)  NOT NULL,
+    [OwnerId]               NCHAR (36)     NOT NULL,
+    [RecordTypeId]          NCHAR (36)     NULL,
+    [Status]                NVARCHAR (80)  NOT NULL,
+    [Subject]               NVARCHAR (510) NULL,
+    [SystemModstamp]        DATETIME2 (7)  NOT NULL,
+    [Type]                  NVARCHAR (80)  NULL,
+    [WhatCount]             INT            NULL,
+    [WhoCount]              INT            NULL,
+    [WhoId]                 NCHAR (36)     NULL,
+    [IsDeleted]             VARCHAR (36)   NULL,
+    [Primary_Focus__c]      NVARCHAR (510) NULL,
+    [WhatId]                NCHAR (36)     NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

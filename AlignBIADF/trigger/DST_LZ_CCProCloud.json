@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_CCProCloud",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline SalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "LogEntries",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 3,
+				"startTime": "2020-02-24T20:26:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"name": "DS_REST_PowerBI",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_REST_PowerBI",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"AdminAPI": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@dataset().AdminAPI",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	}
+}

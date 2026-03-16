@@ -1,0 +1,14 @@
+﻿CREATE TABLE [SrcSAP].[CSKU] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRAS]         NVARCHAR (1)  NOT NULL,
+    [KTOPL]         NVARCHAR (4)  NOT NULL,
+    [KSTAR]         NVARCHAR (10) NOT NULL,
+    [KTEXT]         NVARCHAR (20) NOT NULL,
+    [LTEXT]         NVARCHAR (40) NOT NULL,
+    [MCTXT]         NVARCHAR (20) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRAS], [KTOPL], [KSTAR]), DISTRIBUTION = HASH([KTOPL]));
+

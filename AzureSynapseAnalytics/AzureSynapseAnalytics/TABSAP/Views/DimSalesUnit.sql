@@ -1,0 +1,7 @@
+CREATE VIEW [TABSAP].[DimSalesUnit] AS 
+--BI-12996 New View
+SELECT 
+  DISTINCT MSEHI as [Sales Unit] 
+FROM 
+  SrcSAP.T006 t006 
+  INNER JOIN SrcSAP.VBAP vbap On vbap.VRKME = MSEHI;

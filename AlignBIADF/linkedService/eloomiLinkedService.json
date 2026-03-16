@@ -1,0 +1,17 @@
+{
+	"name": "eloomiLinkedService",
+	"properties": {
+		"annotations": [],
+		"type": "AzureMySql",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "eloomiConnectionString"
+			}
+		}
+	}
+}

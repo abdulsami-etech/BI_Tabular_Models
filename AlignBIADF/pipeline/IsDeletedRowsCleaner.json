@@ -1,0 +1,175 @@
+{
+	"name": "IsDeletedRowsCleaner",
+	"properties": {
+		"activities": [
+			{
+				"name": "Fetch Tables with IsDeleted",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Truncate IsDeletedRows Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select 'select id, '''+ObjectName+''' as TableName from '+ObjectName as Query,ObjectName,''''+ObjectName+'''' as whereFilter from CTRL.ADLObject where SourceSystem='SFDC' and SFDCIsDeleted=1\n\n\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Iterate for Each Table",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Fetch Tables with IsDeleted",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Fetch Tables with IsDeleted').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Insert to IsSFDCDeleted Table",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SalesforceSource",
+									"query": {
+										"value": "@item().Query",
+										"type": "Expression"
+									},
+									"readBehavior": "query"
+								},
+								"sink": {
+									"type": "SqlDWSink",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"columnMappings": {
+										"Id": "Id",
+										"EXPR_1": "TableName"
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "SFDC",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDW_IsDeleted",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Update IsDeleted Field",
+							"description": "clear deleted Id's from source data",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Insert to IsSFDCDeleted Table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlDWSource",
+									"sqlReaderQuery": {
+										"value": "@concat('Update srcsfdc.',item().ObjectName, ' set Isdeleted=1 where id not in (select id from srcsfdc.IsDeletedRows where TableName =',item().whereFilter,')', 'select 1')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDW",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Truncate IsDeletedRows Table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "truncate table srcsfdc.IsDeletedRows\nselect 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW_IsDeleted",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"concurrency": 1,
+		"folder": {
+			"name": "Control"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

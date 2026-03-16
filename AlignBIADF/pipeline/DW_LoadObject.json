@@ -1,0 +1,213 @@
+{
+	"name": "DW_LoadObject",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "DW_LoadObject"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": "-1"
+							},
+							"SinkName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.StoredProcedureName",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Load Object",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "exec @{pipeline().parameters.StoredProcedureName}\n@{pipeline().parameters.Parameters}",
+							"type": "Expression"
+						},
+						"queryTimeout": "04:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsInserted": {
+							"value": {
+								"value": "@activity('Load Object').output.FirstRow.RowsInserted",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": {
+								"value": "@activity('Load Object').output.FirstRow.RowsUpdated",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Load Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load Object",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Load Object').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"StoredProcedureName": {
+				"type": "String"
+			},
+			"BatchID": {
+				"type": "Int"
+			},
+			"Parameters": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "LZToDW"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

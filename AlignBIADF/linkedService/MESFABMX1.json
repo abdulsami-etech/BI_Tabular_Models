@@ -1,0 +1,23 @@
+{
+	"name": "MESFABMX1",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "Connection for MES FAB Mexico plant 1",
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "MESFABMX1ConnectionString"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

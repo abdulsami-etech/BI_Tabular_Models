@@ -1,0 +1,34 @@
+{
+	"name": "Tabular_Process_EMEA_Education_model",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ProcessAASDatabase",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"WebhookURLToken": {
+						"type": "SecureString",
+						"value": "**********"
+					},
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbiaas",
+					"ASDatabase": "Doctors Education Tabular",
+					"ASRefreshType": "Full"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-01-19T09:20:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

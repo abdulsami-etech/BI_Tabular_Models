@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcMES_AFAB_MX2].[PORT] (
+    [LZBatchID]            INT            NOT NULL,
+    [ADLSBatchID]          INT            NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)  NOT NULL,
+    [port_key]             BIGINT         NOT NULL,
+    [site_num]             INT            NOT NULL,
+    [port_name]            NVARCHAR (64)  NOT NULL,
+    [port_type]            INT            NOT NULL,
+    [owner_key]            BIGINT         NOT NULL,
+    [edge_association]     INT            NOT NULL,
+    [owner_type]           INT            NOT NULL,
+    [enabled]              INT            NOT NULL,
+    [s_text]               NVARCHAR (80)  NULL,
+    [description]          NVARCHAR (255) NULL,
+    [category]             NVARCHAR (50)  NULL,
+    [creator_key]          BIGINT         NOT NULL,
+    [last_modifier_key]    BIGINT         NULL,
+    [xfr_insert_pid]       INT            NULL,
+    [pd_xfr_update_pid]    INT            NOT NULL,
+    [src_xfr_update_pid]   INT            NOT NULL,
+    [xfr_update_pid]       INT            NULL,
+    [creation_time]        DATETIME       NOT NULL,
+    [creation_time_u]      DATETIME       NULL,
+    [creation_time_z]      NVARCHAR (64)  NULL,
+    [last_modified_time]   DATETIME       NOT NULL,
+    [last_modified_time_u] DATETIME       NULL,
+    [last_modified_time_z] NVARCHAR (64)  NULL,
+    [trx_id]               CHAR (38)      NOT NULL,
+    [purged]               INT            NULL
+)
+WITH (HEAP, DISTRIBUTION = ROUND_ROBIN);
+

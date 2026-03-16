@@ -1,0 +1,28 @@
+{
+	"name": "LZ_Clinical",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "Clinical",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2022-04-26T20:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

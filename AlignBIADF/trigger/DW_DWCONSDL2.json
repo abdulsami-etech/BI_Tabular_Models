@@ -1,0 +1,28 @@
+{
+	"name": "DW_DWCONSDL2",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWCONSDL",
+					"ObjectList": "214"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2021-03-10T12:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

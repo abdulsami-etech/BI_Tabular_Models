@@ -1,0 +1,441 @@
+{
+	"name": "ADLSv2_MESCorp_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get object list",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLGetObjectList]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							},
+							"ObjectList": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.ObjectList",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Weekend load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Iterate through objects",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Temp Path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get object list').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Load Object",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "ADLSv2_MESCorp_Internal",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"BatchID": {
+										"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+										"type": "Expression"
+									},
+									"ObjectID": {
+										"value": "@{item().ObjectID}",
+										"type": "Expression"
+									},
+									"RawFilePath": {
+										"value": "@{item().RawFilePath}",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@{item().FileName}",
+										"type": "Expression"
+									},
+									"IsLZ": {
+										"value": "@{item().IsLZ}",
+										"type": "Expression"
+									},
+									"PredicateColumn": {
+										"value": "@{item().PredicateColumn}",
+										"type": "Expression"
+									},
+									"DataSliceStartValue": {
+										"value": "@{item().DataSliceStartValue}",
+										"type": "Expression"
+									},
+									"DataSliceEndValue": {
+										"value": "@{item().DataSliceEndValue}",
+										"type": "Expression"
+									},
+									"TempFolder": {
+										"value": "@variables('TempFolder')",
+										"type": "Expression"
+									},
+									"IsFullLoad": {
+										"value": "@{item().IsFullLoad}",
+										"type": "Expression"
+									},
+									"MaxPredicateValueQuery": {
+										"value": "@{item().MaxPredicateValueQuery}",
+										"type": "Expression"
+									},
+									"CurrentTimestamp": {
+										"value": "@{item().CurrentTimestamp}",
+										"type": "Expression"
+									},
+									"Destinations": {
+										"value": "@{item().Destinations}",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "On failure - Load Object",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load Object",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through objects",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Get object list",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get object list').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Iterate through objects",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through objects",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set Temp Path",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "TempFolder",
+					"value": {
+						"value": "@concat('control/Temp/', utcnow('yyyy/MM/dd/'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Weekend load",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(dayOfWeek(utcnow()),0 ), equals(formatDateTime(utcnow(),'hh'),'12'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Update Script",
+							"description": "Updating  DataSliceStartValue= Getdate() -7",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": "Update CTRL.ADLObject\nset DataSliceStartValue= Getdate() -7\nwhere SourceSystem='MESCorp'\nand ObjectID in (2062,2064,2057,2058,2065,2059,2047,2048,2060)and Status='Ready';\n\nSELECT 0 ID;",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ObjectList": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "MESCorp"
+			},
+			"TempFolder": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

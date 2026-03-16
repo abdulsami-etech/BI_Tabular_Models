@@ -1,0 +1,30 @@
+{
+	"name": "DS_ASA_PolybaseSnk",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLDW",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"DestinationTableSchema": {
+				"type": "string"
+			},
+			"DestinationTableName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().DestinationTableSchema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().DestinationTableName",
+				"type": "Expression"
+			}
+		}
+	}
+}

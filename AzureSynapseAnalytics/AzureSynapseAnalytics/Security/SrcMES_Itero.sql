@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcMES_Itero]
+    AUTHORIZATION [dbo];
+

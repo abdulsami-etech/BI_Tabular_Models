@@ -1,0 +1,28 @@
+{
+	"name": "ShipExecFileSystem",
+	"properties": {
+		"parameters": {
+			"FilePath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "@{linkedService().FilePath}",
+			"userId": "Aligntech\\svc.adfShipExec",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "ShipExecSvcPassword"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

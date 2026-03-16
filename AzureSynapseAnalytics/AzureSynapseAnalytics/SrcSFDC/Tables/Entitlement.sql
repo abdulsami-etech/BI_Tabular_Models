@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcSFDC].[Entitlement] (
+    [LZBatchID]           INT            NOT NULL,
+    [ADLSBatchID]         INT            NOT NULL,
+    [ADLSTimestamp]       DATETIME2 (0)  NOT NULL,
+    [AccountId]           NCHAR (18)     NOT NULL,
+    [AssetId]             NCHAR (18)     NULL,
+    [BusinessHoursId]     NCHAR (18)     NULL,
+    [CasesPerEntitlement] INT            NULL,
+    [ContractLineItemId]  NCHAR (18)     NULL,
+    [CreatedById]         NCHAR (18)     NULL,
+    [CreatedDate]         DATETIME2 (7)  NOT NULL,
+    [CurrencyIsoCode]     NVARCHAR (3)   NOT NULL,
+    [EndDate]             DATETIME2 (7)  NULL,
+    [Id]                  NCHAR (18)     NOT NULL,
+    [IsDeleted]           BIT            NOT NULL,
+    [IsPerIncident]       BIT            NOT NULL,
+    [LastModifiedById]    NCHAR (18)     NULL,
+    [LastModifiedDate]    DATETIME2 (7)  NOT NULL,
+    [LastReferencedDate]  DATETIME2 (7)  NULL,
+    [LastViewedDate]      DATETIME2 (7)  NULL,
+    [Name]                NVARCHAR (255) NOT NULL,
+    [RecordTypeId]        NCHAR (18)     NULL,
+    [RemainingCases]      INT            NULL,
+    [ServiceContractId]   NCHAR (18)     NULL,
+    [SlaProcessId]        NCHAR (18)     NULL,
+    [StartDate]           DATETIME2 (7)  NULL,
+    [Status]              NVARCHAR (255) NULL,
+    [SystemModstamp]      DATETIME2 (7)  NOT NULL,
+    [Type]                NVARCHAR (40)  NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

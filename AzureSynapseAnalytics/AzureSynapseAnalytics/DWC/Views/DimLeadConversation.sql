@@ -1,0 +1,26 @@
+﻿CREATE VIEW DWC.DimLeadConversation
+AS
+SELECT [SKLeadConversation]
+      ,[ADLSTimestamp]
+      ,[KeyLeadConversation]
+      ,[ConsumerLeadId]
+      ,[ContactId]
+      ,[CreatedById]
+      ,[CreatedByUserName]
+      ,[CreatedDate]
+      ,[CurrencyIsoCode]
+      ,[IsDeleted]
+      ,[LastModifiedById]
+      ,[LastModifiedByUserName]
+      ,[LastModifiedDate]
+      ,[Name]
+      ,[OwnerId]
+      ,[OwnerUserName]
+      ,[SMSConversation]
+      ,[SystemModstamp]
+      ,[WhatsAppConversation]
+      ,[LeadCountryCode]
+	  ,[LeadCountry]
+      ,[SecRegion]
+FROM [DW].[DimLeadConversation] c
+INNER JOIN dwglobal.GeographyRegion d on d.RegionGroup = c.SecRegion and d.dataset='DWC'

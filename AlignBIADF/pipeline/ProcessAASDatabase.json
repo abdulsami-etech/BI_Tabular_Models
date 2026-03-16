@@ -1,0 +1,321 @@
+{
+	"name": "ProcessAASDatabase",
+	"properties": {
+		"activities": [
+			{
+				"name": "Invoke runbook",
+				"type": "WebHook",
+				"dependsOn": [
+					{
+						"activity": "Set Webhook URL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set ASServer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@variables('WebhookURL')",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"body": {
+						"AzRolloutEnvironment": "@{pipeline().parameters.ASRegion}",
+						"AzServername": "@{variables('ASServer')}",
+						"AzDatabaseName": "@{pipeline().parameters.ASDatabase}",
+						"AzRefreshType": "@{pipeline().parameters.ASRefreshType}"
+					},
+					"timeout": "02:15:00",
+					"reportStatusOnCallBack": true
+				}
+			},
+			{
+				"name": "Set Webhook URL",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "WebhookURL",
+					"value": {
+						"value": "@concat('https://s24events.azure-automation.net/webhooks?token=', json(string(pipeline().parameters.WebhookURLToken)).value)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": "-1"
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "ProcessAASDatabase"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": "-1"
+							},
+							"SinkName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.ASDatabase",
+									"type": "Expression"
+								}
+							},
+							"SinkPathRAW": {
+								"type": "String",
+								"value": {
+									"value": "@concat(\n'ASRegion=', pipeline().parameters.ASRegion,\n';ASServerSuffix=', pipeline().parameters.ASServerSuffix,\n';ASDatabase=', pipeline().parameters.ASDatabase,\n';ASRefreshType=', pipeline().parameters.ASRefreshType\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Invoke runbook",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Update status",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Try to set error message",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@variables('ErrorMessage')",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set ASServer",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ASServer",
+					"value": {
+						"value": "@concat(first(split(pipeline().DataFactory, 'alignbiadf')), pipeline().parameters.ASServerSuffix)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Try to set error message",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Invoke runbook",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ErrorMessage",
+					"value": {
+						"value": "@activity('Invoke Runbook').Error.Message",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "On failure - Update status 2",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Try to set error message",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See azure automation logs",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"WebhookURLToken": {
+				"type": "securestring"
+			},
+			"ASRegion": {
+				"type": "string",
+				"defaultValue": "westus.asazure.windows.net"
+			},
+			"ASServerSuffix": {
+				"type": "string",
+				"defaultValue": "alignbiaas"
+			},
+			"ASDatabase": {
+				"type": "string"
+			},
+			"ASRefreshType": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"WebhookURL": {
+				"type": "String"
+			},
+			"ASServer": {
+				"type": "String"
+			},
+			"ErrorMessage": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Control"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

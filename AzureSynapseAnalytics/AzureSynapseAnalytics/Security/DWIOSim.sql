@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWIOSim]
+    AUTHORIZATION [dbo];
+

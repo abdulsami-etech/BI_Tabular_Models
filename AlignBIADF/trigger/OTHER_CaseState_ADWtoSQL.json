@@ -1,0 +1,18 @@
+{
+	"name": "OTHER_CaseState_ADWtoSQL",
+	"properties": {
+		"description": "AlertGroup = Azure Pipeline iTero",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-02-04T00:15:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

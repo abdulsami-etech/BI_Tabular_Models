@@ -1,0 +1,256 @@
+{
+	"name": "DW_Run_Dependent_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Run DW_Master L1",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(pipeline().parameters.SchemaNameL1))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Pipeline DW_Master L1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "DW_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SchemaName": {
+										"value": "@pipeline().parameters.SchemaNameL1",
+										"type": "Expression"
+									},
+									"ObjectList": {
+										"value": "@pipeline().parameters.ObjectListL1",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Run DW_Master L2",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Run DW_Master L1",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(pipeline().parameters.SchemaNameL2))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Pipeline DW_Master L2",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "DW_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SchemaName": {
+										"value": "@pipeline().parameters.SchemaNameL2",
+										"type": "Expression"
+									},
+									"ObjectList": {
+										"value": "@pipeline().parameters.ObjectListL2",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Run DW_Master L3",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Run DW_Master L2",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(pipeline().parameters.SchemaNameL3))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Pipeline DW_Master L3",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "DW_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SchemaName": {
+										"value": "@pipeline().parameters.SchemaNameL3",
+										"type": "Expression"
+									},
+									"ObjectList": {
+										"value": "@pipeline().parameters.ObjectListL3",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Run DW_Master L4",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Run DW_Master L3",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(pipeline().parameters.SchemaNameL4))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Pipeline DW_Master L4",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "DW_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SchemaName": {
+										"value": "@pipeline().parameters.SchemaNameL4",
+										"type": "Expression"
+									},
+									"ObjectList": {
+										"value": "@pipeline().parameters.ObjectListL4",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Run DW_Master L5",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Run DW_Master L4",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(pipeline().parameters.SchemaNameL5))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Pipeline DW_Master L5",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "DW_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SchemaName": {
+										"value": "@pipeline().parameters.SchemaNameL5",
+										"type": "Expression"
+									},
+									"ObjectList": {
+										"value": "@pipeline().parameters.ObjectListL5",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"SchemaNameL1": {
+				"type": "string"
+			},
+			"ObjectListL1": {
+				"type": "string"
+			},
+			"SchemaNameL2": {
+				"type": "string"
+			},
+			"ObjectListL2": {
+				"type": "string"
+			},
+			"SchemaNameL3": {
+				"type": "string"
+			},
+			"ObjectListL3": {
+				"type": "string"
+			},
+			"SchemaNameL4": {
+				"type": "string"
+			},
+			"ObjectListL4": {
+				"type": "string"
+			},
+			"SchemaNameL5": {
+				"type": "string"
+			},
+			"ObjectListL5": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "LZToDW/CustomizedForDependencies"
+		},
+		"annotations": []
+	}
+}

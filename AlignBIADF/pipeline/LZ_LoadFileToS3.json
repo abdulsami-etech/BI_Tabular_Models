@@ -1,0 +1,308 @@
+{
+	"name": "LZ_LoadFileToS3",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "LZLoadFile"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.LZObjectID",
+									"type": "Expression"
+								}
+							},
+							"SinkPathRaw": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.FilePath",
+									"type": "Expression"
+								}
+							},
+							"SinkName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.FileName",
+									"type": "Expression"
+								}
+							},
+							"FileSizeInBytes": {
+								"type": "int64",
+								"value": {
+									"value": "@pipeline().parameters.FileSizeInBytes",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy to Blob Storage",
+				"description": "Once copied, azure function alignfunctionaws.copytos3 will be triggered",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureBlobFSSource",
+						"recursive": false
+					},
+					"sink": {
+						"type": "BlobSink"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ADLSv2",
+						"type": "DatasetReference",
+						"parameters": {
+							"Path": {
+								"value": "@pipeline().parameters.FilePath",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "BlobStorage_Text_GZipped",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@replace(pipeline().parameters.FilePath, 'raw/', 's3export/')",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@replace(pipeline().parameters.FileName, '.parquet', '.gz')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "On failure - Copy to stage",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy to Blob Storage",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Copy to Blob Storage').Error.Message\n",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Object File",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy to Blob Storage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectFileUpdate]",
+					"storedProcedureParameters": {
+						"FileName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Completed",
+							"type": "string"
+						},
+						"Destination": {
+							"value": {
+								"value": "@pipeline().parameters.Destination",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsInserted": {
+							"value": null,
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": null,
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"FilePath": {
+				"type": "String"
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"LZObjectID": {
+				"type": "String"
+			},
+			"BatchID": {
+				"type": "Int"
+			},
+			"FileSizeInBytes": {
+				"type": "Float"
+			},
+			"Destination": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "ADLSv2ToDestination"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

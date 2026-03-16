@@ -1,0 +1,15 @@
+{
+	"name": "Office365Table1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "O365",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Office365Table",
+		"schema": [],
+		"typeProperties": {
+			"tableName": "BasicDataSet_v0.Contact_v1"
+		}
+	}
+}

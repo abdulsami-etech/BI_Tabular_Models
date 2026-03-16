@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcSFDC].[ContractLineitem] (
+    [LZBatchID]          INT             NOT NULL,
+    [ADLSBatchID]        INT             NOT NULL,
+    [ADLSTimestamp]      DATETIME2 (0)   NOT NULL,
+    [AssetId]            NCHAR (36)      NULL,
+    [CreatedById]        NCHAR (36)      NULL,
+    [CreatedDate]        DATETIME2 (7)   NOT NULL,
+    [CurrencyIsoCode]    NVARCHAR (6)    NOT NULL,
+    [Description]        NVARCHAR (4000) NULL,
+    [Discount]           DECIMAL (18, 2) NULL,
+    [EndDate]            DATETIME2 (7)   NULL,
+    [Id]                 NCHAR (18)      NOT NULL,
+    [IsDeleted]          BIT             NOT NULL,
+    [LastModifiedById]   NCHAR (36)      NULL,
+    [LastModifiedDate]   DATETIME2 (7)   NOT NULL,
+    [LastReferencedDate] DATETIME2 (7)   NULL,
+    [LastViewedDate]     DATETIME2 (7)   NULL,
+    [LineItemNumber]     NVARCHAR (510)  NULL,
+    [ListPrice]          DECIMAL (18, 2) NULL,
+    [PricebookEntryId]   NCHAR (36)      NOT NULL,
+    [Quantity]           DECIMAL (18, 2) NOT NULL,
+    [ServiceContractId]  NCHAR (36)      NOT NULL,
+    [StartDate]          DATETIME2 (7)   NULL,
+    [Status]             NVARCHAR (510)  NULL,
+    [Subtotal]           DECIMAL (18, 2) NULL,
+    [SystemModstamp]     DATETIME2 (7)   NOT NULL,
+    [TotalPrice]         DECIMAL (18, 2) NULL,
+    [UnitPrice]          DECIMAL (18, 2) NOT NULL,
+    [Product2Id]        NCHAR (36)      NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

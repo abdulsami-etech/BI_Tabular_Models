@@ -1,0 +1,29 @@
+{
+	"name": "DW_DWIFV",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWIFV",
+					"ObjectList": "234"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2021-08-30T14:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_Medallia",
+	"properties": {
+		"description": "AlertGroup = Azure Pipeline iTero",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_JSON_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "Medallia"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-02-04T03:15:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

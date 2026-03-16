@@ -1,0 +1,24 @@
+{
+	"name": "SNOW",
+	"properties": {
+		"annotations": [],
+		"type": "ServiceNow",
+		"typeProperties": {
+			"endpoint": "https://aligntech.service-now.com",
+			"authenticationType": "Basic",
+			"username": "movebot2",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "ServiceNowSecret",
+				"secretVersion": ""
+			},
+			"useEncryptedEndpoints": true,
+			"useHostVerification": true,
+			"usePeerVerification": true
+		}
+	}
+}

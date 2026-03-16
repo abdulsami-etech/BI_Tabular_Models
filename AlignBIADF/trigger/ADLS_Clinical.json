@@ -1,0 +1,24 @@
+{
+	"name": "ADLS_Clinical",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Clinical_Master",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2022-04-25T16:50:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

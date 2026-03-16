@@ -1,0 +1,30 @@
+{
+	"name": "DST_LZ_Order",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "IDS,SFDC,MESCorp",
+					"Destination": "LZ",
+					"ObjectList": "1002,32,2062,2064"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2020-03-31T00:10:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

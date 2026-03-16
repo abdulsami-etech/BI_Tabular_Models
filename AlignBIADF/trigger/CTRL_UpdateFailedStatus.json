@@ -1,0 +1,25 @@
+{
+	"name": "CTRL_UpdateFailedStatus",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "UpdateObjectStatus",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-02-05T00:00:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

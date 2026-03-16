@@ -1,0 +1,69 @@
+﻿CREATE PROC [DWSAP].[KONVUPSERT] @DeltaFlag [int] AS
+BEGIN
+       DECLARE @lastdate datetime
+
+       IF @DeltaFlag = 0
+       BEGIN
+             SET @lastdate =  '1900-01-01'
+             print('Delta Flag set to 1900')
+             print(@lastdate )
+       END
+
+       ELSE
+       BEGIN
+             SELECT @lastdate = MAX(CONVERT (datetime, k.ADLSTimestamp )) FROM SrcSAP.KONV k
+             print('Max ADLSTimestamp of KONV Calcualted and alloted')
+             print(@lastdate )
+       END
+
+IF OBJECT_ID('tempdb.DWSAP.#Temp_KONV_Delta_Table_Temp', 'U') IS NOT NULL
+BEGIN
+    DROP TABLE  DWSAP.#Temp_KONV_Delta_Table_Temp;
+END
+
+
+       SELECT DISTINCT  LZBatchID, ADLSBatchID, ADLSTimestamp, MANDT, KNUMV, KPOSN, STUNR, ZAEHK, KAPPL, KSCHL, KDATU,
+       KRECH, KAWRT, KBETR, WAERS, KKURS, KPEIN, KMEIN, KUMZA, KUMNE, KNTYP, KSTAT, KNPRS, KRUEK, KRELI, KHERK,
+       KGRPE, KOUPD, KOLNR, KNUMH, KOPOS, KVSL1, SAKN1, MWSK1, KVSL2, SAKN2, MWSK2, LIFNR, KUNNR, KDIFF, KWERT,
+       KSTEU, KINAK, KOAID, ZAEKO, KMXAW, KMXWR, KFAKTOR, KDUPL, KFAKTOR1, KZBZG, KSTBS, KONMS, KONWS, KAWRT_K,
+       KWAEH, KWERT_K, KFKIV, KVARC, KMPRS, PRSQU, VARCOND, KTREL, MDFLG, TXJLV, KBFLAG, KOLNR3, CPF_GUID, KAQTY,
+    [/IDT/AUNA], [/IDT/ETC], [/IDT/UUID], [/IDT/NOT], [/IDT/ITEM], [/IDT/HDCT], [/IDT/DOT], [/IDT/TTYP], [/IDT/BSUP], [/IDT/NTAXB], [/IDT/AUTY],
+    [/IDT/IE], STUFE, WEGXX, [/IDT/GROSS], [/IDT/AUEA]
+       INTO DWSAP.#Temp_KONV_Delta_Table_Temp  FROM SrcSAP.ZVOTC_KONV_DATA1
+       WHERE SrcSAP.ZVOTC_KONV_DATA1.ADLSTimestamp > @lastdate
+
+       print('Temp table with Distinct Records Generated')
+
+       BEGIN TRANSACTION;
+
+       DELETE  SrcSAP.KONV
+       FROM SrcSAP.KONV
+       INNER JOIN DWSAP.#Temp_KONV_Delta_Table_Temp
+       ON
+       (SrcSAP.KONV.knumv = DWSAP.#Temp_KONV_Delta_Table_Temp.knumv and
+       SrcSAP.KONV.kposn = DWSAP.#Temp_KONV_Delta_Table_Temp .KPOSN and
+       SrcSAP.KONV.STUNR  = DWSAP.#Temp_KONV_Delta_Table_Temp .STUNR  and
+       SrcSAP.KONV.ZAEHK = DWSAP.#Temp_KONV_Delta_Table_Temp .ZAEHK )
+       print('Deleting the common Records')
+
+       INSERT INTO SrcSAP.KONV (LZBatchID, ADLSBatchID, ADLSTimestamp, MANDT, KNUMV, KPOSN, STUNR, ZAEHK, KAPPL, KSCHL, KDATU,
+       KRECH, KAWRT, KBETR, WAERS, KKURS, KPEIN, KMEIN, KUMZA, KUMNE, KNTYP, KSTAT, KNPRS, KRUEK, KRELI, KHERK,
+       KGRPE, KOUPD, KOLNR, KNUMH, KOPOS, KVSL1, SAKN1, MWSK1, KVSL2, SAKN2, MWSK2, LIFNR, KUNNR, KDIFF, KWERT,
+       KSTEU, KINAK, KOAID, ZAEKO, KMXAW, KMXWR, KFAKTOR, KDUPL, KFAKTOR1, KZBZG, KSTBS, KONMS, KONWS, KAWRT_K,
+       KWAEH, KWERT_K, KFKIV, KVARC, KMPRS, PRSQU, VARCOND, KTREL, MDFLG, TXJLV, KBFLAG, KOLNR3, CPF_GUID, KAQTY,
+    [/IDT/AUNA], [/IDT/ETC], [/IDT/UUID], [/IDT/NOT], [/IDT/ITEM], [/IDT/HDCT], [/IDT/DOT], [/IDT/TTYP], [/IDT/BSUP], [/IDT/NTAXB], [/IDT/AUTY],
+    [/IDT/IE], STUFE, WEGXX, [/IDT/GROSS], [/IDT/AUEA])
+    SELECT LZBatchID, ADLSBatchID, ADLSTimestamp, MANDT, KNUMV, KPOSN, STUNR, ZAEHK, KAPPL, KSCHL, KDATU,
+       KRECH, KAWRT, KBETR, WAERS, KKURS, KPEIN, KMEIN, KUMZA, KUMNE, KNTYP, KSTAT, KNPRS, KRUEK, KRELI, KHERK,
+       KGRPE, KOUPD, KOLNR, KNUMH, KOPOS, KVSL1, SAKN1, MWSK1, KVSL2, SAKN2, MWSK2, LIFNR, KUNNR, KDIFF, KWERT,
+       KSTEU, KINAK, KOAID, ZAEKO, KMXAW, KMXWR, KFAKTOR, KDUPL, KFAKTOR1, KZBZG, KSTBS, KONMS, KONWS, KAWRT_K,
+       KWAEH, KWERT_K, KFKIV, KVARC, KMPRS, PRSQU, VARCOND, KTREL, MDFLG, TXJLV, KBFLAG, KOLNR3, CPF_GUID, KAQTY,
+    [/IDT/AUNA], [/IDT/ETC], [/IDT/UUID], [/IDT/NOT], [/IDT/ITEM], [/IDT/HDCT], [/IDT/DOT], [/IDT/TTYP], [/IDT/BSUP], [/IDT/NTAXB], [/IDT/AUTY],
+    [/IDT/IE], STUFE, WEGXX, [/IDT/GROSS], [/IDT/AUEA]
+    FROM DWSAP.#Temp_KONV_Delta_Table_Temp
+
+    print('All the records are inserted')
+
+       COMMIT;
+       DROP TABLE DWSAP.#Temp_KONV_Delta_Table_Temp
+END;

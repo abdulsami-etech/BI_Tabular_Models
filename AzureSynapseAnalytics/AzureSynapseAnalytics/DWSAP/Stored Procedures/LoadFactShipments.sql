@@ -1,0 +1,4762 @@
+﻿CREATE PROC [DWSAP].[LoadFactShipments] @BATCHID [INT],@LASTSUCCESSFULLDWTIMESTAMP [DATETIME2](0) AS 
+    BEGIN
+      --set xact_abort on
+      DECLARE @ROWSINSERTED INT = 0 
+      , @ROWSUPDATED INT = 0 
+      , @ISFULLLOAD BIT = 0 
+      DECLARE @LASTDATE DATETIME IF (EXISTS 
+      (
+        SELECT
+          * 
+        FROM
+          INFORMATION_SCHEMA.TABLES 
+        WHERE
+          TABLE_SCHEMA = 'TABSAP' 
+          AND TABLE_NAME = 'FACTSHIPMENTS_MATERIALIZED'
+      )
+) 
+      BEGIN
+        SET
+          @LASTDATE = 
+          (
+            SELECT
+              ISNULL (MAX(CONVERT (DATETIME, [TABSAP].[FACTSHIPMENTS_MATERIALIZED].ADLSTIMESTAMP )), '1900-01-01 00:00:00') 
+            FROM
+              [TABSAP].[FACTSHIPMENTS_MATERIALIZED]
+          )
+      END
+      ELSE
+        BEGIN
+          SET
+            @LASTDATE = '1900-01-01' 
+        END
+
+		If Object_id('[DWSAP].[TEMPRAWDELIVERYDATA]','U') IS NOT NULL
+		DROP TABLE [DWSAP].[TEMPRAWDELIVERYDATA]
+
+		IF OBJECT_ID('tempdb.TABSAP.#FACTSHIPMENTS_MATERIALIZED_TEMP','U') IS NOT NULL 
+		DROP TABLE [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP]
+
+        CREATE TABLE [DWSAP].[TEMPRAWDELIVERYDATA] WITH ( CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([SALES ORDER KEY]) ) AS 
+        SELECT
+          LIKP.ADLSTIMESTAMP,
+          CONCAT (YEAR (LIKP.WADAT_IST), '-', MONTH(LIKP.WADAT_IST)) AS [PARTITIONCOLUMN],
+          LIKP.[VBELN] AS [DELIVERY],
+          LIKP.[VOLEH] AS [VOLUME UNIT],
+          VBAP.[PSTYV] AS [ITEM CATEGORY],
+          TVKO.[BUKRS] AS [COMPANY CODE],
+          LIKP.[NTGEW] AS [NET WEIGHT],
+          BTGEW AS [TOTAL WEIGHT],
+          LIPS.POSNR [DELIVERYITEM],
+          KUNAG AS [SOLD - TO PARTY],
+          LIKP.[VKORG] AS [SALES ORGANIZATION],
+          CONCAT(LIPS.[SPART], ',E') AS DIVISION_KEY,
+          LIKP.[WADAT_IST] AS [SHIPMENT DATE],
+          LIPS.[PRODH] AS [PRODUCT HIERARCHY],
+          LIPS.[PRCTR] AS [PROFIT CENTER],
+          LIPS.[WERKS] AS [PLANT],
+          CONCAT(LIPS.[PRCTR], ',', LIPS.KOKRS) AS PROFIT_CENTER_KEY,
+          LIPS.[MATNR] AS [MATERIAL NUMBER],
+          LIPS.[LFIMG] AS [DELIVERED QUANTITY],
+
+      --Jira Number BI-11966
+      --Removing Initial Zeros from Sales Order Number
+          REPLACE(LTRIM(REPLACE(LIPS.VGBEL, '0', ' ')), ' ', '0') AS [SALES ORDER NUMBER],
+          VBAP.[ZZDELI_TYPE] [DELIVERABLE TYPE],
+      --Jira Number BI-11966
+      --Removing Initial Zeros from Sales Order Number and Sales Order Item. After that those are concatenated.
+          CONCAT(REPLACE(LTRIM(REPLACE(LIPS.VGBEL, '0', ' ')), ' ', '0'), '/', REPLACE(LTRIM(REPLACE(LIPS.VGPOS, '0', ' ')), ' ', '0')) AS [SALES ORDER KEY],
+          ISNULL(VBAP.[ZZTOT_QTY], 0) [DELIVERABLE QUANTITY],
+          ISNULL(VBAP.[ZZTOTAL_QTY], 0) [TOTAL QUANTITY],
+          VBAK.[ZZDELI_CATE] [DELIVERABLE CATEGORY],
+          VBAK.[ZZSR_NO] AS [EQUIPMENT SERIAL NUM],
+          VBAK.[ZZ_IN_COM_ID] AS [INITIATOR COMPANY ID],
+          DOA.AGETIERCODE AS [AGE TIER],
+          VBAK.[AUART] AS [DOCUMENT TYPE],
+          CASE
+            WHEN LIPS.PRODH LIKE 'A1A1%' THEN 'CLEAR ALIGNER' 
+            WHEN LIPS.PRODH LIKE 'A1S1%' THEN 'ITERO' 
+            ELSE
+              NULL 
+          END
+          AS [BUSINESS SEGMENT] , VBAP.[ZZCOMP_IND] [COMPLIANCE INDICATOR] , 
+          CASE
+            WHEN (ISNULL(VBAP.[KWMENG], 0) - ISNULL(LIPS.[LFIMG], 0))<= 0 
+      THEN ISNULL(VBAP.[KWMENG], 0) 
+            ELSE
+(ISNULL(VBAP.[KWMENG], 0) - ISNULL(LIPS.[LFIMG], 0)) 
+          END
+          [TOTALORDERQUANTITY] , 
+          [KONTO] AS [COST ELEMENT] , 
+          ISNULL(VBAP.[KWMENG], 0) [ORDER QUANTITY] , 
+          ISNULL(VBAP.[KWMENG], 0) [ORDER QUANTITY UNDIVIDED] , 
+          ISNULL(VBAP.[ZZFRE_QTY], 0) [FOC QUANTITY] , 
+          CASE
+            WHEN
+              VBAK.[VTWEG] = '20' 
+            THEN
+              21 
+            WHEN
+              VBAK.[VTWEG] = '10' 
+              AND VBAK.[KVGR1] = '01' 
+            THEN
+              11 
+            WHEN
+              VBAK.[VTWEG] = '10' 
+              AND VBAK.[KVGR1] = '02' 
+            THEN
+              12 
+            WHEN
+              VBAK.[VTWEG] = '10' 
+              AND VBAK.[KVGR1] = '03' 
+            THEN
+              13 
+            WHEN
+              LIPS.[PRODH] LIKE 'A1S1%' 
+              AND VBAP.[MVGR5] = 'Z3' 
+            THEN
+              11 
+            WHEN
+              LIPS.[PRODH] LIKE 'A1S1%' 
+              AND VBAP.[MVGR5] = 'Z2' 
+            THEN
+              12 
+            WHEN
+              LIPS.[PRODH] LIKE 'A1S1%' 
+            THEN
+              12 
+            WHEN
+              LIPS.[PRODH] = 'A1A1T1C10301' 
+            THEN
+              11 
+            ELSE
+              12 
+          END
+          [REPORTING CHANNEL] , DOA.TREATMENTLOCATION , DOA.TREATINGDOCTOR 
+        FROM
+          [SRCSAP].[LIKP] LIKP 
+          INNER JOIN
+            [SRCSAP].[LIPS] LIPS 
+            ON LIPS.[VBELN] = LIKP.[VBELN] 
+          INNER JOIN
+            [SRCSAP].[TVKO] TVKO 
+            ON TVKO.[BUKRS] = LIKP.[VKORG] 
+          LEFT JOIN
+            [SRCSAP].[VBAP] VBAP 
+            ON VBAP.[VBELN] = LIPS.[VGBEL] 
+            AND VBAP.[POSNR] = LIPS.[VGPOS] 
+          LEFT JOIN
+            [SRCSAP].[VBAK] VBAK 
+            ON VBAK.[VBELN] = VBAP.[VBELN] 
+          LEFT JOIN
+            [TABSAP].[DIMORDERATTRIBUTES] DOA 
+            ON            /*replace(ltrim(replace(*/
+            DOA.ORDERNUMBER           /*,'0',' ')),' ','0')*/
+            = REPLACE(LTRIM(REPLACE(LIPS.VGBEL, '0', ' ')), ' ', '0') 
+        WHERE
+          LIKP.[WADAT_IST] <> '00000000' 
+          AND LIKP.ADLSTIMESTAMP > @LASTDATE 
+          --AND           --JIRA NUMBER // BI-11264
+          --CONCAT(LIPS.VBELN, '/', LIPS.POSNR) NOT IN 
+          --(
+          --  SELECT
+          --    CONCAT ([OBJECTID], '/', RIGHT (TABKEY, 6) ) AS ITEM 
+          --  FROM
+          --    SRCSAP.ZVOTC_CDHDR_POS1 ZCP 
+          --  WHERE
+          --    ZCP.CHNGIND = 'D'   
+          --    AND TABNAME = 'LIPS' 
+          --)
+          CREATE NONCLUSTERED INDEX [TEMPDELIVERYSALESORDERKEY] 
+          ON [DWSAP].[TEMPRAWDELIVERYDATA] ( [SALES ORDER KEY] ASC )WITH (DROP_EXISTING = OFF) CREATE NONCLUSTERED INDEX [TEMPDELIVERYAGE] 
+          ON [DWSAP].[TEMPRAWDELIVERYDATA] ( [AGE TIER] ASC )WITH (DROP_EXISTING = OFF)           -- We calculate the data that has multiple deliveries we will then update the data on the basis oh those sales order keys
+          SELECT
+            [DELIVEREDQUANTITY],
+            AB.[SALES ORDER KEY],
+            [ORDER QUANTITY] INTO #TEMP_MULTIPLEDELIVERIESDATA 
+          FROM
+            (
+              SELECT
+                SUM ([DELIVERED QUANTITY] ) AS [DELIVEREDQUANTITY],
+                FSM.[SALES ORDER KEY] 
+              FROM
+                [DWSAP].[TEMPRAWDELIVERYDATA] FSM 
+              WHERE
+                FSM.[SALES ORDER KEY] IN 
+                (
+                  SELECT
+                    [SALES ORDER KEY] 
+                  FROM
+                    [TABSAP].[MULTIPLESALESORDERDELIVERIES]
+                )
+              GROUP BY
+                FSM.[SALES ORDER KEY]
+            )
+            AC 
+            INNER JOIN
+              (
+                SELECT DISTINCT
+                  [ORDER QUANTITY],
+                  [SALES ORDER KEY] 
+                FROM
+                  [DWSAP].[TEMPRAWDELIVERYDATA] FSM 
+                WHERE
+                  FSM .[SALES ORDER KEY] IN 
+                  (
+                    SELECT
+                      [SALES ORDER KEY] 
+                    FROM
+                      [TABSAP].[MULTIPLESALESORDERDELIVERIES] 
+                  )
+              )
+              AB 
+              ON AC.[SALES ORDER KEY] = AB.[SALES ORDER KEY] 
+          WHERE
+            DELIVEREDQUANTITY = [ORDER QUANTITY]            -- Once we have calculated the data we are going to update the values = DEliverable Quantity where it is equal to Order Quantity
+            UPDATE
+              [DWSAP].[TEMPRAWDELIVERYDATA] 
+            SET
+              [DWSAP].[TEMPRAWDELIVERYDATA].[ORDER QUANTITY] = [DWSAP].[TEMPRAWDELIVERYDATA].[DELIVERED QUANTITY] 
+            WHERE
+              [DWSAP].[TEMPRAWDELIVERYDATA].[SALES ORDER KEY] IN 
+              (
+                SELECT
+                  [SALES ORDER KEY] 
+                FROM
+                  #TEMP_MULTIPLEDELIVERIESDATA
+              )
+              -- We are now updating  the data where the Order Quantity and Delivered Quantity are not equal to each other
+              /*
+SELECT * INTO [#MultipleOrderDeliveries] FROM TABSAP.MultipleSalesOrderDeliveries msod 
+WHERE [Sales Order Key]  IN( 
+SELECT 
+[Sales Order Key ] FROM [TABSAP].[OrderswithDeliverableQuantityNotEqual])
+UPDATE [#TempRawDeliveryData]  
+SET  [#TempRawDeliveryData].[Order Quantity] = [#TempRawDeliveryData].[Order Quantity]/[#MultipleOrderDeliveries].[Count]
+FROM [#TempRawDeliveryData] 
+INNER JOIN  [#MultipleOrderDeliveries] 
+ON ([#MultipleOrderDeliveries].[Sales Order Key]  = [#TempRawDeliveryData].[Sales Order Key])
+*/
+              -- exec [DWSAP].[LOADFACTSHIPMENTS] 100,'20200724'
+              /* Base data for Shipments */
+;
+WITH CTE_SHIPMENTS AS 
+(
+  SELECT
+    ADLSTIMESTAMP,
+    [PARTITIONCOLUMN],
+    [DELIVERY],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [NET WEIGHT],
+    [TOTAL WEIGHT],
+    [DELIVERYITEM],
+    [SOLD - TO PARTY],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    [PROFIT CENTER],
+    [PLANT],
+    PROFIT_CENTER_KEY,
+    [MATERIAL NUMBER],
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [DELIVERABLE TYPE],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [AGE TIER],
+    [DOCUMENT TYPE],
+    [BUSINESS SEGMENT],
+    [COMPLIANCE INDICATOR],
+    [TOTALORDERQUANTITY],
+    [COST ELEMENT],
+    [ORDER QUANTITY],
+    [ORDER QUANTITY UNDIVIDED],
+    [FOC QUANTITY],
+    [REPORTING CHANNEL],
+    TREATMENTLOCATION,
+    TREATINGDOCTOR,
+    [EQUIPMENT SERIAL NUM],
+    [INITIATOR COMPANY ID] 
+  FROM
+    [DWSAP].[TEMPRAWDELIVERYDATA] 
+)
+,
+CTE_UNION_SHIPMENT AS 
+(
+  /* Deriving Aligners Shipped from BASE DATA*/
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [TOTAL WEIGHT],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    [COMPLIANCE INDICATOR],
+   CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'ALIGNERS SHIPPED UNKNOWN' 
+      ELSE
+        'ALIGNERS SHIPPED' 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+     THEN
+        'ALIGNERS SHIPPED UNKNOWN' 
+      ELSE
+        'ALIGNERS SHIPPED' 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+      THEN
+        'ALIGNERS_SHIPPED_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+      THEN
+        'ALIGNERS_SHIPPED_ADULTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NULL 
+      THEN
+        'ALIGNERS_SHIPPED_AGE UNKNOWN' 
+      WHEN
+        [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'NONCASE'
+        )
+      THEN
+        'ALIGNERS_SHIPPED_MISCELLANEOUS'        /* FOR ISSUE #80*/
+      ELSE
+        'ALIGNERS_SHIPPED_UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [DELIVERABLE QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+           DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [DELIVERABLE QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    1 [VOLUME COUNT] , 
+    1 [ORDER COUNT] , 
+    0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] = 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 2
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+         SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , 
+    [REPORTING CHANNEL] , 
+    [EQUIPMENT SERIAL NUM] , 
+    [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    /*[Product Hierarchy] IN (select Operand1 from [SrcSAPFile].[VolumeConfig] where Name = 'CASE') AND*/
+    [BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+  UNION ALL
+  /* Deriving CASE Shipments from BASE DATA*/
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [TOTAL WEIGHT],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    [COMPLIANCE INDICATOR],
+    CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [SALES ORDER NUMBER] <> '' 
+        AND [SALES ORDER NUMBER] IS NOT NULL 
+      THEN
+        'CASE SHIPMENTS' 
+      ELSE
+        NULL 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [SALES ORDER NUMBER] <> '' 
+        AND [SALES ORDER NUMBER] IS NOT NULL 
+      THEN
+        'CASE SHIPMENTS' 
+      ELSE
+        NULL 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+           DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'CASE_SHIPMENTS_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'CASE_SHIPMENTS_ADULTS' 
+      WHEN
+        [AGE TIER] IS NULL 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'CASE_SHIPMENTS_AGE UNKNOWN' 
+      WHEN
+        [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'NONCASE'
+        )
+      THEN
+        'CASE_SHIPMENTS_MISCELLANEOUS'        --This is the logic that we are adding for others
+      WHEN
+        [AGE TIER] IS NULL 
+        AND
+        (
+          [ITEM CATEGORY] IN 
+          (
+            SELECT
+              ITEMCATEGORY 
+            FROM
+              DWSAP.VALUECONFIG 
+            WHERE
+              ID IN 
+              (
+                1,
+                2,
+                3,
+                4,
+                5
+              )
+          )
+          OR [DELIVERABLE CATEGORY] NOT IN 
+          (
+            SELECT
+              DELIVERABLECATEGORY 
+            FROM
+              DWSAP.VALUECONFIG 
+            WHERE
+              ID IN 
+              (
+                1,
+                2
+              )
+          )
+          OR [PRODUCT HIERARCHY] IN 
+          (
+            SELECT
+              OPERAND1 
+            FROM
+              [SRCSAPFILE].[VOLUMECONFIG] 
+            WHERE
+              NAME = 'CASE'
+          )
+        )
+      THEN
+        'CASE_SHIPMENTS_AGE UNKNOWN' 
+      ELSE
+        'CASE SHIPMENTS UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] IN 
+            (
+              'DELV_TYPE_AMR_DATE',
+              'DELV_TYPE_ORDER_DATE'
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 2
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NOT NULL 
+      THEN
+        [TOTAL QUANTITY] 
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'DELV_TYPE_DELV_QTY'
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [TOTAL QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] IN 
+            (
+              'DELV_TYPE_AMR_DATE',
+              'DELV_TYPE_ORDER_DATE'
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 2
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NOT NULL 
+      THEN
+        [TOTAL QUANTITY] 
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'DELV_TYPE_DELV_QTY'
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [TOTAL QUANTITY] 
+      ELSE
+        [ORDER QUANTITY UNDIVIDED] 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    1 [VOLUME COUNT] , 
+    1 [ORDER COUNT] , 
+    [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] = 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , 
+    [REPORTING CHANNEL] , 
+    [EQUIPMENT SERIAL NUM] , 
+    [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    [BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+  UNION ALL
+  /* Deriving TOTAL QUANTITY ALIGNERS from BASE DATA*/
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [TOTAL WEIGHT],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    [COMPLIANCE INDICATOR],
+    CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'TOTAL QUANTITY ALIGNERS UNKNOWN' 
+      ELSE
+        'TOTAL QUANTITY ALIGNERS' 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'TOTAL QUANTITY ALIGNERS UNKNOWN' 
+      ELSE
+        'TOTAL QUANTITY ALIGNERS' 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+             5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+      THEN
+        'TOTAL_QUANTITY_ALIGNERS_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+      THEN
+        'TOTAL_QUANTITY_ALIGNERS_ADULTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [AGE TIER] IS NULL 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'TOTAL_QUANTITY_ALIGNERS_AGE UNKNOWN' 
+      WHEN
+        [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'NONCASE'
+        )
+      THEN
+        'TOTAL_QUANTITY_ALIGNERS_MISCELLANEOUS'         /* FOR ISSUE #80*/
+      ELSE
+        'TOTAL_QUANTITY_ALIGNERS_UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [TOTAL QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [TOTAL QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    1 [VOLUME COUNT] , 
+    1 [ORDER COUNT] , 
+    0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , [REPORTING CHANNEL] , [EQUIPMENT SERIAL NUM] , [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    /*[Product Hierarchy] IN (select Operand1 from [SrcSAPFile].[VolumeConfig] where Name = 'CASE') AND*/
+    [BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+  UNION ALL
+  /* Deriving TOTAL TEMPLATES from BASE DATA*/
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [TOTAL WEIGHT],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    [COMPLIANCE INDICATOR],
+    CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+           )
+        )
+      THEN
+        'TOTAL TEMPLATES UNKNOWN' 
+      ELSE
+        'TOTAL TEMPLATES' 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+     THEN
+        'TOTAL TEMPLATES UNKNOWN' 
+      ELSE
+        'TOTAL TEMPLATES' 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+      THEN
+        'TOTAL_TEMPLATES_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+      THEN
+        'TOTAL_TEMPLATES_ADULTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NULL 
+      THEN
+        'TOTAL_TEMPLATES_AGE UNKNOWN' 
+      WHEN
+        [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'NONCASE'
+        )
+      THEN
+        'TOTAL_TEMPLATES_MISCELLANEOUS'         /* For ISSUE #80*/
+      ELSE
+        'TOTAL_TEMPLATES_UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          'PRIMARY',
+          'SECONDARY'
+        )
+      THEN
+        [TOTAL QUANTITY] - [DELIVERABLE QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          'PRIMARY',
+          'SECONDARY'
+        )
+      THEN
+        [TOTAL QUANTITY] - [DELIVERABLE QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    1 [VOLUME COUNT] , 
+    1 [ORDER COUNT] , 
+    0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1 
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , 
+    [REPORTING CHANNEL] , 
+    [EQUIPMENT SERIAL NUM] , 
+    [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    /*[Product Hierarchy] IN (select Operand1 from [SrcSAPFile].[VolumeConfig] where Name = 'CASE') AND*/
+    [BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+  UNION ALL
+  /* Deriving TOTAL COMPLIANCE INDICATOR from BASE DATA*/
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [TOTAL WEIGHT],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    [COMPLIANCE INDICATOR],
+    CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'TOTAL COMPLIANCE INDICATOR UNKNOWN' 
+      ELSE
+        'TOTAL COMPLIANCE INDICATOR' 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'TOTAL COMPLIANCE INDICATOR UNKNOWN' 
+      ELSE
+        'TOTAL COMPLIANCE INDICATOR' 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [COMPLIANCE INDICATOR] = 'YES' 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+      THEN
+        'TOTAL_COMPLIANCE_INDICATOR_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [COMPLIANCE INDICATOR] = 'YES' 
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+      THEN
+        'TOTAL_COMPLIANCE_INDICATOR_ADULTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NULL 
+      THEN
+        'TOTAL_COMPLIANCE_INDICATOR_AGE UNKNOWN' 
+      WHEN
+        [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'NONCASE'
+        )
+      THEN
+        'TOTAL_COMPLIANCE_INDICATOR_MISCELLANUEOUS'         /* for ISSUE #80 */
+      ELSE
+        'TOTAL_COMPLIANCE_INDICATOR_UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [DELIVERABLE QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [DELIVERABLE QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    1 [VOLUME COUNT] , 
+    1 [ORDER COUNT] , 
+    0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , [REPORTING CHANNEL] , [EQUIPMENT SERIAL NUM] , [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    [COMPLIANCE INDICATOR] = 'Yes' 
+    AND [BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+)
+, CTE_FINAL AS 
+(
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    CONVERT(VARCHAR(15), [SHIPMENT DATE], 112) [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    [TOTALORDERQUANTITY],
+    [VOLUME SEGMENT],
+    [VOLUME SUB-SEGMENT],
+    [VOLUME ACCOUNT],
+    [VOLUME QUANTITY],
+    [VOLUME QUANTITY UNDIVIDED],
+    [VOLUME COUNT],
+    [ORDER QUANTITY],
+    [ORDER QUANTITY UNDIVIDED],
+    [ORDER COUNT],
+    [FOC QUANTITY],
+    [SEGMENT],
+    CONCAT(1000, ',', [VOLUME ACCOUNT]) [COST_ELMNT_KEY],
+    'SAPData' [VOLUMEFLAG],
+    NULL [DATE OF MIM],
+    [REPORTING CHANNEL],
+    NULL [REPORTING REGION],
+    NULL [PROMOTION BUCKET],
+    [EQUIPMENT SERIAL NUM],
+    [INITIATOR COMPANY ID] 
+  FROM
+    CTE_UNION_SHIPMENT 
+  UNION ALL
+  /* GETTING DATA FROM ScannerHistory table*/
+  SELECT
+    ADLSTIMESTAMP,
+    CONCAT(YEAR ([ACT_GI_DTE]), '-', MONTH([ACT_GI_DTE])) AS PARTITIONCOLUMN,
+    [DELIV_NUMB],
+    [DELIV_ITEM],
+    [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    [PLANT],
+    [VOLUMEUNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [SALES ORGANIZATION],
+    CONCAT([DIVISION], ',E') [DIVISION_KEY],
+    CONVERT(VARCHAR(15), [ACT_GI_DTE], 112),
+    [PRODUCT HIERARCHY],
+    CONCAT('000000', [PROFIT CENTER], ',1000') [PROFIT_CENTER_KEY],
+    [DLV_QTY],
+    /*replace(ltrim(replace(*/
+    [SALES DOCUMENT]    /*,'0',' ')),' ','0')*/
+    AS [SALES ORDER NUMBER],
+    CONCAT(   /*replace(ltrim(replace(*/
+    [SALES DOCUMENT]    /*,'0',' ')),' ','0')*/
+, '/',    /*replace(ltrim(replace(*/
+    [ITEM]    /*,'0',' ')),' ','0')*/
+) AS [SALES ORDER KEY],
+    ISNULL([DELIVERABLE QUANTITY], 0),
+    ISNULL([TOTAL QUANTITY], 0),
+    [TREATMENT CATEGORY],
+    [BUSINESS SEGMENT],
+    ISNULL([ACT_DL_QTY], 0) [TOTALORDERQUANTITY],
+    [/BIC/VOL_SEGMT] [VOLUME SEGMENT],
+    [/BIC/VOLSSEGMT] [VOLUME SUB-SEGMENT],
+    [COST ELEMENT(COPA)],
+    ISNULL([/BIC/VOL_QUANT], 0) [VOLUME QUANTITY],
+    ISNULL([/BIC/VOL_QUANT], 0) [VOLUME QUANTITY UNDIVIDED],
+    ISNULL([/BIC/VOL_COUNT], 0) [VOLUME COUNT],
+    ISNULL([ACT_DL_QTY], 0) [ORDER QUANTITY],
+    ISNULL([ACT_DL_QTY], 0) [ORDER QUANTITY UNDIVIDED],
+    ISNULL([/BIC/VOL_COUNT], 0) [ORDER COUNT],
+    0 [FOC QUANTITY],
+    CASE
+     WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        [CA_PRIMARY] 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        [CA_SECONDARY] 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [CA_OTHERS] 
+      ELSE
+        [CA_UNKNOWN] 
+    END
+    [SEGMENT] , CONCAT(1000, ',', [COST ELEMENT(COPA)]) [COST_ELMNT_KEY] , 
+    'HistoryFlatFile' [VOLUMEFLAG] , 
+    [DATA OF MIM] [DATE OF MIM] , 
+    [REPORTING CHANNEL] , 
+    [REPORTING REGION] , 
+    [PROMOTION BUCKET] , 
+    [EQUIPMENT SERIAL NUM] AS [EQUIPMENT SERIAL NUM] , 
+    [INITIATOR COMPANY ID] AS [INITIATOR COMPANY ID] 
+  FROM
+    [DWSAP].[SCANNERHISTORYPROCESSED] 
+  UNION ALL
+  /* Getting FileData from Scanner Revenue Unit File */
+  /* Zeros removal from Profit Center key and addition of zeros to Delivery, Delivery Item and Sales Order Item*/
+  SELECT
+    ADLSTIMESTAMP,
+    CONCAT(YEAR ([EVENTDATE]), '-', MONTH([EVENTDATE])) AS PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERY TYPE] [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    [PLANT],
+    [VOLUMEUNIT],
+    [ITEM CATEGORY],
+    [COMPANYCODE],
+    [SALES ORGANIZATION],
+    CONCAT([DIVISION], ',E') [DIVISION_KEY],
+    CONVERT(VARCHAR(15), EVENTDATE, 112) [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    CONCAT([PROFITCENTER], ',1000') [PROFIT_CENTER_KEY],
+    [DELIVERY QUANTITY],
+  --Jira Number BI-11966
+  /*Removing the Initial "00" Concat from the Sales Order Number and Sales Order Item
+  coming from Scanner Revenue Flat File*/
+    [SALESORDER] [SALES ORDER NUMBER],
+    CONCAT([SALESORDER], '/', [SALESORDER ITEM]) AS [SALES ORDER KEY],
+    ISNULL([DELIVERABLE QUANTITY], 0) [DELIVERABLE QUANTITY],
+    ISNULL([TOTAL QUANTITY], 0) [TOTAL QUANTITY],
+    [TREATMENT CATEGORY],
+    [BUSINESS SEGMENT],
+    ISNULL([ORDER QUANTITY], 0) [TOTALORDERQUANTITY],
+    [VOLUME SEGMENT],
+    [VOLUME SUB-SEGMENT],
+    [COST ELEMENT(COPA)],
+    ACTUALDELIVERYQUANTITY [VOLUME QUANTITY],
+    ACTUALDELIVERYQUANTITY [VOLUME QUANTITY UNDIVIDED],
+    ACTUALDELIVERYQUANTITY [VOLUME COUNT],
+    ACTUALDELIVERYQUANTITY [ORDER QUANTITY],
+    ACTUALDELIVERYQUANTITY [ORDER QUANTITY UNDIVIDED],
+    ACTUALDELIVERYQUANTITY [ORDER COUNT],
+    0 [FOC QUANTITY],
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [TREATMENT CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , CONCAT(1000, ',', [COST ELEMENT(COPA)]) [COST_ELMNT_KEY] ,
+    'ScannerFlatFile' [VOLUMEFLAG] , 
+    [DATEOFMIM] AS [DATE OF MIM] , 
+    [REPORTING CHANNEL] , 
+    [REPORTING REGION] , 
+    [PROMOBUCKET] [PROMOTION BUCKET] , 
+    [SERIAL NUMBER] AS [EQUIPMENT SERIAL NUM] , 
+    [INITIATOR COMPANY ID] 
+  FROM
+    [DWSAP].[SCANNERREVENUEUNITPROCESSED] 
+  UNION ALL
+  /* Deriving SCANNER SHIPMENTS from BASE DATA */
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    CONVERT(VARCHAR(15), [SHIPMENT DATE], 112) [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 6
+        )
+      THEN
+        'SCANNER SHIPMENTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 7
+        )
+      THEN
+        'SCANNER RETURNS' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7
+            )
+        )
+      THEN
+        'SCANNER SHIPMENTS UNKNOWN' 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 6
+        )
+      THEN
+        'SCANNER SHIPMENTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 7
+        )
+      THEN
+        'SCANNER RETURNS' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7
+            )
+        )
+      THEN
+        'SCANNER SHIPMENTS UNKNOWN' 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 6
+        )
+      THEN
+        'SCANNER_SHIPMENTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 7
+        )
+      THEN
+        'SCANNER_RETURNS' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7
+            )
+        )
+      THEN
+        'SCANNER_SHIPMENTS_UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 6
+        )
+      THEN
+        [ORDER QUANTITY] 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              7,
+              8
+            )
+        )
+      THEN
+( -1 * [ORDER QUANTITY]) 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7,
+              8
+            )
+        )
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 6
+        )
+      THEN
+        [ORDER QUANTITY UNDIVIDED] 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              7,
+              8
+            )
+        )
+      THEN
+( -1 * [ORDER QUANTITY UNDIVIDED]) 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7,
+              8
+            )
+        )
+      THEN
+        [ORDER QUANTITY UNDIVIDED] 
+      ELSE
+        0 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    0 [VOLUME COUNT] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    0 [ORDER COUNT] , 
+    0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7
+            )
+        )
+      THEN
+        'SCANNER' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , CONCAT(1000, ',', 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 6
+        )
+      THEN
+        'SCANNER_SHIPMENTS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 7
+        )
+      THEN
+        'SCANNER_RETURNS' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              6,
+              7
+            )
+        )
+      THEN
+        'SCANNER_SHIPMENTS_UNKNOWN' 
+    END
+) [COST_ELMNT_KEY] , 'SAPData' [VOLUMEFLAG] ,
+NULL [DATE OF MIM] , 
+ [REPORTING CHANNEL] , 
+ NULL [REPORTING REGION] ,
+  NULL [PROMOTION BUCKET] , 
+  [EQUIPMENT SERIAL NUM] , 
+  [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    [BUSINESS SEGMENT] = 'ITERO' 
+    AND [PRODUCT HIERARCHY] LIKE 'A1S1U1%' 
+  UNION ALL
+  /* Deriving REVREC SHIPMENTS from BASE DATA for REST of World */
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    CASE
+      WHEN
+        ISNULL([ORDER QUANTITY], 0) - ISNULL([DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        [ORDER QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] - [TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 
+    CASE
+      WHEN
+        [SALES ORDER NUMBER] <> '' 
+        AND [SALES ORDER NUMBER] IS NOT NULL 
+      THEN
+        'REVREC SHIPMENTS' 
+      ELSE
+        NULL 
+    END
+    [VOLUME SEGMENT] , 
+    CASE
+      WHEN
+        [SALES ORDER NUMBER] <> '' 
+        AND [SALES ORDER NUMBER] IS NOT NULL 
+      THEN
+       'REVREC SHIPMENTS' 
+      ELSE
+        NULL 
+    END
+    [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_ADULTS' 
+      WHEN
+        [AGE TIER] IS NULL 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_AGE UNKNOWN' 
+      WHEN
+       [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'NONCASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_MISCELLANEOUS' 
+      WHEN
+        [AGE TIER] IS NULL 
+        AND
+        (
+          [ITEM CATEGORY] IN 
+          (
+            SELECT
+              ITEMCATEGORY 
+            FROM
+              DWSAP.VALUECONFIG 
+            WHERE
+              ID IN 
+              (
+                1,
+                2,
+                3,
+                4,
+                5
+              )
+          )
+          OR [DELIVERABLE CATEGORY] NOT IN 
+          (
+            SELECT
+              DELIVERABLECATEGORY 
+            FROM
+              DWSAP.VALUECONFIG 
+            WHERE
+              ID IN 
+              (
+                1,
+                2
+              )
+          )
+          OR [PRODUCT HIERARCHY] IN 
+          (
+            SELECT
+              OPERAND1 
+            FROM
+              [SRCSAPFILE].[VOLUMECONFIG] 
+            WHERE
+              NAME = 'CASE'
+          )
+        )
+      THEN
+        'REVREC_SHIPMENTS_AGE UNKNOWN' 
+      ELSE
+        'REVREC SHIPMENTS UNKNOWN' 
+    END
+    [VOLUME ACCOUNT] , 
+    CASE
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] IN 
+            (
+              'DELV_TYPE_AMR_DATE',
+              'DELV_TYPE_ORDER_DATE'
+            )
+        )
+        AND [DELIVERABLE CATEGORY] = 'SECONDARY' 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NOT NULL 
+      THEN
+        [TOTAL QUANTITY] 
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'DELV_TYPE_DELV_QTY'
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [TOTAL QUANTITY] 
+      ELSE
+        [ORDER QUANTITY] 
+    END
+    [VOLUME QUANTITY] , 
+    CASE
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] IN 
+            (
+              'DELV_TYPE_AMR_DATE',
+              'DELV_TYPE_ORDER_DATE'
+            )
+        )
+        AND [DELIVERABLE CATEGORY] = 'SECONDARY' 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND [AGE TIER] IS NOT NULL 
+      THEN
+        [TOTAL QUANTITY] 
+      WHEN
+        [DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'DELV_TYPE_DELV_QTY'
+        )
+        AND [DELIVERABLE CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        [TOTAL QUANTITY] 
+      ELSE
+        [ORDER QUANTITY UNDIVIDED] 
+    END
+    [VOLUME QUANTITY UNDIVIDED] , 
+    1 [VOLUME COUNT] , 
+    [ORDER QUANTITY] , 
+    [ORDER QUANTITY UNDIVIDED] , 
+    1 [ORDER COUNT] , 
+    0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , CONCAT(1000, ',', 
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND [AGE TIER] <= 19 
+        AND [AGE TIER] >= 0 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_TEENAGERS' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [DELIVERABLE CATEGORY] IN 
+        (
+          'PRIMARY',
+          'SECONDARY'
+        )
+        AND 
+        (
+          [AGE TIER] >= 20 
+          AND [AGE TIER] <= 110 
+          OR [AGE TIER] = -1
+        )
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_ADULTS' 
+      WHEN
+        [AGE TIER] IS NULL 
+        AND [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_AGE UNKNOWN' 
+      WHEN
+        [PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'NONCASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_MISCELLANEOUS' 
+      WHEN
+        [AGE TIER] IS NULL 
+        AND
+        (
+          [ITEM CATEGORY] IN 
+          (
+            SELECT
+              ITEMCATEGORY 
+            FROM
+              DWSAP.VALUECONFIG 
+            WHERE
+              ID IN 
+              (
+                1,
+                2,
+                3,
+                4,
+                5
+              )
+          )
+          OR [DELIVERABLE CATEGORY] NOT IN 
+          (
+            SELECT
+              DELIVERABLECATEGORY 
+            FROM
+              DWSAP.VALUECONFIG 
+            WHERE
+              ID IN 
+              (
+                1,
+                2
+              )
+          )
+          OR [PRODUCT HIERARCHY] IN 
+          (
+            SELECT
+              OPERAND1 
+            FROM
+              [SRCSAPFILE].[VOLUMECONFIG] 
+            WHERE
+              NAME = 'CASE'
+          )
+        )
+      THEN
+        'REVREC_SHIPMENTS_AGE UNKNOWN' 
+      ELSE
+        'REVREC SHIPMENTS UNKNOWN' 
+    END
+) [COST_ELMNT_KEY] , 
+    'SAPData' [VOLUMEFLAG] ,
+     NULL [DATE OF MIM] , 
+     [REPORTING CHANNEL] , 
+     NULL [REPORTING REGION] , 
+     NULL [PROMOTION BUCKET] , 
+     [EQUIPMENT SERIAL NUM] , 
+     [INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS 
+  WHERE
+    [PROFIT CENTER] NOT IN 
+    (
+      SELECT
+        CONCAT('000000', OPERAND1) 
+      FROM
+        DWSAP.ZTB_VOLME_CONFIG 
+      WHERE
+        NAME = 'DELV_CAT_SECONDARY'
+    )
+    AND [BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+  UNION ALL
+  /* Deriving REVREC data from FILE for SECONDARIES PROFIT CENTER BRAZIL,MEXICO and RUSSIA*/
+  SELECT
+    COALESCE(RS.ADLSTIMESTAMP, CS.ADLSTIMESTAMP) AS ADLSTIMESTAMP,
+    CONCAT(YEAR(COALESCE(RS.[INVOICEDATE], CS.[SHIPMENT DATE])), '-', MONTH(COALESCE(RS.[INVOICEDATE], CS.[SHIPMENT DATE]))) AS [PARTITIONCOLUMN],
+    COALESCE (RS.[DELIVERY], CS.[DELIVERY]) [DELIVERY],
+    CS.[DELIVERYITEM],
+    COALESCE (RS.[DELIVERABLE TYPE], CS.[DELIVERABLE TYPE]) [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    COALESCE(RS.[PLANT], CS.[PLANT]) [PLANT],
+    CS.[VOLUME UNIT],
+    CS.[ITEM CATEGORY],
+    CS.[COMPANY CODE],
+    CS.[SALES ORGANIZATION],
+    CS.DIVISION_KEY,
+    CASE
+      WHEN
+        CS.[DELIVERABLE CATEGORY] = 'SECONDARY' 
+      THEN
+        COALESCE(RS.[INVOICEDATE], CS.[SHIPMENT DATE]) 
+      ELSE
+        CS.[SHIPMENT DATE] 
+    END
+    [SHIPMENT DATE] , CS.[PRODUCT HIERARCHY] , CS.PROFIT_CENTER_KEY , CS.[DELIVERED QUANTITY] , CS.[SALES ORDER NUMBER] , CS.[SALES ORDER KEY] , CS.[DELIVERABLE QUANTITY] , CS.[TOTAL QUANTITY] , CS.[DELIVERABLE CATEGORY] , CS.[BUSINESS SEGMENT] , 
+    CASE
+      WHEN
+        ISNULL(CS.[ORDER QUANTITY], 0) - ISNULL(CS.[DELIVERED QUANTITY], 0) <= 0 
+      THEN
+        CS.[ORDER QUANTITY] 
+      ELSE
+        CS.[ORDER QUANTITY] - CS.[TOTALORDERQUANTITY] 
+    END
+    [TOTALORDERQUANTITY] , 'REVREC SHIPMENTS' [VOLUME SEGMENT] , 'REVREC SHIPMENTS' [VOLUME SUB-SEGMENT] , 
+    CASE
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND CS.[AGE TIER] <= 19 
+        AND CS.[AGE TIER] >= 0 
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_TEENAGERS' 
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND 
+        (
+          CS.[AGE TIER] >= 20 
+          AND CS.[AGE TIER] <= 110 
+          OR CS.[AGE TIER] = -1
+        )
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_ADULTS' 
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          'PRIMARY',
+          'SECONDARY'
+        )
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND CS.[AGE TIER] IS NULL 
+      THEN
+        'REVREC_SHIPMENTS_AGE UNKNOWN' 
+      WHEN
+        CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'NONCASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_MISCELLANEOUS' 
+    END
+    [VOLUME ACCOUNT] , COALESCE(RS.[ORDER QUANTITY], 
+    CASE
+     WHEN
+        CS.[DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] IN 
+            (
+              'DELV_TYPE_AMR_DATE',
+              'DELV_TYPE_ORDER_DATE'
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] = 'SECONDARY' 
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND CS.[AGE TIER] IS NOT NULL 
+      THEN
+        CS.[TOTAL QUANTITY] 
+      WHEN
+        CS.[DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'DELV_TYPE_DELV_QTY'
+        )
+        AND CS.[DELIVERABLE CATEGORY] NOT IN 
+        (
+          'PRIMARY',
+          'SECONDARY'
+        )
+      THEN
+        CS.[TOTAL QUANTITY] 
+      ELSE
+        CS.[ORDER QUANTITY] 
+    END
+) [VOLUME QUANTITY] , COALESCE(RS.[ORDER QUANTITY], 
+    CASE
+      WHEN
+        CS.[DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] IN 
+            (
+              'DELV_TYPE_AMR_DATE',
+              'DELV_TYPE_ORDER_DATE'
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] = 'SECONDARY' 
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+        AND CS.[AGE TIER] IS NOT NULL 
+      THEN
+        CS.[TOTAL QUANTITY] 
+      WHEN
+        CS.[DELIVERABLE TYPE] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'DELV_TYPE_DELV_QTY'
+        )
+        AND CS.[DELIVERABLE CATEGORY] NOT IN 
+        (
+          'PRIMARY',
+          'SECONDARY'
+        )
+      THEN
+        CS.[TOTAL QUANTITY] 
+      ELSE
+        CS.[ORDER QUANTITY UNDIVIDED] 
+    END
+) [VOLUME QUANTITY UNDIVIDED] , 
+    CASE
+      WHEN
+        CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        COALESCE(RS.[COUNT], 1) 
+      ELSE
+        1 
+    END
+    [VOLUME COUNT] , CS.[ORDER QUANTITY] [ORDER QUANTITY] , CS.[ORDER QUANTITY UNDIVIDED] , 
+    CASE
+      WHEN
+        CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        COALESCE(RS.[COUNT], 1) 
+      ELSE
+        1 
+    END
+    [ORDER COUNT] , 0 [FOC QUANTITY] , 
+    CASE
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        CS.[ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , CONCAT(1000, ',', 
+    CASE
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND CS.[AGE TIER] <= 19 
+        AND CS.[AGE TIER] >= 0 
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_TEENAGERS' 
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND 
+        (
+          CS.[AGE TIER] >= 20 
+          AND CS.[AGE TIER] <= 110 
+          OR CS.[AGE TIER] = -1
+        )
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_ADULTS' 
+      WHEN
+        CS.[ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+        AND CS.[AGE TIER] IS NULL 
+        AND CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            NAME = 'CASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_AGE UNKNOWN' 
+      WHEN
+        CS.[PRODUCT HIERARCHY] IN 
+        (
+          SELECT
+            OPERAND1 
+          FROM
+            [SRCSAPFILE].[VOLUMECONFIG] 
+          WHERE
+            [NAME] = 'NONCASE'
+        )
+      THEN
+        'REVREC_SHIPMENTS_MISCELLANEOUS' 
+      ELSE
+        'REVREC SHIPMENTS UNKNOWN' 
+    END
+) [COST_ELMNT_KEY] , 
+    CASE
+      WHEN
+        CS.[DELIVERABLE CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        COALESCE(RS.[VOLUMEFLAG], 'SAPData') 
+      ELSE
+        'SAPData' 
+    END
+    [VOLUMEFLAG]    --,'SAPData'  [VolumeFlag]
+, NULL [DATE OF MIM] , CS.[REPORTING CHANNEL] ,
+NULL [REPORTING REGION] , 
+ NULL [PROMOTION BUCKET] , 
+ CS.[EQUIPMENT SERIAL NUM] , 
+ CS.[INITIATOR COMPANY ID] 
+  FROM
+    CTE_SHIPMENTS CS 
+    LEFT JOIN
+      [DWSAP].[REVRECSHIPVOLPROCESSED] RS 
+      ON      /*replace(ltrim(replace(*/
+      CS.[SALES ORDER NUMBER]     /*,'0',' ')),' ','0')*/
+      =       /*replace(ltrim(replace(*/
+      RS.[ORDERNUMBER]      /*,'0',' ')),' ','0')*/
+      AND CS.[MATERIAL NUMBER] = CONCAT('00000000000000', RS.[PARTNUMBER]) 
+      AND CS.[PROFIT CENTER] = CONCAT('000000', RS.[PROFITCENTER]) 
+      AND CS.[DOCUMENT TYPE] = RS.[DOCUMENTTYPE] 
+  WHERE
+    CS.[BUSINESS SEGMENT] = 'CLEAR ALIGNER' 
+    AND CS.[PROFIT CENTER] IN 
+    (
+      SELECT
+        CONCAT('000000', OPERAND1) 
+      FROM
+        DWSAP.ZTB_VOLME_CONFIG 
+      WHERE
+        NAME = 'DELV_CAT_SECONDARY'
+    )
+    AND CS.[DELIVERABLE CATEGORY] IN 
+    (
+      SELECT
+        DELIVERABLECATEGORY 
+      FROM
+        DWSAP.VALUECONFIG 
+      WHERE
+        ID IN 
+        (
+          2
+        )
+    )
+  UNION ALL
+  /* Deriving REVREC data from FILE for PRIMARY*/
+  SELECT
+    ADLSTIMESTAMP,
+    CONCAT(YEAR ([INVOICEDATE]), '-', MONTH ([INVOICEDATE])) AS [PARTITIONCOLUMN],
+    [DELIVERY],
+    [DELIVERYITEM],
+    [DELIVERABLE TYPE],
+    10 [VALUE TYPE],
+    [PLANT],
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [SALES ORGANIZATION] [COMPANYCODE],
+    [SALES ORGANIZATION],
+    CONCAT([DIVISION], ',E') [DIVISION_KEY],
+    CONVERT(VARCHAR(15), [INVOICEDATE], 112),
+    [PRODUCT HIERARCHY],
+    CONCAT('000000', [PROFITCENTER], ',1000') [PROFIT_CENTER_KEY],
+    [DELIVERY QUANTITY],
+  --Jira Number BI-11966
+  /*Removing the Initial "00" Concat from the Sales Order Number and Sales Order Item
+  coming from RevRec Flat File*/
+    [ORDERNUMBER] [SALES ORDER NUMBER],
+    CONCAT([ORDERNUMBER], '/', [SALESORDER ITEM]) AS [SALES ORDER KEY],
+    ISNULL([DELIVERABLE QUANTITY], 0),
+    ISNULL([TOTAL QUANTITY], 0),
+    [TREATMENT CATEGORY],
+    [BUSINESS SEGMENT],
+    ISNULL([ORDER QUANTITY], 0) [TOTALORDERQUANTITY],
+    [VOLUME SEGMENT],
+    [VOLUME SUB-SEGMENT],
+    [COST ELEMENT] [VOLUME ACCOUNT],
+    ISNULL([ORDER QUANTITY], 0) [VOLUME QUANTITY],
+    ISNULL([ORDER QUANTITY], 0) [VOLUME QUANTITY UNDIVIDED],
+    1 [VOLUME COUNT],
+    ISNULL([ORDER QUANTITY], 0) [ORDER QUANTITY],
+    ISNULL([ORDER QUANTITY], 0) [ORDER QUANTITY UNDIVIDED],
+    1 [ORDER COUNT],
+    0 [FOC QUANTITY],
+    CASE
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID = 1
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1
+            )
+        )
+      THEN
+        'CA-PRIMARY' 
+      WHEN
+        [ITEM CATEGORY] IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [TREATMENT CATEGORY] IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              2
+            )
+        )
+      THEN
+        'CA-SECONDARY' 
+      WHEN
+        [ITEM CATEGORY] NOT IN 
+        (
+          SELECT
+            ITEMCATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2,
+              3,
+              4,
+              5
+            )
+        )
+        AND [TREATMENT CATEGORY] NOT IN 
+        (
+          SELECT
+            DELIVERABLECATEGORY 
+          FROM
+            DWSAP.VALUECONFIG 
+          WHERE
+            ID IN 
+            (
+              1,
+              2
+            )
+        )
+      THEN
+        'CA-Others' 
+      ELSE
+        'Unknown' 
+    END
+    [SEGMENT] , CONCAT(1000, ',', [COST ELEMENT]) [COST_ELMNT_KEY] , 'RevRecFlatfile' [VOLUMEFLAG] , NULL [DATE OF MIM] , [REPORTING CHANNEL] , NULL [REPORTING REGION] , NULL [PROMOTION BUCKET] , [SERIAL NUMBER] AS [EQUIPMENT SERIAL NUM] , [INITIATOR COMPANY ID] AS [INITIATOR COMPANY ID] 
+  FROM
+    [DWSAP].[REVRECSHIPVOLPROCESSED] 
+  WHERE
+    [PROFITCENTER] IN 
+    (
+      SELECT
+        OPERAND1 
+      FROM
+        DWSAP.ZTB_VOLME_CONFIG 
+      WHERE
+        NAME = 'DELV_CAT_PRIMARY'
+    )
+    -- This is the teste we are doing to check for duplicates
+    --and [Deliverable Category] IN (select DeliverableCategory from DWSAP.ValueConfig where Id in (1))
+)
+SELECT
+  * INTO [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP] 
+FROM
+  CTE_FINAL IF (EXISTS 
+  (
+    SELECT
+      * 
+    FROM
+      INFORMATION_SCHEMA.TABLES 
+    WHERE
+      TABLE_SCHEMA = 'TABSAP' 
+      AND TABLE_NAME = 'FACTSHIPMENTS_MATERIALIZED'
+  )
+) 
+  BEGIN
+    BEGIN
+      TRANSACTION;
+--JIRA -11264
+DELETE
+FROM
+  [TABSAP].[FACTSHIPMENTS_MATERIALIZED] 
+WHERE
+  [VOLUMEFLAG] IN 
+  (
+    'HistoryFlatFile',
+    'RevRecFlatfile',
+    'ScannerFlatFile'
+  )
+  DELETE
+    [TABSAP].[FACTSHIPMENTS_MATERIALIZED] 
+  FROM
+    [TABSAP].[FACTSHIPMENTS_MATERIALIZED] 
+    INNER JOIN
+      [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP] 
+      ON ([TABSAP].[FACTSHIPMENTS_MATERIALIZED].[DELIVERY] = [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP].[DELIVERY] 
+      AND [TABSAP].[FACTSHIPMENTS_MATERIALIZED].[DELIVERYITEM] = [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP].[DELIVERYITEM] 
+      AND [TABSAP].[FACTSHIPMENTS_MATERIALIZED].[VOLUME SEGMENT] = [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP].[VOLUME SEGMENT] ) 
+  WHERE
+    [TABSAP].[FACTSHIPMENTS_MATERIALIZED].[DELIVERY] IS NOT NULL PRINT('Deleting the common Records');
+INSERT INTO
+  [TABSAP].[FACTSHIPMENTS_MATERIALIZED] 
+  (ADLSTIMESTAMP, 
+  PARTITIONCOLUMN, 
+  DELIVERY, 
+  DELIVERYITEM, 
+  [DELIVERABLE TYPE], 
+  [VALUE TYPE], 
+  PLANT, 
+  [VOLUME UNIT], 
+  [ITEM CATEGORY], 
+  [COMPANY CODE], 
+  [SALES ORGANIZATION], 
+  DIVISION_KEY, 
+  [SHIPMENT DATE], 
+  [PRODUCT HIERARCHY], 
+  PROFIT_CENTER_KEY, 
+  [DELIVERED QUANTITY], 
+  [SALES ORDER NUMBER], 
+  [SALES ORDER KEY], 
+  [DELIVERABLE QUANTITY], 
+  [TOTAL QUANTITY], 
+  [DELIVERABLE CATEGORY], 
+  [BUSINESS SEGMENT], 
+  TOTALORDERQUANTITY, 
+  [VOLUME SEGMENT], 
+  [VOLUME SUB-SEGMENT], 
+  [VOLUME ACCOUNT], 
+  [VOLUME QUANTITY], 
+  [VOLUME QUANTITY UNDIVIDED], 
+  [SHIPMENT COUNT], 
+  [VOLUME COUNT] , 
+  [ORDER QUANTITY], 
+  [ORDER QUANTITY UNDIVIDED], 
+  [ORDER COUNT], [FOC QUANTITY], 
+  SEGMENT, 
+  COST_ELMNT_KEY, 
+  VOLUMEFLAG, 
+  [DATE OF MIM], 
+  [REPORTING CHANNEL], 
+  [REPORTING REGION], 
+  [PROMOTION BUCKET], 
+  [EQUIPMENT SERIAL NUM], 
+  [INITIATOR COMPANY ID]) 
+  SELECT
+    ADLSTIMESTAMP,
+    PARTITIONCOLUMN,
+    DELIVERY,
+    DELIVERYITEM,
+    [DELIVERABLE TYPE],
+    [VALUE TYPE],
+    PLANT,
+    [VOLUME UNIT],
+    [ITEM CATEGORY],
+    [COMPANY CODE],
+    [SALES ORGANIZATION],
+    DIVISION_KEY,
+    [SHIPMENT DATE],
+    [PRODUCT HIERARCHY],
+    PROFIT_CENTER_KEY,
+    [DELIVERED QUANTITY],
+    [SALES ORDER NUMBER],
+    [SALES ORDER KEY],
+    [DELIVERABLE QUANTITY],
+    [TOTAL QUANTITY],
+    [DELIVERABLE CATEGORY],
+    [BUSINESS SEGMENT],
+    TOTALORDERQUANTITY,
+    [VOLUME SEGMENT],
+    [VOLUME SUB-SEGMENT],
+    [VOLUME ACCOUNT],
+    [VOLUME QUANTITY],
+    [VOLUME QUANTITY UNDIVIDED],
+    [VOLUME COUNT] AS [SHIPMENT COUNT],
+    CASE
+      WHEN
+        [ITEM CATEGORY] IS NULL 
+      THEN
+        0 
+      ELSE
+        [VOLUME COUNT] 
+    END
+    AS [VOLUME COUNT] , 
+    [ORDER QUANTITY], 
+    [ORDER QUANTITY UNDIVIDED], 
+    [ORDER COUNT], 
+    [FOC QUANTITY], 
+    SEGMENT, 
+    COST_ELMNT_KEY, 
+    VOLUMEFLAG, [DATE OF MIM], 
+    [REPORTING CHANNEL], 
+    [REPORTING REGION], 
+    [PROMOTION BUCKET], 
+    [EQUIPMENT SERIAL NUM], 
+    [INITIATOR COMPANY ID] 
+  FROM
+    [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP] 
+  WHERE
+    [SHIPMENT DATE] > '20160630' 
+    --AND CONCAT (DELIVERY, '/', DELIVERYITEM) NOT IN 
+    --(
+    --  SELECT
+    --    CONCAT ( OBJECTID, '/', RIGHT (TABKEY, 6 )) AS DELV 
+    --  FROM
+    --    SRCSAP.ZVOTC_CDHDR_POS1 ZCP 
+    --  WHERE
+    --    ZCP.CHNGIND = 'D' 
+    --    AND TABNAME = 'LIPS' 
+    --)
+    PRINT('All the records are inserted') COMMIT;
+    END
+    ELSE
+      BEGIN
+        SELECT
+          ADLSTIMESTAMP,
+          PARTITIONCOLUMN,
+          DELIVERY,
+          DELIVERYITEM,
+          [DELIVERABLE TYPE],
+          [VALUE TYPE],
+          PLANT,
+          [VOLUME UNIT],
+          [ITEM CATEGORY],
+          [COMPANY CODE],
+          [SALES ORGANIZATION],
+          DIVISION_KEY,
+          [SHIPMENT DATE],
+          [PRODUCT HIERARCHY],
+          PROFIT_CENTER_KEY,
+          [DELIVERED QUANTITY],
+          [SALES ORDER NUMBER],
+          [SALES ORDER KEY],
+          [DELIVERABLE QUANTITY],
+          [TOTAL QUANTITY],
+          [DELIVERABLE CATEGORY],
+          [BUSINESS SEGMENT],
+          TOTALORDERQUANTITY,
+          [VOLUME SEGMENT],
+          [VOLUME SUB-SEGMENT],
+          [VOLUME ACCOUNT],
+          [VOLUME QUANTITY],
+          [VOLUME QUANTITY UNDIVIDED],
+          [VOLUME COUNT] AS [SHIPMENT COUNT],
+          CASE
+            WHEN
+              [ITEM CATEGORY] IS NULL 
+            THEN
+              0 
+            ELSE
+              [VOLUME COUNT] 
+          END
+          AS [VOLUME COUNT] , 
+          [ORDER QUANTITY], 
+          [ORDER QUANTITY UNDIVIDED], 
+          [ORDER COUNT], 
+          [FOC QUANTITY], 
+          SEGMENT, 
+          COST_ELMNT_KEY, 
+          VOLUMEFLAG, [DATE OF MIM], 
+          [REPORTING CHANNEL], 
+          [REPORTING REGION], 
+          [PROMOTION BUCKET], 
+          [EQUIPMENT SERIAL NUM], 
+          [INITIATOR COMPANY ID] 
+          INTO [TABSAP].[FACTSHIPMENTS_MATERIALIZED] 
+        FROM
+          [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP] 
+        WHERE
+          [SHIPMENT DATE] > '20160630'          --JIRA NUMBER // BI-11264
+          --AND CONCAT (DELIVERY, '/', DELIVERYITEM) NOT IN 
+          --(
+          --  SELECT
+          --    CONCAT ( OBJECTID, '/', RIGHT (TABKEY, 6 )) AS DELV 
+          --  FROM
+          --    SRCSAP.ZVOTC_CDHDR_POS1 ZCP 
+          --  WHERE
+          --    ZCP.CHNGIND = 'D' 
+          --    AND TABNAME = 'LIPS' 
+          --)
+      END
+      DROP TABLE [TABSAP].[#FACTSHIPMENTS_MATERIALIZED_TEMP] 
+      DROP TABLE [DWSAP].[TEMPRAWDELIVERYDATA] 
+      DROP TABLE [#TEMP_MULTIPLEDELIVERIESDATA]       
+      -- exec CTRL.GetLastRowCount @Label = 'DWTOPS.LoadFactLotHistory_Delete', @rc = @RowsUpdated out
+      -- exec CTRL.GetLastRowCount @Label = 'DWTOPS.LoadFactLotHistory_Insert', @rc = @RowsInserted out
+      SELECT
+        @ROWSINSERTED - @ROWSUPDATED AS ROWSINSERTED,
+        @ROWSUPDATED AS ROWSUPDATED 
+
+
+--Checking Deleted Orders and Items in FactShipments_Materialized When [DeliveryNumber] only has CHNGIND= 'D'
+;with CTE as(
+SELECT  CONCAT (REPLACE(LTRIM(REPLACE(OBJECTID,'0',' ')),' ','0'),'/',CAST (RIGHT (TABKEY,6 ) AS int)) AS Sals,UDATE
+FROM SrcSAP.ZVOTC_CDHDR_POS1 zcp
+WHERE zcp.CHNGIND= 'D' ANd TABNAME = 'LIPS'),
+CTE2 AS(
+SELECT  CONCAT (REPLACE(LTRIM(REPLACE(OBJECTID,'0',' ')),' ','0'),'/',CAST (RIGHT (TABKEY,6 ) AS int)) AS Sals,UDATE
+FROM SrcSAP.ZVOTC_CDHDR_POS1 zcp
+WHERE zcp.CHNGIND= 'I' ANd TABNAME = 'LIPS')
+DELETE FROM TABSAP.FactShipments_Materialized  
+WHERE CONCAT (REPLACE(LTRIM(REPLACE([Delivery],'0',' ')),' ','0'),'/'
+,REPLACE(LTRIM(REPLACE([DeliveryItem],'0',' ')),' ','0'))
+IN(SELECT A.Sals FROM CTE A WHERE A.Sals NOT IN(SELECT  Sals from CTE2))
+
+----Checking Deleted Orders and Items in FactShipments_Materialized 
+----When [DeliveryNumber] has both (CHNGIND= 'D' or CHNGIND= 'I') but D.UDATE>I.UDATE
+;with CTE as(
+SELECT  CONCAT (REPLACE(LTRIM(REPLACE(OBJECTID,'0',' ')),' ','0'),'/',CAST (RIGHT (TABKEY,6 ) AS int)) AS Sals,UDATE
+FROM SrcSAP.ZVOTC_CDHDR_POS1 zcp
+WHERE zcp.CHNGIND= 'D' ANd TABNAME ='LIPS'),
+CTE2 AS(
+SELECT  CONCAT (REPLACE(LTRIM(REPLACE(OBJECTID,'0',' ')),' ','0'),'/',CAST (RIGHT (TABKEY,6 ) AS int)) AS Sals,UDATE
+FROM SrcSAP.ZVOTC_CDHDR_POS1 zcp
+WHERE zcp.CHNGIND= 'I' ANd TABNAME = 'LIPS')
+DELETE FROM TABSAP.FactShipments_Materialized  
+WHERE CONCAT (REPLACE(LTRIM(REPLACE([Delivery],'0',' ')),' ','0'),'/'
+,REPLACE(LTRIM(REPLACE([DeliveryItem],'0',' ')),' ','0'))
+IN(SELECT A.Sals FROM CTE A JOIN CTE2 B ON A.Sals=B.Sals AND A.UDATE>B.UDATE)
+
+----NEW JIRA BI-12223 --- Remove duplicate records from the FDL tables
+
+;WITH CTE AS (
+SELECT ROW_NUMBER() 
+OVER(Partition By
+[Delivery],[DeliveryItem],[Deliverable Type],[Value Type],[Plant],[Volume unit],[Item Category],[Company Code],[Sales Organization],[DIVISION_KEY],[Shipment Date],[Product Hierarchy],[PROFIT_CENTER_KEY],[Delivered Quantity],[Sales Order Number],[Sales Order Key],[Deliverable Quantity],[Total Quantity],[Deliverable Category],[Business Segment],[TotalOrderQuantity],[Volume Segment],[Volume Sub-Segment],[Volume Account],[Volume Quantity],[Volume Quantity Undivided],[Shipment Count],[Volume Count],[Order Quantity],[Order Quantity Undivided],[Order Count],[FoC Quantity],[Segment],[COST_ELMNT_KEY],[VolumeFlag],[Date of MIM],[Reporting Channel],[Reporting Region],[Promotion Bucket],[Equipment Serial Num],[Initiator Company ID]
+Order By
+[Delivery],[DeliveryItem],[Deliverable Type],[Value Type],[Plant],[Volume unit],[Item Category],[Company Code],[Sales Organization],[DIVISION_KEY],[Shipment Date],[Product Hierarchy],[PROFIT_CENTER_KEY],[Delivered Quantity],[Sales Order Number],[Sales Order Key],[Deliverable Quantity],[Total Quantity],[Deliverable Category],[Business Segment],[TotalOrderQuantity],[Volume Segment],[Volume Sub-Segment],[Volume Account],[Volume Quantity],[Volume Quantity Undivided],[Shipment Count],[Volume Count],[Order Quantity],[Order Quantity Undivided],[Order Count],[FoC Quantity],[Segment],[COST_ELMNT_KEY],[VolumeFlag],[Date of MIM],[Reporting Channel],[Reporting Region],[Promotion Bucket],[Equipment Serial Num],[Initiator Company ID]) AS [ROW],
+[Shipment Date],[Delivery],[DeliveryItem],[Deliverable Type],[Value Type],[Plant],[Volume unit],[Item Category],[Company Code],[Sales Organization],[DIVISION_KEY],[Product Hierarchy],[PROFIT_CENTER_KEY],[Delivered Quantity],[Sales Order Number],[Sales Order Key],[Deliverable Quantity],[Total Quantity],[Deliverable Category],[Business Segment],[TotalOrderQuantity],[Volume Segment],[Volume Sub-Segment],[Volume Account],[Volume Quantity],[Volume Quantity Undivided],[Shipment Count],[Volume Count],[Order Quantity],[Order Quantity Undivided],[Order Count],[FoC Quantity],[Segment],[COST_ELMNT_KEY],[VolumeFlag],[Date of MIM],[Reporting Channel],[Reporting Region],[Promotion Bucket],[Equipment Serial Num],[Initiator Company ID]
+From TABSAP.FactShipments_Materialized 
+WITH(NOLOCK) WHERE FORMAT(TRY_CONVERT(DATE,[SHIPMENT DATE]),'yyyyMM')= FORMAT(GETDATE(),'yyyyMM'))
+DELETE FROM CTE WHERE [ROW]>1
+
+  END

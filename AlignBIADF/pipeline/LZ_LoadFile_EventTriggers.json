@@ -1,0 +1,781 @@
+{
+	"name": "LZ_LoadFile_EventTriggers",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Object Details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set Session ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "select\tObjectName\n\t,\tExternalViewName\n\t,\tSourceSystem\n\t,\tDestSchema\n\t,\tSourceSchema\n\t,\tDestTableName\n\t,\tSourceTableName\n\t,\tStoreOption\n\t,\tDistributionOption\n\t,\tIsLoadAllColumns\n\t,\tSourceColumnDroppedAction\n\t,\t[Columns]\n\t,\tDatatypes\n\t,\tIsNullables\n\t,\tJoinPredicates\n\t,\tJoinPredicatesForUpdate\n\t,\tPKColumns\n\t,\tPredicateColumn\nfrom CTRL.LZGetObjectDetails(@{pipeline().parameters.LZObjectID})",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "LZLoadFile"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.LZObjectID",
+									"type": "Expression"
+								}
+							},
+							"SinkPathRaw": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.FilePath",
+									"type": "Expression"
+								}
+							},
+							"SinkName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.FileName",
+									"type": "Expression"
+								}
+							},
+							"FileSizeInBytes": {
+								"type": "int64",
+								"value": {
+									"value": "@pipeline().parameters.FileSizeInBytes",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsInserted": {
+							"value": {
+								"value": "@activity('Populate main table').output.FirstRow.RowsInserted",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": {
+								"value": "@activity('Populate main table').output.FirstRow.RowsUpdated",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Populate main table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Populate stage table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[LZPopulateMainTable]",
+						"storedProcedureParameters": {
+							"DestSchema": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.DestSchema",
+									"type": "Expression"
+								}
+							},
+							"DestTable": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.DestTableName",
+									"type": "Expression"
+								}
+							},
+							"IsFullLoad": {
+								"type": "Boolean",
+								"value": {
+									"value": "@pipeline().parameters.IsFullLoad",
+									"type": "Expression"
+								}
+							},
+							"JoinPredicates": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.JoinPredicates",
+									"type": "Expression"
+								}
+							},
+							"JoinPredicatesForUpdate": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.JoinPredicatesForUpdate",
+									"type": "Expression"
+								}
+							},
+							"SourceSchema": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.SourceSchema",
+									"type": "Expression"
+								}
+							},
+							"SourceTable": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.SourceTableName",
+									"type": "Expression"
+								}
+							},
+							"SourceColumnDroppedAction": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.SourceColumnDroppedAction",
+									"type": "Expression"
+								}
+							},
+							"SessionID": {
+								"type": "String",
+								"value": {
+									"value": "@variables('SessionID')",
+									"type": "Expression"
+								}
+							},
+							"DistributionOption": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.DistributionOption",
+									"type": "Expression"
+								}
+							},
+							"StoreOption": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Object Details').output.FirstRow.StoreOption",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On failure - Load data to main table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Populate main table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Populate main table').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Object File",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Populate main table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectFileUpdate]",
+					"storedProcedureParameters": {
+						"FileName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Completed",
+							"type": "string"
+						},
+						"FilePath": {
+							"value": {
+								"value": "@pipeline().parameters.FilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Destination": {
+							"value": {
+								"value": "@pipeline().parameters.Destination",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Prepare Stage Table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Populate stage table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Populate stage table').Error.Message\n",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Metadata",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Get Object Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2",
+						"type": "DatasetReference",
+						"parameters": {
+							"Path": {
+								"value": "@pipeline().parameters.FilePath",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"structure"
+					]
+				}
+			},
+			{
+				"name": "Generate External View",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "CTRL.LZPrepareExternalView",
+					"storedProcedureParameters": {
+						"JSONColumnList": {
+							"value": {
+								"value": "@string(activity('Get Metadata').output.structure)",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FullFileName": {
+							"value": {
+								"value": "@concat(substring(pipeline().parameters.FilePath, int(add(indexof(pipeline().parameters.FilePath, '/'), 1)), int(sub(length(pipeline().parameters.FilePath), add(indexof(pipeline().parameters.FilePath, '/'), 1)))), pipeline().parameters.FileName)",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ObjectName": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.ExternalViewName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SessionID": {
+							"value": {
+								"value": "@variables('SessionID')",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set Session ID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "SessionID",
+					"value": {
+						"value": "@guid()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Populate stage table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Generate External View",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[LZPopulateStageTable]",
+					"storedProcedureParameters": {
+						"Columns": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.Columns",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Datatypes": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.Datatypes",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ExtrenalViewName": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.ExternalViewName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsNullables": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.IsNullables",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Schema": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.SourceSchema",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SessionID": {
+							"value": {
+								"value": "@variables('SessionID')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Table": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.SourceTableName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ADLSTimestampStr": {
+							"value": {
+								"value": "@pipeline().parameters.ADLSTimestamp",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ADLSBatchID": {
+							"value": {
+								"value": "@pipeline().parameters.ADLSBatchID",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"LZBatchID": {
+							"value": {
+								"value": "@pipeline().parameters.BatchID",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"PKColumns": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.PKColumns",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SourceSystem": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.SourceSystem",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PredicateColumn": {
+							"value": {
+								"value": "@activity('Get Object Details').output.FirstRow.PredicateColumn",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Generate External View",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Generate External View",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Generate External View').Error.Message\n",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - get metadata",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get Metadata').Error.Message\n",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"FilePath": {
+				"type": "String"
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"LZObjectID": {
+				"type": "String"
+			},
+			"IsFullLoad": {
+				"type": "Bool"
+			},
+			"BatchID": {
+				"type": "Int"
+			},
+			"FileSizeInBytes": {
+				"type": "Float"
+			},
+			"ADLSBatchID": {
+				"type": "Int"
+			},
+			"ADLSTimestamp": {
+				"type": "String"
+			},
+			"Destination": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"SessionID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "ADLSv2ToDestination"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,233 @@
+{
+	"name": "APIRefreshToken",
+	"properties": {
+		"activities": [
+			{
+				"name": "Generate Token and Save to table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Create temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010"
+					},
+					"sink": {
+						"type": "AzureSqlSink"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RESTAPI",
+						"type": "DatasetReference",
+						"parameters": {
+							"URL": {
+								"value": "@activity('Get token data').output.firstRow.APITokenURL",
+								"type": "Expression"
+							},
+							"Method": "POST",
+							"RequestBody": {
+								"value": "@activity('Get token data').output.firstRow.APITokenRequestBody",
+								"type": "Expression"
+							},
+							"ContentType": "application/x-www-form-urlencoded"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBConfig_Temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "@activity('Create temp table').output.firstRow.TempTableName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Get token data",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "declare @SourceSystem varchar(32) = '@{pipeline().parameters.SourceSystem}'\nselect\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenURL') as APITokenURL\n\t,\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenRequestBody') as APITokenRequestBody\n\t,\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenOutputColumns') as APITokenOutputColumns\n\t,\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenQuery') as APITokenQuery\n\t,\t(select string_agg('{ ' + '\"source\": { \"path\": \"' + ltrim(rtrim(value)) + '\" }, \"sink\": { \"name\": \"' + ltrim(rtrim(value)) + '\" } }', ',') from string_split(CTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenOutputColumns'), ',')) as APITokenSchemaMapping",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Create temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get token data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLCreateTempTable]",
+						"storedProcedureParameters": {
+							"ColumnList": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get token data').output.firstRow.APITokenOutputColumns",
+									"type": "Expression"
+								}
+							},
+							"jsonTableStructure": {
+								"type": "String",
+								"value": null
+							},
+							"ObjectName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.SourceSystem",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update token and expiration date",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Generate Token and Save to table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[APIUpdateToken]",
+					"storedProcedureParameters": {
+						"Query": {
+							"value": {
+								"value": "@replace(activity('Get token data').output.firstRow.APITokenQuery, '_TokenOutputTable_', activity('Create temp table').output.firstRow.TempTableName)",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SourceSystem",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Drop temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update token and expiration date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "drop table @{activity('Create temp table').output.firstRow.TempTableName}\nselect 1",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystem": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2/API"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_Loyalty",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_AzureDB_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "Loyalty"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-09-28T20:02:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

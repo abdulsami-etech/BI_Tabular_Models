@@ -1,0 +1,29 @@
+{
+	"name": "DW_DWLeadCallConversation",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DW",
+					"ObjectList": "190020,190021,190022"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 30,
+				"startTime": "2021-11-01T02:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

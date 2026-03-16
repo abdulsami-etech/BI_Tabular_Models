@@ -1,0 +1,62 @@
+{
+	"name": "LsINST",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "lsInst",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [
+			{
+				"name": "session_id",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "action_datetime",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "action_id",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "type",
+				"type": "varchar"
+			},
+			{
+				"name": "id",
+				"type": "nvarchar"
+			},
+			{
+				"name": "parent_id",
+				"type": "nvarchar"
+			},
+			{
+				"name": "name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "value",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "state",
+				"type": "nvarchar"
+			},
+			{
+				"name": "BatchID",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"tableName": "[INST].[Action]"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

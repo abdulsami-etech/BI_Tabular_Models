@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_MESAFABMX2",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_MESAFABMX2_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "12016,12032,12033,12039,12036,12014,12022,12037,12033,12013"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-02-04T00:15:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

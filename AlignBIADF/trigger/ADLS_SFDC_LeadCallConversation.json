@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_SFDC_LeadCallConversation",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SFDC_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "190020,190021,260006"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 30,
+				"startTime": "2020-11-01T00:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

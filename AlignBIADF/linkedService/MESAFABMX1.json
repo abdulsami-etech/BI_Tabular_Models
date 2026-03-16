@@ -1,0 +1,22 @@
+{
+	"name": "MESAFABMX1",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "MESAFABMX1ConnectionString"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"name": "PowerBI_ADLS_LZ",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PowerBI_JSON_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"DaysToExtractInThePast": 1,
+					"ObjectList": "1000046",
+					"ExtractFromPastDay": 1
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2021-10-07T11:45:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

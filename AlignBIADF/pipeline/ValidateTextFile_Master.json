@@ -1,0 +1,137 @@
+{
+	"name": "ValidateTextFile_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "For Each File",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get File List To Process",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get File List To Process').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Execute ValidateTextFileInternal",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "ValidateTextFile_Internal",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ObjectID": {
+										"value": "@pipeline().parameters.ObjectID",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@item().name",
+										"type": "Expression"
+									},
+									"AlertProperty": {
+										"value": "@pipeline().parameters.AlertProperty",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get File List To Process",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Get Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2_Folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@activity('Get Details').output.FirstRow.ToValidateFolder",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Get Details",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "select\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/ToValidate' as ToValidateFolder\n\t,\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/Error' as ErrorFolder\n\t,\to.SourceSystem\n\t,\to.ObjectName\nfrom CTRL.ADLObject o\nwhere o.ObjectID = @{pipeline().parameters.ObjectID}",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ObjectID": {
+				"type": "int"
+			},
+			"AlertProperty": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Validation"
+		},
+		"annotations": []
+	}
+}

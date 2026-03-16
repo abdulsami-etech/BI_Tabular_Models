@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcMES_AFAB_MX2].[UDA_Lot] (
+    [LZBatchID]                   INT           NOT NULL,
+    [ADLSBatchID]                 INT           NOT NULL,
+    [ADLSTimestamp]               DATETIME2 (0) NOT NULL,
+    [object_key]                  BIGINT        NOT NULL,
+    [site_num]                    INT           NOT NULL,
+    [last_modifier_key]           BIGINT        NOT NULL,
+    [last_modified_time]          DATETIME      NOT NULL,
+    [xfr_insert_pid]              INT           NULL,
+    [xfr_update_pid]              INT           NULL,
+    [trx_id]                      CHAR (38)     NOT NULL,
+    [at_AssigneeTeam_S]           NVARCHAR (80) NULL,
+    [at_AssigneeTech_S]           NVARCHAR (80) NULL,
+    [at_JDELineNumber_I]          BIGINT        NULL,
+    [at_JDEOrderType_S]           NVARCHAR (80) NULL,
+    [at_Staging_LowerEnd_S]       NVARCHAR (3)  NULL,
+    [at_Staging_LowerStart_S]     NVARCHAR (3)  NULL,
+    [at_Staging_UpperEnd_S]       NVARCHAR (3)  NULL,
+    [at_Staging_UpperStart_S]     NVARCHAR (3)  NULL,
+    [at_TeamNumber_S]             NVARCHAR (80) NULL,
+    [last_modified_time_u]        DATETIME      NULL,
+    [last_modified_time_z]        NVARCHAR (64) NULL,
+    [list_key]                    BIGINT        NULL,
+    [pd_xfr_update_pid]           INT           NOT NULL,
+    [src_xfr_update_pid]          INT           NOT NULL,
+    [purged]                      INT           NULL,
+    [at_MaterialNumber_I]         BIGINT        NULL,
+    [at_MaterialCode_S]           NVARCHAR (80) NULL,
+    [at_ApplianceMaterialType_S]  NVARCHAR (80) NULL,
+    [at_ApplianceMaterialDescr_S] NVARCHAR (80) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([object_key]));
+

@@ -1,0 +1,26 @@
+{
+	"name": "SQLServer_Generic_CN",
+	"properties": {
+		"parameters": {
+			"ConnStringSecretName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "@linkedService().ConnStringSecretName"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignChinaSelfHostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

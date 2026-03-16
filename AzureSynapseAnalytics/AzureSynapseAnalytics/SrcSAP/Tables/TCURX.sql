@@ -1,0 +1,9 @@
+﻿CREATE TABLE [SrcSAP].[TCURX] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [CURRKEY]       NVARCHAR (5)  NOT NULL,
+    [CURRDEC]       DECIMAL (3)   NOT NULL
+)
+WITH (CLUSTERED INDEX([CURRKEY]), DISTRIBUTION = HASH([CURRKEY]));
+

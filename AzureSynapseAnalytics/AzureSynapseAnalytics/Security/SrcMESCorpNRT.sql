@@ -1,0 +1,2 @@
+﻿CREATE SCHEMA [SrcMESCorpNRT]
+    AUTHORIZATION [dbo];

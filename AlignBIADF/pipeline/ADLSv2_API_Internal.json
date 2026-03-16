@@ -1,0 +1,1308 @@
+{
+	"name": "ADLSv2_API_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Is Medallia",
+				"description": "For Medallia there is no proper pagination, so we are splitting into several calls if required",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get URL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(pipeline().parameters.SourceSystem, 'MedalliaAPI')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Records Count from Source to Json",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Create temp table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Total Records Path",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Total Records File Name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Get URL for Total Records",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010"
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RESTAPIAuth",
+									"type": "DatasetReference",
+									"parameters": {
+										"URL": {
+											"value": "@activity('Get URL for Total Records').output.firstRow.URLMedalliaTotalRecords",
+											"type": "Expression"
+										},
+										"Method": "GET",
+										"RequestBody": {
+											"value": "@string('')",
+											"type": "Expression"
+										},
+										"Authorization": {
+											"value": "@pipeline().parameters.Token",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Path": {
+											"value": "@variables('TotalRecordsPath')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@variables('TotalRecordsFileName')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Create temp table",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[ADLCreateTempTable]",
+									"storedProcedureParameters": {
+										"ColumnList": {
+											"type": "String",
+											"value": "Prop_0"
+										},
+										"jsonTableStructure": {
+											"type": "String",
+											"value": null
+										},
+										"ObjectName": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.ObjectName",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Move the JSON to DB",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Records Count from Source to Json",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2JSON",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Path": {
+											"value": "@variables('TotalRecordsPath')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@variables('TotalRecordsFileName')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBConfig_Temp",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@activity('Create temp table').output.firstRow.TempTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Generating URLs To Call",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Move the JSON to DB",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Medallia URL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "declare @json varchar(max)\n\t,\t@URL varchar(8000) = '@{variables('MedalliaURL')}'\n\t,\t@TotalRecords int\n\t,\t@OffSetDelta int = 10000\n\t,\t@OffSetCurrent int = 0\n\t,\t@CurrentDate varchar(14) = format(getdate(), 'yyyyMMddHHmmss')\ndeclare @URLsToProcess table (URL varchar(8000), FileName varchar(128))\nselect @json = Prop_0 from @{activity('Create temp table').output.firstRow.TempTableName}\nselect @TotalRecords = convert(int, convert(float, [value]))\nfrom openjson(@json, '$.query.table[0]')\nwhile (@OffSetCurrent < @TotalRecords)\nbegin\n\tinsert into @URLsToProcess (URL, FileName)\n\tselect @URL + ' offset ' + convert(varchar, @OffSetCurrent)\n\t\t, @CurrentDate + '_' + convert(varchar, @OffSetCurrent) + '.json'\n\tset @OffSetCurrent += @OffSetDelta\nend\nselect URL, FileName, @TotalRecords as TotalRecords from @URLsToProcess",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Drop Temp Table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Generating URLs To Call",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "drop table @{activity('Create temp table').output.firstRow.TempTableName}\nselect 1",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Set Total Records Path",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TotalRecordsPath",
+								"value": {
+									"value": "@concat(\n\treplace(pipeline().parameters.SourceSystem, 'API', ''),\n\t'/',\n\tpipeline().parameters.ObjectName,\n\t'/TotalRecords'\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Total Records File Name",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TotalRecordsFileName",
+								"value": {
+									"value": "@concat(\npipeline().parameters.ObjectName,\n'_',\nformatDateTime(utcnow(), 'yyyyMMddHHmmss'),\n'.json'\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "On failure - create temp table",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Create temp table",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": null,
+										"type": "string"
+									},
+									"SinkName": {
+										"value": null,
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Create temp table').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On failure - records count from source",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Records Count from Source to Json",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": null,
+										"type": "string"
+									},
+									"SinkName": {
+										"value": null,
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Records Count from Source to Json').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On failure - move JSON to DB",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Move the JSON to DB",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": null,
+										"type": "string"
+									},
+									"SinkName": {
+										"value": null,
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Move the JSON to DB').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set URLs",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Generating URLs To Call",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "URLs",
+								"value": {
+									"value": "@activity('Generating URLs To Call').output.value",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Medallia URL",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "MedalliaURL",
+								"value": {
+									"value": "@replace(activity('Get URL').output.firstRow.URL, '''', '''''')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Get URL for Total Records",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat(\n\t'select left(URL, charindex(''=select '', URL) + 7) + ''count(*) '' + substring(URL, charindex('' from '', URL), charindex('' order by '', URL) - charindex('' from '', URL)) as URLMedalliaTotalRecords from CTRL.ADLGetObjectAPIURL (',\n\tstring(pipeline().parameters.ObjectID),\n\t',', \n\tif(empty(pipeline().parameters.DataSliceStartValue), \n\t\tpipeline().parameters.APIDefaultDataSliceStartValueExpr,\n\t\tconcat('''',pipeline().parameters.DataSliceStartValue,'''')\n\t), \n\t',', \n\tif(empty(pipeline().parameters.DataSliceEndValue), \n\t\tpipeline().parameters.APIDefaultDataSliceEndValueExpr, \n\t\tconcat('''',pipeline().parameters.DataSliceEndValue,'''')\n\t),\n\t')'\n)",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Insert Log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "API Medallia"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Call URLs",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Is Medallia",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Other",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('URLs')",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "GetData From Source",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:30:00",
+									"requestInterval": "00.00:00:00.010"
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RESTAPIAuth",
+									"type": "DatasetReference",
+									"parameters": {
+										"URL": {
+											"value": "@{item().URL}",
+											"type": "Expression"
+										},
+										"Method": "GET",
+										"RequestBody": {
+											"value": "@string('')",
+											"type": "Expression"
+										},
+										"Authorization": {
+											"value": "@pipeline().parameters.Token",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Path": {
+											"value": "@variables('OutputFilePath')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@concat(\npipeline().parameters.ObjectName,\n'_',\nitem().FileName\n)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "On failure - get data from source",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "GetData From Source",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": null,
+										"type": "string"
+									},
+									"SinkName": {
+										"value": null,
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('GetData From Source').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set DataWritten",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "GetData From Source",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DataWritten",
+								"value": {
+									"value": "@string(activity('GetData From Source').output.dataWritten)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@concat(\npipeline().parameters.SourceSystem,\n'/',\npipeline().parameters.ObjectName,\n'/ToProcess'\n)",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": null,
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": null,
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": null,
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": {
+								"value": "@if(empty(variables('DataWritten')), '0', variables('DataWritten'))",
+								"type": "Expression"
+							},
+							"type": "int64"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@activity('Get URL').output.firstRow.DataSliceStartValue",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": {
+								"value": "@activity('Get URL').output.firstRow.DataSliceEndValue",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get URL",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Insert Log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set OutputFilePath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n\t'select URL, DataSliceStartValue, DataSliceEndValue, fields from CTRL.ADLGetObjectAPIURL (',\n\tstring(pipeline().parameters.ObjectID),\n\t',', \n\tif(empty(pipeline().parameters.DataSliceStartValue), \n\t\tpipeline().parameters.APIDefaultDataSliceStartValueExpr,\n\t\tconcat('''',pipeline().parameters.DataSliceStartValue,'''')\n\t), \n\t',', \n\tif(empty(pipeline().parameters.DataSliceEndValue), \n\t\tpipeline().parameters.APIDefaultDataSliceEndValueExpr, \n\t\tconcat('''',pipeline().parameters.DataSliceEndValue,'''')\n\t),\n\t')'\n)\n\n",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Call URLs",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "If file exists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+					"storedProcedureParameters": {
+						"ObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.ObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@activity('Get URL').output.firstRow.DataSliceEndValue",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"ADLSTimestamp": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Other",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set ExceptionSourceSystemList",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get URL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(contains(variables('ExceptionSourceSystemList'), pipeline().parameters.SourceSystem))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Add single row to array",
+							"type": "AppendVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "URLs",
+								"value": {
+									"value": "@json(\nconcat('{\"URL\" : \"',\nactivity('Get URL').output.firstRow.URL,\n'\", \"FileName\": \"',\nconcat(formatDateTime(utcnow(), 'yyyyMMddHHmmss'), '.json'),\n'\",\"TotalRecords\": null}'\n)\n)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set ExceptionSourceSystemList",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ExceptionSourceSystemList",
+					"value": {
+						"value": "@createArray('MedalliaAPI', 'SplunkAPI')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Is Splunk",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get URL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(pipeline().parameters.SourceSystem, 'SplunkAPI')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Run SplunkLogsDownloader",
+							"type": "Custom",
+							"dependsOn": [
+								{
+									"activity": "Set SplunkJSONOutputFileName",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"command": {
+									"value": "@concat(\n'cmd /c %AZ_BATCH_APP_PACKAGE_SPLUNKLOGSDOWNLOADER#1.0%\\SplunkLogsDownloader.exe',\n' -blobcontainer files',\n' -blobfilename \"', concat(variables('OutputFilePath'), '/', variables('SplunkJSONOutputFileName'), '\"'),\n' -splunksearch ', activity('Get URL').output.firstRow.URL,\n' -splunketime \"', activity('Get URL').output.firstRow.DataSliceStartValue, '\"',\n' -splunkltime \"', activity('Get URL').output.firstRow.DataSliceEndValue, '\"',\n' -fields \"', activity('Get URL').output.firstRow.fields, '\"'\n)",
+									"type": "Expression"
+								},
+								"referenceObjects": {
+									"linkedServices": [
+										{
+											"referenceName": "AzureKeyVault",
+											"type": "LinkedServiceReference"
+										}
+									],
+									"datasets": []
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "Batch",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set SplunkJSONOutputFileName",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "SplunkJSONOutputFileName",
+								"value": {
+									"value": "@concat(\npipeline().parameters.ObjectName, \n'_', \nformatDateTime(utcnow(), 'yyyyMMddHHmmss'), \n'.json'\n)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set OutputFilePath",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "OutputFilePath",
+					"value": {
+						"value": "@concat(\n\treplace(pipeline().parameters.SourceSystem, 'API', ''),\n\t'/',\n\tpipeline().parameters.ObjectName,\n\t'/ToProcess'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Does file exist",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Is Splunk",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2Binary",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@variables('OutputFilePath')",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@variables('SplunkJSONOutputFileName')",
+								"type": "Expression"
+							},
+							"Container": "files"
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "If file exists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Does file exist",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(activity('Does file exist').output.Exists)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Get File Size",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@variables('OutputFilePath')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@variables('SplunkJSONOutputFileName')",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								},
+								"fieldList": [
+									"size"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Set DataWritten for Splunk",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get File Size",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DataWritten",
+								"value": {
+									"value": "@string(activity('Get File Size').output.Size)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"Token": {
+				"type": "string"
+			},
+			"BatchID": {
+				"type": "int"
+			},
+			"ObjectID": {
+				"type": "int"
+			},
+			"ObjectName": {
+				"type": "string"
+			},
+			"SourceSystem": {
+				"type": "string"
+			},
+			"DataSliceStartValue": {
+				"type": "string"
+			},
+			"DataSliceEndValue": {
+				"type": "string"
+			},
+			"APIDefaultDataSliceStartValueExpr": {
+				"type": "string"
+			},
+			"APIDefaultDataSliceEndValueExpr": {
+				"type": "string"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"TotalRecordsFileName": {
+				"type": "String"
+			},
+			"TotalRecordsPath": {
+				"type": "String"
+			},
+			"URLs": {
+				"type": "Array"
+			},
+			"DataWritten": {
+				"type": "String"
+			},
+			"MedalliaURL": {
+				"type": "String"
+			},
+			"ExceptionSourceSystemList": {
+				"type": "Array"
+			},
+			"OutputFilePath": {
+				"type": "String"
+			},
+			"SplunkJSONOutputFileName": {
+				"type": "String",
+				"defaultValue": "dummy.json"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-01-19T15:02:51Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

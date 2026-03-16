@@ -1,0 +1,2 @@
+﻿CREATE USER [Datalake-BI-Partners] FOR EXTERNAL PROVIDER;
+

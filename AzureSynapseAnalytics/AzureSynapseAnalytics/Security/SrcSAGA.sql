@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcSAGA]
+    AUTHORIZATION [dbo];
+

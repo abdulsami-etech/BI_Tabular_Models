@@ -1,0 +1,11 @@
+﻿CREATE TABLE [SrcSAP].[TGSB] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [GSBER]         NVARCHAR (4)  NOT NULL,
+    [GSBER_KONS]    NVARCHAR (4)  NOT NULL,
+    [GSBER_GLOB]    NVARCHAR (4)  NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [GSBER]), DISTRIBUTION = HASH([GSBER]));
+

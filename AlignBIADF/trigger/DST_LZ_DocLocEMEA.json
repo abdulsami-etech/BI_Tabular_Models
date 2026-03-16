@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_DocLocEMEA",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_EMEASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "DocLocEMEA",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-06-23T07:00:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

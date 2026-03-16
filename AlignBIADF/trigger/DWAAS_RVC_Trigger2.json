@@ -1,0 +1,40 @@
+{
+	"name": "DWAAS_RVC_Trigger2",
+	"properties": {
+		"description": "Trigger for Run 3 (11:50 AM PST) ",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DWMasterAASModelProcessing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWSAP",
+					"ObjectList": "100,101,102,103,108,114,115,118",
+					"ModelName": "RevVolCOGS_Actuals",
+					"Full1Delta": "0",
+					"Functionapp": "aasmodelprocessingpr"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-07-28T11:50:00",
+				"timeZone": "Pacific Standard Time",
+				"schedule": {
+					"minutes": [
+						50
+					],
+					"hours": [
+						11
+					]
+				}
+			}
+		}
+	}
+}

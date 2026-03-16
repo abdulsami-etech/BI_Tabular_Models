@@ -1,0 +1,30 @@
+{
+	"name": "LZ_KafkaConfluent_FDL",
+	"properties": {
+		"description": "This will trigger The data load from ADLS to LZ which loads the kafkaconfluent data to the SRCkafka tables",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "KafkaConfluent",
+					"Destination": "LZ",
+					"ObjectList": "28001"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 4,
+				"startTime": "2022-03-15T07:25:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

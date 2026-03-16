@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_MES_itero",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "MES_itero",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-07-06T01:45:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

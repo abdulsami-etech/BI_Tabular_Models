@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcSAPFile].[ScannerRevenueUnit] (
+    [LZBatchID]                 INT           NOT NULL,
+    [ADLSBatchID]               INT           NOT NULL,
+    [ADLSTimestamp]             DATETIME2 (0) NOT NULL,
+    [ReportingRegion]           NVARCHAR (10) NULL,
+    [ReportingDate]             NVARCHAR (8)  NULL,
+    [SalesOrder]                NVARCHAR (10) NULL,
+    [SalesLineItem]             NVARCHAR (6)  NULL,
+    [SerialNumber]              NVARCHAR (18) NULL,
+    [InitiatorCompanyIDMAT]     NVARCHAR (10) NULL,
+    [ActualDeliveryQuantity]    DECIMAL (9)   NULL,
+    [PromoBucket]               NVARCHAR (40) NULL,
+    [DateofMIM]                 NVARCHAR (8)  NULL,
+    [PGIDate]                   NVARCHAR (8)  NULL,
+    [RevenueRecognitionDate]    NVARCHAR (8)  NULL,
+    [CompanyCode]               NVARCHAR (4)  NULL,
+    [Country]                   NVARCHAR (3)  NULL,
+    [Profitcenter]              NVARCHAR (10) NULL,
+    [Ship-ToParty]              NVARCHAR (10) NULL,
+    [Sold-ToParty]              NVARCHAR (10) NULL,
+    [Payer]                     NVARCHAR (10) NULL,
+    [SalesOrderType]            NVARCHAR (4)  NULL,
+    [SalesDocumentItemCategory] NVARCHAR (4)  NULL,
+    [MaterialGroup]             NVARCHAR (9)  NULL,
+    [Material]                  NVARCHAR (18) NULL,
+    [ProductHierarchyNode]      NVARCHAR (18) NULL,
+    [Plant]                     NVARCHAR (4)  NULL,
+    [VolumeUnit]                NVARCHAR (3)  NULL,
+    [ReportingChannel]          NVARCHAR (2)  NULL
+)
+WITH (HEAP, DISTRIBUTION = ROUND_ROBIN);
+

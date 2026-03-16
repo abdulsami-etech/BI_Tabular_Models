@@ -1,0 +1,32 @@
+﻿CREATE TABLE [DWCONSDL].[FactSmileViewLogs] (
+    [DWBatchID]                       INT             NOT NULL,
+    [DWHashKey]                       CHAR (40)       NOT NULL,
+    [Id]                              BIGINT          NOT NULL,
+    [EventName]                       NVARCHAR (64)   NOT NULL,
+    [SessionId]                       NVARCHAR (128)  NULL,
+    [SimulationID]                    NVARCHAR (128)  NULL,
+    [LeadID]                          NVARCHAR (36)   NULL,
+    [ReasonCode]                      NVARCHAR (36)   NULL,
+    [SimStartTime]                    DATETIME        NULL,
+    [SimEndTime]                      DATETIME        NULL,
+    [CountryCode]                     NVARCHAR (36)   NULL,
+    [SiteID]                          NVARCHAR (128)  NULL,
+    [IsInClincSV]                     NVARCHAR (40)   NULL,
+    [Reason]                          NVARCHAR (4000) NULL,
+    [EventTime]                       DATETIME        NULL,
+    [DateKey]                         DATE            NULL,
+    [VisConProvPhotoSub]              BIT             NULL,
+    [TimeTakenforsimFrontend]         DECIMAL (18)    NULL,
+    [CreateDateTimestamp]             DATETIME        NULL,
+    [Duration]                        BIGINT          NULL,
+    [NegativeFeedbackEvent]           BIT             NULL,
+    [RetryCount]                      INT             NULL,
+    [SessionEventOccurance]           INT             NULL,
+    [SessionSimulationEventOccurance] INT             NULL,
+    [NADLVisit]                       VARCHAR (20)    NULL,
+    [NASAVisit]                       VARCHAR (20)    NULL,
+    [CreatedDate]                     DATETIME        NULL,
+    [ModifiedDate]                    DATETIME        NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([Id]));
+

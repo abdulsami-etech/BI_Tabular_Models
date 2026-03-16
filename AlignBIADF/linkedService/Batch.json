@@ -1,0 +1,26 @@
+{
+	"name": "Batch",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBatch",
+		"typeProperties": {
+			"accountName": "dev2alignbatch",
+			"accessKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AzureBatchKey",
+				"secretVersion": ""
+			},
+			"batchUri": "https://dev2alignbatch.westus.batch.azure.com",
+			"poolName": "dev2alignbatchpool",
+			"linkedServiceName": {
+				"referenceName": "BlobStorage",
+				"type": "LinkedServiceReference"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

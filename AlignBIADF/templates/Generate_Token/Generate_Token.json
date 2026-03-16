@@ -1,0 +1,542 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name"
+		},
+		"SQLDBConfig": {
+			"type": "string"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Generate_Token')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "set secret",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Get access token",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://',first(split(pipeline().DataFactory, 'alignbiadfci')),'alignkeyvault','.vault.azure.net/secrets/',pipeline().parameters.TokenSecretName,'/versions?api-version=7.1')",
+								"type": "Expression"
+							},
+							"method": "PUT",
+							"body": {
+								"value": "{\n  \"value\": \"@{activity('Get access token').output.access_token}\"\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "Create temp table",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Get token data",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderStoredProcedureName": "[[CTRL].[ADLCreateTempTable]",
+								"storedProcedureParameters": {
+									"ColumnList": {
+										"type": "String",
+										"value": {
+											"value": "@activity('Get token data').output.firstRow.APITokenOutputColumns",
+											"type": "Expression"
+										}
+									},
+									"jsonTableStructure": {
+										"type": "String",
+										"value": null
+									},
+									"ObjectName": {
+										"type": "String",
+										"value": {
+											"value": "@pipeline().parameters.SourceSystem",
+											"type": "Expression"
+										}
+									}
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "SQLDBConfig",
+								"type": "DatasetReference"
+							}
+						}
+					},
+					{
+						"name": "Update token and expiration date",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Generate Token and Save to table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[CTRL].[APIUpdateToken]",
+							"storedProcedureParameters": {
+								"Query": {
+									"value": {
+										"value": "@replace(activity('Get token data').output.firstRow.APITokenQuery, '_TokenOutputTable_', activity('Create temp table').output.firstRow.TempTableName)",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"SourceSystem": {
+									"value": {
+										"value": "@pipeline().parameters.SourceSystem",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "[parameters('SQLDBConfig')]",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Drop temp table",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Update token and expiration date",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "drop table @{activity('Create temp table').output.firstRow.TempTableName}\nselect 1",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "SQLDBConfig",
+								"type": "DatasetReference"
+							}
+						}
+					},
+					{
+						"name": "Get token data",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "set secret",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "declare @SourceSystem varchar(32) = '@{pipeline().parameters.SourceSystem}'\nselect\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenURL') as APITokenURL\n\t,\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenRequestBody') as APITokenRequestBody\n\t,\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenOutputColumns') as APITokenOutputColumns\n\t,\tCTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenQuery') as APITokenQuery\n\t,\t(select string_agg('{ ' + '\"source\": { \"path\": \"' + ltrim(rtrim(value)) + '\" }, \"sink\": { \"name\": \"' + ltrim(rtrim(value)) + '\" } }', ',') from string_split(CTRL.GetSourceSystemProperty(@SourceSystem, 'APITokenOutputColumns'), ',')) as APITokenSchemaMapping",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "SQLDBConfig",
+								"type": "DatasetReference"
+							}
+						}
+					},
+					{
+						"name": "Generate Token and Save to table",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Create temp table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat('select ',concat('''',concat(activity('Get access token').output.access_token,concat('''',concat(' as access_token',concat('''',concat(activity('Get access token').output.token_type,concat('''',' as token_type'))))))))",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "SQLDBConfig",
+								"type": "DatasetReference"
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "SQLDBConfig_Temp",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": {
+										"value": "@activity('Create temp table').output.firstRow.TempTableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Get version SFDC Connection String",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://',first(split(pipeline().DataFactory, 'alignbiadfci')),'alignkeyvault','.vault.azure.net/secrets/',pipeline().parameters.ConnectionString,'/versions?api-version=7.1')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "Get active version SFDC Connection String",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Get version SFDC Connection String",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get version SFDC Connection String').output.value",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@bool(item().attributes.enabled)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Active version SFDC Connection String",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Get active version SFDC Connection String",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Connection String URL",
+							"value": {
+								"value": "@activity('Get active version SFDC Connection String').output.value[0].id",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get SFDC Connection String",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Active version SFDC Connection String",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat(variables('Connection String URL'),'?api-version=7.0')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "SFDC Connection String",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Get SFDC Connection String",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Connection String",
+							"value": {
+								"value": "@activity('Get SFDC Connection String').output.value",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Lookup TokenURL",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "SFDC Connection String",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select CTRL.GetSourceSystemProperty('@{pipeline().parameters.SourceSystem}','APITokenURL') as APITokenURL",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "SQLDBConfig",
+								"type": "DatasetReference"
+							}
+						}
+					},
+					{
+						"name": "Get access token",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Lookup TokenURL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@activity('Lookup TokenURL').output.firstrow.APITokenURL",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/x-www-form-urlencoded"
+							},
+							"body": {
+								"value": "@variables('Connection String')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"parameters": {
+					"SourceSystem": {
+						"type": "string",
+						"defaultValue": "MedalliaAPI"
+					},
+					"TokenSecretName": {
+						"type": "string",
+						"defaultValue": "MedalliaSecurityToken"
+					},
+					"Expiration": {
+						"type": "string",
+						"defaultValue": "86400"
+					},
+					"ConnectionString": {
+						"type": "string",
+						"defaultValue": "MedalliaConnectionString"
+					}
+				},
+				"variables": {
+					"TokenValue_URL": {
+						"type": "String"
+					},
+					"Connection String URL": {
+						"type": "String"
+					},
+					"Connection String": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Metadata"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SQLDBConfig')]",
+				"[concat(variables('factoryId'), '/datasets/SQLDBConfig_Temp')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SQLDBConfig')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Dataset for Azure SQL DB",
+				"linkedServiceName": {
+					"referenceName": "[parameters('SQLDBConfig')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SQLDBConfig_Temp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('SQLDBConfig')]",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"tableName": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

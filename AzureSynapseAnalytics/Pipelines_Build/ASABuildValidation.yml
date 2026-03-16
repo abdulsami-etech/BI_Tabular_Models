@@ -1,0 +1,17 @@
+trigger: none
+
+variables:
+  BuildConfiguration: release
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: MSBuild@1
+  displayName: 'Build ADW project'
+  inputs:
+    solution: AzureSynapseAnalytics/AzureSynapseAnalytics.sqlproj
+    configuration: '$(BuildConfiguration)'
+    msbuildArguments: '/t:build /p:CmdLineInMemoryStorage=True'
+    createLogFile: true
+

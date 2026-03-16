@@ -1,0 +1,809 @@
+{
+	"name": "AASDatabaseSelectedProcessing",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Wait if previous is running",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": "-1"
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "AASDatabaseSelectedProcessing"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": "-1"
+							},
+							"SinkName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.ASDatabase",
+									"type": "Expression"
+								}
+							},
+							"SinkPathRAW": {
+								"type": "String",
+								"value": {
+									"value": "@concat(\n'ASRegion=', pipeline().parameters.ASRegion,\n';ASServerSuffix=', pipeline().parameters.ASServerSuffix,\n';ASDatabase=', pipeline().parameters.ASDatabase\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On failure - Update status",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Try to set error message",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@variables('ErrorMessage')",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set ASServer",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ASServer",
+					"value": {
+						"value": "@concat(first(split(pipeline().DataFactory, 'alignbiadf')), pipeline().parameters.ASServerSuffix)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Try to set error message",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Process Model",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ErrorMessage",
+					"value": {
+						"value": "@activity('Process Model').output.Error.Message",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "On failure - Update status 2",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Try to set error message",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ADF Monitor Runs",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Process Model",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set ASServer Rest API",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@variables('RestAPIUrl')",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"body": {
+						"value": "@pipeline().parameters.BodyMessage",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://*.asazure.windows.net"
+					}
+				}
+			},
+			{
+				"name": "Set ASServer Rest API",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set ASServer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "RestAPIUrl",
+					"value": {
+						"value": "@concat('https://',pipeline().parameters.ASRegion,'/Servers/',variables('ASServer'),'/models/',pipeline().parameters.ASDatabase,'/refreshes')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Until Completion of Model Processing",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Filter To Current Refresh",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('IsModelProcessingCompleted'),true)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Get Model Status",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat(variables('RestAPIUrl'),'/',activity('Filter To Current Refresh').output.Value[0].refreshId)",
+									"type": "Expression"
+								},
+								"method": "GET",
+								"body": {
+									"value": "@pipeline().parameters.BodyMessage",
+									"type": "Expression"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://*.asazure.windows.net"
+								}
+							}
+						},
+						{
+							"name": "If Model Process Completed",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Get Model Status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@not(or(equals(activity('Get Model Status').output.status,'inProgress'),equals(activity('Get Model Status').output.status,'notStarted')))",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Wait",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 60
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Set variable IsModelProcessingCompleted",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "IsModelProcessingCompleted",
+											"value": true
+										}
+									},
+									{
+										"name": "Set variable ModelProcessingStatus",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "ModelProcessingStatus",
+											"value": {
+												"value": "@activity('Get Model Status').output.status",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "Get Model Refreshes Status",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Process Model",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@variables('RestAPIUrl')",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"body": {
+						"value": "@pipeline().parameters.BodyMessage",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://*.asazure.windows.net"
+					}
+				}
+			},
+			{
+				"name": "Filter To Current Refresh",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get Model Refreshes Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@json(activity('Get Model Refreshes Status').output.Response)",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@greaterOrEquals(item().startTime,addseconds(activity('Process Model').output.startTime,-120))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "If Status Not Succeeded",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Until Completion of Model Processing",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(equals(variables('ModelProcessingStatus'),'succeeded'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Update log",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Throw Error On Failure",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat('https://CheckADF',pipeline().DataFactory, 'MonitorForCompleteErrorMessage.com')",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"body": {
+									"value": "@string(activity('Get Model Status').output)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Wait if previous is running",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Get current subscription",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Resource Group",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(variables('IsNeedToWait'))",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Get running pipelines",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat(\n\t'https://management.azure.com/subscriptions/',\n\tactivity('Get current subscription').output.Value[0].subscriptionId,\n\t'/resourceGroups/',\n\tvariables('ResourceGroup'),\n\t'/providers/Microsoft.DataFactory/factories/',\n\tpipeline().DataFactory,\n\t'/queryPipelineRuns?api-version=', \n\tvariables('ADFAPIVersion')\n)",
+									"type": "Expression"
+								},
+								"connectVia": {
+									"referenceName": "AzureIR",
+									"type": "IntegrationRuntimeReference"
+								},
+								"method": "POST",
+								"headers": {
+									"Content-Type": "application/json",
+									"Accept": "application/json"
+								},
+								"body": {
+									"value": "@concat(\n\t'{ ',\n\t'\"lastUpdatedAfter\": \"', formatDateTime(getPastTime(3, 'Day'), 'yyyy-MM-ddTHH:mm:ssZ'), '\", ',\n\t'\"lastUpdatedBefore\": \"', formatDateTime(getFutureTime(1, 'Day'), 'yyyy-MM-ddTHH:mm:ssZ'), '\", ',\n\t'\"filters\": [{ \"operand\": \"PipelineName\", \"operator\": \"Equals\", \"values\": [\"' ,pipeline().Pipeline, '\"] }, { \"operand\": \"Status\", \"operator\": \"Equals\", \"values\": [\"InProgress\"] }], ',\n\t'\"orderBy\":[{\"orderBy\":\"RunStart\",\"order\":\"ASC\"}]',\n\t' }'\n)",
+									"type": "Expression"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://management.azure.com/"
+								}
+							}
+						},
+						{
+							"name": "Filter by input parameters",
+							"type": "Filter",
+							"dependsOn": [
+								{
+									"activity": "Get running pipelines",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"items": {
+									"value": "@activity('Get running pipelines').output.value",
+									"type": "Expression"
+								},
+								"condition": {
+									"value": "@equals(item().parameters.ASDatabase, pipeline().parameters.ASDatabase)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set IsNeedToWait",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Filter by input parameters",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "IsNeedToWait",
+								"value": {
+									"value": "@and(\n\tgreater(activity('Filter by input parameters').output.FilteredItemsCount, 0),\n\tnot(equals(activity('Filter by input parameters').output.Value[0].runId, pipeline().RunId))\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Is need to wait",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set IsNeedToWait",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@variables('IsNeedToWait')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Wait 1 minute",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 60
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "On failure - Get running pipelines",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get running pipelines",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "IsNeedToWait",
+								"value": {
+									"value": "@bool(false)",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "Set Resource Group",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ResourceGroup",
+					"value": {
+						"value": "@concat(pipeline().DataFactory, 'rg')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get list of subscriptions",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(\n\t'https://management.azure.com/subscriptions?api-version=', \n\tvariables('ResourceManagementAPIVersion')\n)\n",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AzureIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "Set SubscriptionName",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "SubscriptionName",
+					"value": {
+						"value": "@concat(\n\t'BI-DW-', \n\tsubstring(\n\t\tpipeline().DataFactory,\n\t\t0,\n\t\tindexof(pipeline().DataFactory, 'alignbiadf')\n\t)\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get current subscription",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get list of subscriptions",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set SubscriptionName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get list of subscriptions').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(toLower(item().displayName), toLower(variables('SubscriptionName')))",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ASRegion": {
+				"type": "string",
+				"defaultValue": "westus.asazure.windows.net"
+			},
+			"ASServerSuffix": {
+				"type": "string",
+				"defaultValue": "alignbitab"
+			},
+			"ASDatabase": {
+				"type": "string",
+				"defaultValue": "Volume"
+			},
+			"BodyMessage": {
+				"type": "string",
+				"defaultValue": {
+					"Type": "Full",
+					"CommitMode": "transactional",
+					"MaxParallelism": 2,
+					"RetryCount": 2,
+					"Objects": [
+						{
+							"table": "FactVolume",
+							"partition": "Volume_CQ"
+						}
+					]
+				}
+			}
+		},
+		"variables": {
+			"RestAPIUrl": {
+				"type": "String"
+			},
+			"ASServer": {
+				"type": "String"
+			},
+			"ErrorMessage": {
+				"type": "String"
+			},
+			"IsModelProcessingCompleted": {
+				"type": "Boolean",
+				"defaultValue": false
+			},
+			"ModelProcessingStatus": {
+				"type": "String"
+			},
+			"IsRunning": {
+				"type": "Boolean",
+				"defaultValue": true
+			},
+			"ResourceGroup": {
+				"type": "String"
+			},
+			"IsNeedToWait": {
+				"type": "Boolean"
+			},
+			"ResourceManagementAPIVersion": {
+				"type": "String",
+				"defaultValue": "2020-01-01"
+			},
+			"ADFAPIVersion": {
+				"type": "String",
+				"defaultValue": "2018-06-01"
+			},
+			"SubscriptionName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Control"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,14 @@
+﻿--BI-12996 New View
+CREATE VIEW [DWSAP].[VBPA_Pivoted_v2] AS WITH ActualCTE AS
+(
+SELECT *,ROW_NUMBER() OVER (PARTITION BY VBELN, PARVW ORDER BY AEDAT DESC, ADLSTimeStamp DESC) AS RowNumber FROM SrcSAP.ZVOTC_VBPA1 (NOLOCK)
+),
+FinalCTE AS
+(
+SELECT * FROM (
+SELECT [VBELN], [PARVW], [KUNNR], [ERDAT], [AEDAT], RowNumber FROM ActualCTE ) AS SourceTable
+PIVOT(MAX(KUNNR) FOR [PARVW] IN ([WE], [RG], [RE], [AG], [ZE], [ZA], [ZM], [ZF], [ZJ], [ZS], [ZT], [SP], [ZL]))
+AS PivotTable WHERE RowNumber = 1
+)
+SELECT VBELN, [WE], [RG], [RE], [AG], [ZE], [ZA], [ZM], [ZF], [ZJ], [ZS], [ZT], [SP], [ZL], ERDAT, AEDAT
+FROM FinalCTE;

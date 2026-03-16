@@ -1,0 +1,443 @@
+{
+	"name": "ADLSV2_Finance_Revrecshipvol",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Brazil file",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2_Finance",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "finance",
+							"Filepath": "/SAPFile/RevrecShipVol/Brazil",
+							"Filename": "@item()"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Brazil",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Brazil file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Brazil file').output.childitems",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Brazil-copy",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2_Finance",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "finance",
+										"Filepath": "/SAPFile/RevrecShipVol/Brazil",
+										"Filename": "@item().name"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2_Finance",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "finance",
+										"Filepath": "/SAPFile/RevrecShipVol/Tobeprocessed",
+										"Filename": "@item().name"
+									}
+								}
+							]
+						},
+						{
+							"name": "Brazil_Delete",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Brazil-copy",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2",
+									"type": "DatasetReference",
+									"parameters": {
+										"Path": "finance/SAPFile/RevrecShipVol/Brazil",
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Mexico File",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2_Finance",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "finance",
+							"Filepath": "/SAPFile/RevrecShipVol/Mexico",
+							"Filename": "@item()"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Mexico",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Mexico File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Mexico file').output.childitems",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Mexico_Copy",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2_Finance",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "finance",
+										"Filepath": "/SAPFile/RevrecShipVol/Mexico",
+										"Filename": "@item().name"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2_Finance",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "finance",
+										"Filepath": "/SAPFile/RevrecShipVol/Tobeprocessed",
+										"Filename": "@item().name"
+									}
+								}
+							]
+						},
+						{
+							"name": "Mexico_Delete",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Mexico_Copy",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2",
+									"type": "DatasetReference",
+									"parameters": {
+										"Path": "finance/SAPFile/RevrecShipVol/Mexico",
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Russia File",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2_Finance",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "finance",
+							"Filepath": "/SAPFile/RevrecShipVol/Russia",
+							"Filename": "@item()"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Russia",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Russia File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Russia file').output.childitems",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Russia_Copy",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2_Finance",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "finance",
+										"Filepath": "/SAPFile/RevrecShipVol/Russia",
+										"Filename": "@item().name"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2_Finance",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "finance",
+										"Filepath": "/SAPFile/RevrecShipVol/Tobeprocessed",
+										"Filename": "@item().name"
+									}
+								}
+							]
+						},
+						{
+							"name": "Russia_Delete",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Russia_Copy",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2",
+									"type": "DatasetReference",
+									"parameters": {
+										"Path": "finance/SAPFile/RevrecShipVol/Russia",
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	}
+}

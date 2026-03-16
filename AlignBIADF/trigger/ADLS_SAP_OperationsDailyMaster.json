@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_SAP_OperationsDailyMaster",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SAP_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "61043,61044,61045,61046,61047"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 4,
+				"startTime": "2021-09-21T19:15:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

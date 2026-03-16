@@ -1,0 +1,29 @@
+{
+	"name": "GoogleBigQuery",
+	"properties": {
+		"annotations": [],
+		"type": "GoogleBigQuery",
+		"typeProperties": {
+			"project": "my-invisalign-app",
+			"requestGoogleDriveScope": false,
+			"authenticationType": "UserAuthentication",
+			"clientId": "611528906545-55qfcl2096nhm25fdh898gqm1s0h6du7.apps.googleusercontent.com",
+			"clientSecret": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "GbqMyInvisalignAppClientSecret"
+			},
+			"refreshToken": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "GbqMyInvisalignAppRefreshToken"
+			}
+		}
+	}
+}

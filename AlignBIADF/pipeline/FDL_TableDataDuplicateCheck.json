@@ -1,0 +1,55 @@
+{
+	"name": "FDL_TableDataDuplicateCheck",
+	"properties": {
+		"activities": [
+			{
+				"name": "Duplicate Check",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[DWSAP].[FDL_duplicatecheck]",
+					"storedProcedureParameters": {
+						"TableName": {
+							"value": {
+								"value": "@pipeline().parameters.TableName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"YearMonth": {
+							"value": {
+								"value": "@pipeline().parameters.Period",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			},
+			"Period": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Finance"
+		},
+		"annotations": []
+	}
+}

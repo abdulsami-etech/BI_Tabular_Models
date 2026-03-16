@@ -1,0 +1,41 @@
+{
+	"name": "FDL_FileProcessing_Trigger",
+	"properties": {
+		"description": "Updated schedule for the File Processing Pipeline in FDL",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "FDL_Finance_File_Processing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "SAPFile"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-07-28T00:00:00",
+				"timeZone": "Pacific Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						0,
+						5,
+						10,
+						13,
+						17,
+						20
+					]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,15 @@
+﻿CREATE TABLE [SrcSAP].[USR02] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [BNAME]         NVARCHAR (12) NOT NULL,
+    [GLTGV]         NVARCHAR (8)  NOT NULL,
+    [GLTGB]         NVARCHAR (8)  NOT NULL,
+    [USTYP]         NVARCHAR (1)  NOT NULL,
+    [CLASS]         NVARCHAR (12) NOT NULL,
+    [ACCNT]         NVARCHAR (12) NOT NULL,
+    [ERDAT]         NVARCHAR (8)  NOT NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([MANDT]));
+

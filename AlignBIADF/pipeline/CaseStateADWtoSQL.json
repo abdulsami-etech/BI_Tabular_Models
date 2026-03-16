@@ -1,0 +1,189 @@
+{
+	"name": "CaseStateADWtoSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Generate new BatchId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On failure - iterate through LZ Objects",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Execute CaseState_ChildPipeline",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ADF log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Batch Info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Execute CaseState_ChildPipeline",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Execute CaseState_ChildPipeline",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "CaseState_ChildPipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SourceSystemList": {
+							"value": "@pipeline().parameters.SourceSystemList",
+							"type": "Expression"
+						},
+						"Destination": {
+							"value": "@pipeline().parameters.Destination",
+							"type": "Expression"
+						},
+						"BatchID": {
+							"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"concurrency": 1,
+		"parameters": {
+			"SourceSystemList": {
+				"type": "String",
+				"defaultValue": "CaseStateDW"
+			},
+			"Destination": {
+				"type": "string",
+				"defaultValue": "CaseStateSQL"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "CaseState"
+			},
+			"DWBathchID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "CaseState"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,1462 @@
+{
+	"name": "ADLSv2_File_LogEntries_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "ADLS"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+					"storedProcedureParameters": {
+						"ObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.ObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"ADLSTimestamp": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": {
+								"value": "@int(variables('TotalRowCount'))",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": "0",
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": {
+								"value": "@int(variables('TotalBytes'))",
+								"type": "Expression"
+							},
+							"type": "int64"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "select\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/ToProcess' as ToProcessFolder\n\t,\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/Processed' as ProcessedFolder\n\t,\to.SourceSystem + '/' + o.ObjectName + '/ToProcess' as ToProcessShortFolder\n\t,\to.SourceSystem + '/' + o.ObjectName + '/Processed' as ProcessedShortFolder\n\t,\to.ObjectName\n\t,\to.JSONQuery\nfrom CTRL.ADLObject o\nwhere o.ObjectID = @{pipeline().parameters.ObjectID}",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On failure - Get Source Query",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get Details",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get Details').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "For Each File",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Dummy filter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Dummy filter').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Is LZ",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set Total Bytes 2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Total Row Count 2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(bool(pipeline().parameters.IsLZ), greater(int(variables('TotalRowCount')), int(variables('TotalRowCountTemp'))))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Insert Object File",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 1,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[CTRL].[ADLObjectFileUpdate]",
+											"storedProcedureParameters": {
+												"ObjectID": {
+													"value": {
+														"value": "@pipeline().parameters.ObjectID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"FileName": {
+													"value": {
+														"value": "@variables('RawFileName')",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"Status": {
+													"value": "Ready",
+													"type": "string"
+												},
+												"IsFullLoad": {
+													"value": "false",
+													"type": "boolean"
+												},
+												"FileSizeInBytes": {
+													"value": {
+														"value": "@sub(int(variables('TotalBytes')), int(variables('TotalBytesTemp')))",
+														"type": "Expression"
+													},
+													"type": "int64"
+												},
+												"FilePath": {
+													"value": {
+														"value": "@pipeline().parameters.RawFilePath",
+														"type": "Expression"
+													}
+												},
+												"ADLSBatchID": {
+													"value": {
+														"value": "@pipeline().parameters.BatchID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"Destinations": {
+													"value": {
+														"value": "@pipeline().parameters.Destinations",
+														"type": "Expression"
+													},
+													"type": "string"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Get LMD",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "Insert Log File",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2JSON",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Path": {
+											"value": "@activity('Get Details').output.FirstRow.ToProcessShortFolder",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"lastModified"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Set Raw File Name",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get LMD",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "RawFileName",
+								"value": {
+									"value": "@concat(activity('Get Details').output.FirstRow.ObjectName, '_', formatDateTime(activity('Get LMD').output.lastModified, 'yyyyMMddHHmmss'), '_', toUpper(substring(guid() ,0, 8)), '.parquet')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Insert Log File",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+									"storedProcedureParameters": {
+										"BatchID": {
+											"type": "int32",
+											"value": {
+												"value": "@pipeline().parameters.BatchID",
+												"type": "Expression"
+											}
+										},
+										"PipelineName": {
+											"type": "string",
+											"value": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											}
+										},
+										"PipelineTriggerType": {
+											"type": "string",
+											"value": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											}
+										},
+										"LogType": {
+											"type": "string",
+											"value": "ADLS Text File"
+										},
+										"ObjectID": {
+											"type": "int32",
+											"value": {
+												"value": "@pipeline().parameters.ObjectID",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Update Log File",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Delete from To Process folder",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log File').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('RawFileName')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"RowsInserted": {
+										"value": {
+											"value": "@sub(int(variables('TotalRowCount')), int(variables('TotalRowCountTemp')))",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"RowsUpdated": {
+										"value": "0",
+										"type": "int32"
+									},
+									"FileSizeInBytes": {
+										"value": {
+											"value": "@sub(int(variables('TotalBytes')), int(variables('TotalBytesTemp')))",
+											"type": "Expression"
+										},
+										"type": "int64"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Delete from To Process folder",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Copy to Processed folder",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@activity('Get Details').output.FirstRow.ToProcessShortFolder",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								}
+							}
+						},
+						{
+							"name": "Copy to Processed folder",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Is LZ",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@activity('Get Details').output.FirstRow.ToProcessShortFolder",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@activity('Get Details').output.FirstRow.ProcessedShortFolder",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								}
+							]
+						},
+						{
+							"name": "Create temp table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set Raw File Name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[ADLCreateTempTable]",
+									"storedProcedureParameters": {
+										"jsonTableStructure": {
+											"type": "String",
+											"value": {
+												"value": "@string('[{\"name\": \"Prop_0\", \"type\": \"Byte[]\"}]')",
+												"type": "Expression"
+											}
+										},
+										"ObjectName": {
+											"type": "String",
+											"value": {
+												"value": "@activity('Get Details').output.firstRow.ObjectName",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Copy to Temp table",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Create temp table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									},
+									"readBehavior": "query"
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2_JSON_Logentries",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Folder": {
+											"value": "@activity('Get Details').output.FirstRow.ToProcessShortFolder",
+											"type": "Expression"
+										},
+										"File": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBConfig_Temp",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@activity('Create temp table').output.firstRow.TempTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "On failure - Copy to temp table",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy to Temp table",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log File').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('RawFileName')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Copy to Temp table').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On failure - create temp table",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Create temp table",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log File').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('RawFileName')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Create temp table').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Copy to Raw From Temp",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Copy to Temp table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@replace(\nactivity('Get Details').output.firstRow.JSONQuery,\n'#TEMPTABLE',\nactivity('Create temp table').output.firstRow.TempTableName\n)",
+										"type": "Expression"
+									},
+									"partitionOption": "None",
+									"readBehavior": "query"
+								},
+								"sink": {
+									"type": "AzureBlobFSSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2",
+									"type": "DatasetReference",
+									"parameters": {
+										"Path": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@variables('RawFileName')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "On failure - copy to raw from temp",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy to Raw From Temp",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert Log File').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePath",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('RawFileName')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Copy to Raw from temp').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": null,
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": null,
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set total row count temp 2",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy to Temp table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TotalRowCountTemp",
+								"value": {
+									"value": "@variables('TotalRowCount')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set total bytes temp 2",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy to Temp table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TotalBytesTemp",
+								"value": {
+									"value": "@variables('TotalBytes')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Total Row Count 2",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set total row count temp 2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Copy to Raw From Temp",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TotalRowCount",
+								"value": {
+									"value": "@string(add(int(variables('TotalRowCountTemp')), activity('Copy to Raw from temp').output.rowsCopied))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Total Bytes 2",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set total bytes temp 2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Copy to Raw From Temp",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TotalBytes",
+								"value": {
+									"value": "@string(add(int(variables('TotalBytesTemp')), activity('Copy to Raw from temp').output.dataWritten))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Drop temp table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set Total Row Count 2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Total Bytes 2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat('drop table ', activity('Create temp table').output.firstRow.TempTableName, ' select 1')",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get File List To Process",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Get Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2_Folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@activity('Get Details').output.FirstRow.ToProcessFolder",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "On failure - get metadata",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get File List To Process",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get File List To Process').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - For Each File",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each File",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('For Each File').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Dummy filter",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get File List To Process",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get File List To Process').output.childItems",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@not(equals(item().name, 'dummy.dummy'))",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "Int"
+			},
+			"ObjectID": {
+				"type": "Int"
+			},
+			"RawFilePath": {
+				"type": "String"
+			},
+			"IsLZ": {
+				"type": "Bool"
+			},
+			"TempFolder": {
+				"type": "String"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			},
+			"Destinations": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"DataSliceEndValue": {
+				"type": "String"
+			},
+			"Query": {
+				"type": "String"
+			},
+			"RawFileName": {
+				"type": "String"
+			},
+			"TotalRowCount": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TotalRowCountTemp": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TotalBytes": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TotalBytesTemp": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

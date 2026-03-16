@@ -1,0 +1,27 @@
+{
+	"name": "DWSNOW",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWSNOW"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-06-20T10:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,175 @@
+{
+	"name": "CheckForDuplicates",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get object list",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select\tt.LZObjectID\n\t,\tt.FullTableName\n\t,\tt.PKColumnList\n\t,\t'if object_id(''' + FullTableName + ''') is not null and exists (select ' + t.PKColumnList + ' from ' + t.FullTableName + ' group by ' + t.PKColumnList + ' having count(*) > 1) select 1 as IsDuplicatesFound else select 0 as IsDuplicatesFound' as Query\nfrom (\n\tselect\tLZObjectID\n\t\t,\tquotename('Src' + SourceSystem) + '.' + quotename(ObjectName) as FullTableName\n\t\t,\t(select string_agg(quotename(value), ',') from string_split(PKColumns, '|')) as PKColumnList\n\tfrom CTRL.LZObject\n\twhere IsActive = 1\n\tand PKColumns is not null\n\tand Destination = 'LZ'\n) t",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "For each object",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get object list').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "Check for duplicates",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlDWSource",
+									"sqlReaderQuery": {
+										"value": "@item().Query",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDW",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "If duplicates were found",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Check for duplicates",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@bool(activity('Check for duplicates').output.firstRow.IsDuplicatesFound)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Append duplicate",
+										"type": "AppendVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Duplicates",
+											"value": {
+												"value": "@item().FullTableName",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "duplicates found",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "For each object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(length(variables('Duplicates')), 0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Throw error",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat(\n\t'throw 51000, ''Duplicates were found in the following tables: ',\n\tjoin(variables('Duplicates'), ', '),\n\t''', 1;'\n)",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"Duplicates": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "Control"
+		},
+		"annotations": []
+	}
+}

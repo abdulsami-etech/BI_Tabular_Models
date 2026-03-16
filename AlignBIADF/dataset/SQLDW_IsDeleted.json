@@ -1,0 +1,25 @@
+{
+	"name": "SQLDW_IsDeleted",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLDW",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"structure": [
+			{
+				"name": "Id",
+				"type": "String"
+			},
+			{
+				"name": "TableName",
+				"type": "String"
+			}
+		],
+		"typeProperties": {
+			"tableName": "[SrcSFDC].[IsDeletedRows]"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

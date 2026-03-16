@@ -1,0 +1,21 @@
+{
+	"name": "DS_Binary_PowerBI_ToProcessArchival",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLSv2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@concat('PowerBI/ActivityLog/Archived/',utcnow())",
+					"type": "Expression"
+				},
+				"fileSystem": "files"
+			}
+		}
+	}
+}

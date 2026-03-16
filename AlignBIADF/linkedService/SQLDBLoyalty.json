@@ -1,0 +1,19 @@
+{
+	"name": "SQLDBLoyalty",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AzureLoyaltyDBConnectionString",
+				"secretVersion": ""
+			}
+		}
+	}
+}

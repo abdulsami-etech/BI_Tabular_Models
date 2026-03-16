@@ -1,0 +1,38 @@
+{
+	"name": "ShipExec_Sftp_File",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ShipExecFileSystem",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"FilePath": {
+					"value": "@dataset().FilePath",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"FileName": {
+				"type": "string"
+			},
+			"FilePath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "FileServerLocation",
+				"fileName": {
+					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().FilePath",
+					"type": "Expression"
+				}
+			}
+		}
+	}
+}

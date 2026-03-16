@@ -1,0 +1,25 @@
+{
+	"name": "Databricks",
+	"properties": {
+		"description": "Allows to run notebook from any workspace and cluster via parameters.",
+		"parameters": {
+			"WorkspaceURL": {
+				"type": "string"
+			},
+			"WorkspaceResourceId": {
+				"type": "string"
+			},
+			"ClusterId": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "@linkedService().WorkspaceURL",
+			"authentication": "MSI",
+			"workspaceResourceId": "@linkedService().WorkspaceResourceId",
+			"existingClusterId": "@linkedService().ClusterId"
+		}
+	}
+}

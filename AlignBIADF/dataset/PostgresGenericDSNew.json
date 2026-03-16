@@ -1,0 +1,21 @@
+{
+	"name": "PostgresGenericDSNew",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "PostGres_Dyna",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"ConnStringSecretName": "@dataset().dsConnStringSecretName"
+			}
+		},
+		"parameters": {
+			"dsConnStringSecretName": {
+				"type": "string",
+				"defaultValue": "IDSConnectionString"
+			}
+		},
+		"annotations": [],
+		"type": "RelationalTable",
+		"schema": []
+	}
+}

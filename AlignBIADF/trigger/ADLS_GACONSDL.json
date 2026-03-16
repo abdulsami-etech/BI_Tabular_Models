@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_GACONSDL",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_GoogleBigQuery_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "19570,19580,19586,19596,19605,19615,19631,19651,19661,19671,19681,19691"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2021-01-08T10:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

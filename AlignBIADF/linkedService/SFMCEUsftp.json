@@ -1,0 +1,27 @@
+{
+	"name": "SFMCEUsftp",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Sftp",
+		"typeProperties": {
+			"host": "mcj1pchh149m6p-77fhczdcyvtym.ftp.marketingcloudops.com",
+			"port": 22,
+			"skipHostKeyValidation": true,
+			"authenticationType": "Basic",
+			"userName": "6419505",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "SFMCEMEAUserPwd"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

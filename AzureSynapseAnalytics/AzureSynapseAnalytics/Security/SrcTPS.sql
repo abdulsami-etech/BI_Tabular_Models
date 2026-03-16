@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcTPS]
+    AUTHORIZATION [dbo];
+

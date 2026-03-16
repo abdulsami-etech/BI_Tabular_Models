@@ -1,0 +1,39 @@
+{
+	"name": "ADLS_SFDC_Weekly",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Dynamic_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "79",
+					"SourceSystem": "SFDC"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2022-05-24T00:28:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						28
+					],
+					"hours": [
+						0
+					],
+					"weekDays": [
+						"Sunday"
+					]
+				}
+			}
+		}
+	}
+}

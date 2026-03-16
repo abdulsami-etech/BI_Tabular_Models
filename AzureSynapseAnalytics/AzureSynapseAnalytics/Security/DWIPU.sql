@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWIPU]
+    AUTHORIZATION [dbo];
+

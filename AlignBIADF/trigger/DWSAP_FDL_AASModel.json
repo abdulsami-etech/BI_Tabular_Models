@@ -1,0 +1,32 @@
+{
+	"name": "DWSAP_FDL_AASModel",
+	"properties": {
+		"description": "This trigger is a scheduled one which will invoke the DW Master and Model Processing pipelines",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DWMasterAASModelProcessing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWSAP",
+					"ObjectList": "100,101,102,103,108,114,115,118",
+					"ModelName": "RevVolCOGS_Actuals",
+					"Full1Delta": "0",
+					"Functionapp": "aasmodelprocessingpr"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 4,
+				"startTime": "2022-03-31T04:40:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

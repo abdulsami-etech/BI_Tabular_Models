@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWMedallia]
+    AUTHORIZATION [dbo];
+

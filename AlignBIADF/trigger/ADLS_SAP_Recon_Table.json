@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_SAP_Recon_Table",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SAP_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "60112"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2021-09-29T11:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

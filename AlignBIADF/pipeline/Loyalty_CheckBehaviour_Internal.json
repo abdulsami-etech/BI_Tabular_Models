@@ -1,0 +1,486 @@
+{
+	"name": "Loyalty_CheckBehaviour_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set temp table name",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Create log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "TempTableName",
+					"value": {
+						"value": "@concat(\n'Monitoring.Behaviour_',\nstring(pipeline().parameters.Id),\n'_',\nformatDateTime(utcnow(), 'yyyyMMddHHmmss')\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Create temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get table schema from ADW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "create table @{variables('TempTableName')} (@{activity('Get table schema from ADW').output.firstRow.TableSchema})\nselect 1\n",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get table schema from ADW",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set temp table name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "@pipeline().parameters.TableSchemaQuery",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy from ADW to Loyalty",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Create temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "@pipeline().parameters.Query",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "@variables('TempTableName')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Compare data",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy from ADW to Loyalty",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set compare query",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "if exists (\n\t@{variables('CompareQuery')}\n)\nbegin\n\tthrow 53102, 'Data inconsistency has been found for behavior @{pipeline().parameters.Id}. Use the query from Log table to check.', 1;\nend\n\nselect 1",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Drop temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Compare data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "drop table @{variables('TempTableName')}\nselect 1",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Create log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[Monitoring].[LogUpdate]",
+						"storedProcedureParameters": {
+							"BehaviourID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.Id",
+									"type": "Expression"
+								}
+							},
+							"ErrorMessage": {
+								"type": "String",
+								"value": null
+							},
+							"LogID": {
+								"type": "Int32",
+								"value": null
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					}
+				}
+			},
+			{
+				"name": "Update log",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Drop temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[Monitoring].[LogUpdate]",
+						"storedProcedureParameters": {
+							"BehaviourID": {
+								"type": "Int32",
+								"value": null
+							},
+							"ErrorMessage": {
+								"type": "String",
+								"value": null
+							},
+							"LogID": {
+								"type": "Int32",
+								"value": {
+									"value": "@activity('Create log').output.firstRow.LogID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					}
+				}
+			},
+			{
+				"name": "On failure - Run check behaviour internal",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Compare data",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[Monitoring].[LogUpdate]",
+						"storedProcedureParameters": {
+							"BehaviourID": {
+								"type": "Int32",
+								"value": null
+							},
+							"ErrorMessage": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Compare data').error.message",
+									"type": "Expression"
+								}
+							},
+							"LogID": {
+								"type": "Int32",
+								"value": {
+									"value": "@activity('Create log').output.firstRow.LogID",
+									"type": "Expression"
+								}
+							},
+							"Query": {
+								"type": "String",
+								"value": {
+									"value": "@variables('CompareQuery')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set compare query",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set temp table name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "CompareQuery",
+					"value": {
+						"value": "@concat(\n'select * from ',\nvariables('TempTableName'),\n' b\nfull join (\n\tselect\tEntityId\n\t\t,\tmax(DateUpdated) as LastDateUpdated\n\tfrom Loyalty.EventBehaviorDetails with (nolock) \n\twhere BehaviorId = ',\nstring(pipeline().parameters.Id),\n' group by EntityId\n) e on e.EntityId = b.Id\nwhere (b.Id is null and e.LastDateUpdated < ''',\nformatDateTime(addhours(utcnow(), -6), 'yyyyMMdd HH:mm:ss'),\n''') or e.EntityId is null'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "On failure - copy from ADW",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy from ADW to Loyalty",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[Monitoring].[LogUpdate]",
+						"storedProcedureParameters": {
+							"BehaviourID": {
+								"type": "Int32",
+								"value": null
+							},
+							"ErrorMessage": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Copy from ADW to Loyalty').error.message",
+									"type": "Expression"
+								}
+							},
+							"LogID": {
+								"type": "Int32",
+								"value": {
+									"value": "@activity('Create log').output.firstRow.LogID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"Id": {
+				"type": "int"
+			},
+			"TableSchemaQuery": {
+				"type": "string"
+			},
+			"Query": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"TempTableName": {
+				"type": "String"
+			},
+			"CompareQuery": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Loyalty"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

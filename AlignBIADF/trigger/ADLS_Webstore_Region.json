@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_Webstore_Region",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Region_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "30001,30002,30003,30004,30005,30006,30007",
+					"SourceSystem": "Webstore"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-06-22T00:00:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

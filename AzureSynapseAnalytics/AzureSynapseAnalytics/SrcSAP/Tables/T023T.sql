@@ -1,0 +1,12 @@
+﻿CREATE TABLE [SrcSAP].[T023T] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRAS]         NVARCHAR (1)  NOT NULL,
+    [MATKL]         NVARCHAR (9)  NOT NULL,
+    [WGBEZ]         NVARCHAR (20) NOT NULL,
+    [WGBEZ60]       NVARCHAR (60) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRAS], [MATKL]), DISTRIBUTION = HASH([MATKL]));
+

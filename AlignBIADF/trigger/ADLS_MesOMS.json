@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_MesOMS",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SQLServer_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "MESOMS"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-09-09T03:15:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

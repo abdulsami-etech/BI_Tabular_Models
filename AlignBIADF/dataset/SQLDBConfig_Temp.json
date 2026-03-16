@@ -1,0 +1,24 @@
+{
+	"name": "SQLDBConfig_Temp",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLDBConfig",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": {
+				"value": "@dataset().TableName",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

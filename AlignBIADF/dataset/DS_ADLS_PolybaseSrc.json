@@ -1,0 +1,170 @@
+{
+	"name": "DS_ADLS_PolybaseSrc",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLSv2",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FilePath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "*.*",
+				"folderPath": {
+					"value": "@dataset().FilePath",
+					"type": "Expression"
+				},
+				"fileSystem": "raw"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "MANDT",
+				"type": "UTF8"
+			},
+			{
+				"name": "VBELN",
+				"type": "UTF8"
+			},
+			{
+				"name": "ERDAT",
+				"type": "UTF8"
+			},
+			{
+				"name": "ERZET",
+				"type": "UTF8"
+			},
+			{
+				"name": "AUDAT",
+				"type": "UTF8"
+			},
+			{
+				"name": "VBTYP",
+				"type": "UTF8"
+			},
+			{
+				"name": "AUART",
+				"type": "UTF8"
+			},
+			{
+				"name": "LIFSK",
+				"type": "UTF8"
+			},
+			{
+				"name": "WAERK",
+				"type": "UTF8"
+			},
+			{
+				"name": "VKORG",
+				"type": "UTF8"
+			},
+			{
+				"name": "VTWEG",
+				"type": "UTF8"
+			},
+			{
+				"name": "SPART",
+				"type": "UTF8"
+			},
+			{
+				"name": "VKGRP",
+				"type": "UTF8"
+			},
+			{
+				"name": "VKBUR",
+				"type": "UTF8"
+			},
+			{
+				"name": "KNUMV",
+				"type": "UTF8"
+			},
+			{
+				"name": "AEDAT",
+				"type": "UTF8"
+			},
+			{
+				"name": "KURST",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZACC_NO",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZAMR_DATE",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZAMR_DATE_COPA",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZCCS_DATE",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZCHECK_IN",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZCOMP_IND",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZDELI_CATE",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZJDE_ORD",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZPATIENT",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZLOAN_NO",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZRX_DATE",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZSFDC_ORD",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZSFDC_TKT",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZTED",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZTREATMENT",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZVIP_ORD",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZ_IN_COM_ID",
+				"type": "UTF8"
+			},
+			{
+				"name": "ZZ_STAGES",
+				"type": "UTF8"
+			}
+		]
+	}
+}

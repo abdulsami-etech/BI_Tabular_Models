@@ -1,0 +1,41 @@
+{
+	"name": "FDL_FileProcessing",
+	"properties": {
+		"description": "FDL_FileProcessing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "FDL_Finance_File_Processing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "SAPFile"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-09-28T06:15:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						15
+					],
+					"hours": [
+						22,
+						2,
+						6,
+						10,
+						14,
+						18
+					]
+				}
+			}
+		}
+	}
+}

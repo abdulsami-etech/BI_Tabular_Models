@@ -1,0 +1,15 @@
+﻿CREATE TABLE [SrcSAP].[CMDT_TEXT] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRAS]         NVARCHAR (1)  NOT NULL,
+    [OBJNR]         NVARCHAR (22) NOT NULL,
+    [DATBI]         NVARCHAR (8)  NOT NULL,
+    [STATUS]        NVARCHAR (1)  NOT NULL,
+    [KTEXT]         NVARCHAR (20) NOT NULL,
+    [LTEXT]         NVARCHAR (40) NOT NULL,
+    [CSTDRV]        NVARCHAR (40) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRAS], [OBJNR], [DATBI], [STATUS]), DISTRIBUTION = HASH([OBJNR]));
+

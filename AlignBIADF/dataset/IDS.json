@@ -1,0 +1,12 @@
+{
+	"name": "IDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "IDS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RelationalTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

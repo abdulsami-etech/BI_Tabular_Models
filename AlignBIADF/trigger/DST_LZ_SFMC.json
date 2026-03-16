@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_SFMC",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_SFMC",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "SFMC",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2020-02-04T05:30:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

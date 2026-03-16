@@ -1,0 +1,10 @@
+﻿CREATE VIEW [DWGlobal].[Country]
+AS SELECT [SKCountry]
+      ,[CountryCode]
+      ,[CountryName]
+      ,[CountryGroup]
+      ,[Region]
+      ,[RegionGroup]
+      ,[GlobalRegion]
+	  ,[iTeroReportingRegion]
+  FROM [DW].[DimCountry];

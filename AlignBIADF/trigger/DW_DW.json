@@ -1,0 +1,35 @@
+{
+	"name": "DW_DW",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Run_Dependent_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaNameL1": "DW",
+					"ObjectListL1": "33,36,37,38,39,40,43,44,45,66,68,69,70,71,72,152,93,94,95,97,98,99,237,238,236,242,245,257,190024,190025,190026,190028,267,350,190035,190034",
+					"SchemaNameL2": "DW",
+					"ObjectListL2": "96,246,249,73,260,190023,262,268",
+					"SchemaNameL3": "DW",
+					"ObjectListL3": "247,248,263,265",
+					"SchemaNameL4": "DW",
+					"ObjectListL4": "259,264,266,269"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-03-16T00:30:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

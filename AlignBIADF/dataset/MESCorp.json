@@ -1,0 +1,13 @@
+{
+	"name": "MESCorp",
+	"properties": {
+		"description": "Dataset for MES ",
+		"linkedServiceName": {
+			"referenceName": "MESCorp",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

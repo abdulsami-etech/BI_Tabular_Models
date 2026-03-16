@@ -1,0 +1,28 @@
+{
+	"name": "DW_DWIRIS",
+	"properties": {
+		"description": "AlertGroup = Azure Pipeline iTero\n",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWIRIS"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-02-28T14:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcSFDC].[BusinessHours] (
+    [LZBatchID]          INT           NOT NULL,
+    [ADLSBatchID]        INT           NOT NULL,
+    [ADLSTimestamp]      DATETIME2 (0) NOT NULL,
+    [CreatedById]        NCHAR (18)    NULL,
+    [CreatedDate]        DATETIME2 (7) NOT NULL,
+    [FridayEndTime]      NVARCHAR (40) NULL,
+    [FridayStartTime]    NVARCHAR (40) NULL,
+    [Id]                 NCHAR (18)    NOT NULL,
+    [IsActive]           BIT           NOT NULL,
+    [IsDefault]          BIT           NOT NULL,
+    [LastModifiedById]   NCHAR (18)    NULL,
+    [LastModifiedDate]   DATETIME2 (7) NOT NULL,
+    [LastViewedDate]     DATETIME2 (7) NULL,
+    [MondayEndTime]      NVARCHAR (40) NULL,
+    [MondayStartTime]    NVARCHAR (40) NULL,
+    [Name]               NVARCHAR (80) NOT NULL,
+    [SaturdayEndTime]    NVARCHAR (40) NULL,
+    [SaturdayStartTime]  NVARCHAR (40) NULL,
+    [SundayEndTime]      NVARCHAR (40) NULL,
+    [SundayStartTime]    NVARCHAR (40) NULL,
+    [SystemModstamp]     DATETIME2 (7) NOT NULL,
+    [ThursdayEndTime]    NVARCHAR (40) NULL,
+    [ThursdayStartTime]  NVARCHAR (40) NULL,
+    [TimeZoneSidKey]     NVARCHAR (40) NOT NULL,
+    [TuesdayEndTime]     NVARCHAR (40) NULL,
+    [TuesdayStartTime]   NVARCHAR (40) NULL,
+    [WednesdayEndTime]   NVARCHAR (40) NULL,
+    [WednesdayStartTime] NVARCHAR (40) NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

@@ -1,0 +1,14 @@
+﻿CREATE TABLE [SrcSAP].[ZVOTC_VBPA1] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [VBELN]         NVARCHAR (10) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [PARVW]         NVARCHAR (2)  NOT NULL,
+    [KUNNR]         NVARCHAR (10) NOT NULL,
+    [LIFNR]         NVARCHAR (10) NOT NULL,
+    [ERDAT]         NVARCHAR (10) NOT NULL,
+    [AEDAT]         NVARCHAR (10) NOT NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([VBELN]));
+

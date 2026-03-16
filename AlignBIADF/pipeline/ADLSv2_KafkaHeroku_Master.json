@@ -1,0 +1,735 @@
+{
+	"name": "ADLSv2_KafkaHeroku_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get object list",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLGetObjectList]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							},
+							"ObjectList": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.ObjectList",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Iterate through objects",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Keep only all purpose cluster",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "If NA",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@contains(pipeline().parameters.RegionList, 'NA')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Load Object NA",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADLSv2_KafkaHeroku_Internal",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"BatchID": {
+													"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+													"type": "Expression"
+												},
+												"ObjectID": {
+													"value": "@{item().ObjectID}",
+													"type": "Expression"
+												},
+												"RawFilePath": {
+													"value": "@{item().RawFilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@concat(\n\tsubstring(\n\t\titem().FileName,\n\t\t0,\n\t\tsub(\n\t\t\tlength(item().FileName),\n\t\t\t10\n\t\t)\n\t),\n\t'NA.parquet'\n)",
+													"type": "Expression"
+												},
+												"IsLZ": {
+													"value": "@{item().IsLZ}",
+													"type": "Expression"
+												},
+												"CurrentTimestamp": {
+													"value": "@{item().CurrentTimestamp}",
+													"type": "Expression"
+												},
+												"Destinations": {
+													"value": "@{item().Destinations}",
+													"type": "Expression"
+												},
+												"DatabricksWorkspaceURL": {
+													"value": "@pipeline().globalParameters.DatabricksWorkspaceURL",
+													"type": "Expression"
+												},
+												"DatabricksWorkspaceResourceId": {
+													"value": "@pipeline().globalParameters.DatabricksWorkspaceResourceId",
+													"type": "Expression"
+												},
+												"DatabricksClusterId": {
+													"value": "@activity('Keep only all purpose cluster').output.value[0].cluster_id",
+													"type": "Expression"
+												},
+												"KafkaRegion": "NA",
+												"KafkaAlertRecipientsKeyVaultSecretName": {
+													"value": "@pipeline().parameters.KafkaAlertRecipientsKeyVaultSecretName",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "If EMEA",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@contains(pipeline().parameters.RegionList, 'EMEA')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Load Object EMEA",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADLSv2_KafkaHeroku_Internal",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"BatchID": {
+													"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+													"type": "Expression"
+												},
+												"ObjectID": {
+													"value": "@{item().ObjectID}",
+													"type": "Expression"
+												},
+												"RawFilePath": {
+													"value": "@{item().RawFilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@concat(\n\tsubstring(\n\t\titem().FileName,\n\t\t0,\n\t\tsub(\n\t\t\tlength(item().FileName),\n\t\t\t12\n\t\t)\n\t),\n\t'EMEA.parquet'\n)",
+													"type": "Expression"
+												},
+												"IsLZ": {
+													"value": "@{item().IsLZ}",
+													"type": "Expression"
+												},
+												"CurrentTimestamp": {
+													"value": "@{item().CurrentTimestamp}",
+													"type": "Expression"
+												},
+												"Destinations": {
+													"value": "@{item().Destinations}",
+													"type": "Expression"
+												},
+												"DatabricksWorkspaceURL": {
+													"value": "@pipeline().globalParameters.DatabricksWorkspaceURL",
+													"type": "Expression"
+												},
+												"DatabricksWorkspaceResourceId": {
+													"value": "@pipeline().globalParameters.DatabricksWorkspaceResourceId",
+													"type": "Expression"
+												},
+												"DatabricksClusterId": {
+													"value": "@activity('Keep only all purpose cluster').output.value[0].cluster_id",
+													"type": "Expression"
+												},
+												"KafkaRegion": "EMEA",
+												"KafkaAlertRecipientsKeyVaultSecretName": {
+													"value": "@pipeline().parameters.KafkaAlertRecipientsKeyVaultSecretName",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "If APAC",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@contains(pipeline().parameters.RegionList, 'APAC')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Load Object APAC",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADLSv2_KafkaHeroku_Internal",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"BatchID": {
+													"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+													"type": "Expression"
+												},
+												"ObjectID": {
+													"value": "@{item().ObjectID}",
+													"type": "Expression"
+												},
+												"RawFilePath": {
+													"value": "@{item().RawFilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@concat(\n\tsubstring(\n\t\titem().FileName,\n\t\t0,\n\t\tsub(\n\t\t\tlength(item().FileName),\n\t\t\t12\n\t\t)\n\t),\n\t'APAC.parquet'\n)",
+													"type": "Expression"
+												},
+												"IsLZ": {
+													"value": "@{item().IsLZ}",
+													"type": "Expression"
+												},
+												"CurrentTimestamp": {
+													"value": "@{item().CurrentTimestamp}",
+													"type": "Expression"
+												},
+												"Destinations": {
+													"value": "@{item().Destinations}",
+													"type": "Expression"
+												},
+												"DatabricksWorkspaceURL": {
+													"value": "@pipeline().globalParameters.DatabricksWorkspaceURL",
+													"type": "Expression"
+												},
+												"DatabricksWorkspaceResourceId": {
+													"value": "@pipeline().globalParameters.DatabricksWorkspaceResourceId",
+													"type": "Expression"
+												},
+												"DatabricksClusterId": {
+													"value": "@activity('Keep only all purpose cluster').output.value[0].cluster_id",
+													"type": "Expression"
+												},
+												"KafkaRegion": "APAC",
+												"KafkaAlertRecipientsKeyVaultSecretName": {
+													"value": "@pipeline().parameters.KafkaAlertRecipientsKeyVaultSecretName",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Update Object",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "If NA",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "If EMEA",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "If APAC",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"DataSliceStartValue": {
+										"value": {
+											"value": "@{item().CurrentTimestamp}",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"Status": {
+										"value": "Ready",
+										"type": "string"
+									},
+									"ADLSTimestamp": {
+										"value": {
+											"value": "@{item().CurrentTimestamp}",
+											"type": "Expression"
+										},
+										"type": "datetime"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On failure - Load Object NA",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "If NA",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On failure - Load Object EMEA",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "If EMEA",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On failure - Load Object APAC",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "If APAC",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through objects",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Get object list",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get object list').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Iterate through objects",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through objects",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get cluster list",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(\npipeline().globalParameters.DatabricksWorkspaceURL,\n'/api/2.0/clusters/list'\n)",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"disableCertValidation": false,
+					"authentication": {
+						"type": "MSI",
+						"resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
+					}
+				}
+			},
+			{
+				"name": "Keep only all purpose cluster",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get cluster list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get cluster list').output.clusters",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().cluster_name, 'allpurposecluster')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ObjectList": {
+				"type": "string"
+			},
+			"KafkaAlertRecipientsKeyVaultSecretName": {
+				"type": "string"
+			},
+			"RegionList": {
+				"type": "string",
+				"defaultValue": "NA,EMEA,APAC"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "KafkaHeroku"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

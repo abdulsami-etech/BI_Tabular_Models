@@ -1,0 +1,19 @@
+{
+	"name": "IMSLoyaltyADLSV2",
+	"properties": {
+		"parameters": {
+			"AdlsContainer": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "@{linkedService().AdlsContainer}"
+		},
+		"connectVia": {
+			"referenceName": "AlignSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

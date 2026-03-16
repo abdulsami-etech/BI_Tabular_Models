@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcNADocLoc].[event_logs] (
+    [LZBatchID]           INT            NOT NULL,
+    [ADLSBatchID]         INT            NOT NULL,
+    [ADLSTimestamp]       DATETIME2 (0)  NOT NULL,
+    [id]                  BIGINT         NOT NULL,
+    [log_type]            NVARCHAR (255) NULL,
+    [implementation_type] NVARCHAR (255) NULL,
+    [search_type]         NVARCHAR (255) NULL,
+    [search_source]       NVARCHAR (255) NULL,
+    [search_duration]     INT            NULL,
+    [search_name]         NVARCHAR (255) NULL,
+    [search_address]      NVARCHAR (255) NULL,
+    [search_postal_code]  NVARCHAR (255) NULL,
+    [search_city]         NVARCHAR (255) NULL,
+    [search_state]        NVARCHAR (255) NULL,
+    [search_country]      NVARCHAR (255) NULL,
+    [search_filter]       NVARCHAR (255) NULL,
+    [search_sort]         NVARCHAR (255) NULL,
+    [search_results]      INT            NULL,
+    [search_status]       INT            NULL,
+    [search_session_id]   NVARCHAR (255) NULL,
+    [search_context_id]   NVARCHAR (255) NULL,
+    [search_radius]       DECIMAL (18)   NULL,
+    [search_end_position] INT            NULL,
+    [primary_doc_id]      NVARCHAR (255) NULL,
+    [docid_list]          NVARCHAR (MAX) NULL,
+    [client_ip]           NVARCHAR (255) NULL,
+    [viewer_id]           NVARCHAR (255) NULL,
+    [created_at]          DATETIME       NULL,
+    [updated_at]          DATETIME       NULL
+)
+WITH (CLUSTERED INDEX([id]), DISTRIBUTION = HASH([id]));
+

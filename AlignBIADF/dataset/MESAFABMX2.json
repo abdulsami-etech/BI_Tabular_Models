@@ -1,0 +1,13 @@
+{
+	"name": "MESAFABMX2",
+	"properties": {
+		"description": "Dataset for MES AFAB MX 2",
+		"linkedServiceName": {
+			"referenceName": "MESAFABMX2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

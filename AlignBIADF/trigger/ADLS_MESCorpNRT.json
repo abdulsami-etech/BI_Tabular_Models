@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_MESCorpNRT",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SQLServer_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "MESCorpNRT"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2022-02-14T22:07:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

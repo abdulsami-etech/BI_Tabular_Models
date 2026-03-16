@@ -1,0 +1,30 @@
+﻿CREATE TABLE [SrcMesOMS].[Technician] (
+    [LZBatchID]          INT             NOT NULL,
+    [ADLSBatchID]        INT             NOT NULL,
+    [ADLSTimestamp]      DATETIME2 (0)   NOT NULL,
+    [technicianID]       INT             NOT NULL,
+    [areaID]             INT             NOT NULL,
+    [operationID]        INT             NOT NULL,
+    [rttHeadID]          INT             NOT NULL,
+    [scheduleID]         INT             NOT NULL,
+    [mesLogin]           VARCHAR (50)    NULL,
+    [inProcess]          BIT             NOT NULL,
+    [efficiency]         DECIMAL (18, 2) NOT NULL,
+    [isActive]           BIT             NOT NULL,
+    [startDate]          DATETIME        NULL,
+    [creationDate]       DATETIME        NOT NULL,
+    [userID]             INT             NOT NULL,
+    [cellID]             INT             NOT NULL,
+    [regionID]           INT             NOT NULL,
+    [modificationDate]   DATETIME        NULL,
+    [cadCamLogin]        VARCHAR (50)    NULL,
+    [isInCurve]          BIT             NOT NULL,
+    [modifiedByID]       INT             NULL,
+    [createdByID]        INT             NULL,
+    [applyToBonus]       BIT             NOT NULL,
+    [technicianStatusID] INT             NULL,
+    [technicianLevelID]  INT             NULL,
+    [comment]            NVARCHAR (50)   NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN);
+

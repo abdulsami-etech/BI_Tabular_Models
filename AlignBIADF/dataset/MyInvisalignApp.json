@@ -1,0 +1,12 @@
+{
+	"name": "MyInvisalignApp",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "MyInvisalignApp",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "GoogleBigQueryObject",
+		"schema": []
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"name": "DST_LZ_SFDC_Account",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DW",
+					"ObjectList": "36"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2021-05-27T00:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

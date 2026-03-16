@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcSAP]
+    AUTHORIZATION [dbo];
+

@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcNASA].[Smile_Quizzes] (
+    [LZBatchID]            INT            NOT NULL,
+    [ADLSBatchID]          INT            NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)  NOT NULL,
+    [id]                   BIGINT         NOT NULL,
+    [first_name]           NVARCHAR (255) NULL,
+    [last_name]            NVARCHAR (255) NULL,
+    [phone]                NVARCHAR (255) NULL,
+    [email]                NVARCHAR (255) NULL,
+    [zip]                  NVARCHAR (10)  NULL,
+    [smile_journey]        NVARCHAR (255) NULL,
+    [smile_mean]           NVARCHAR (255) NULL,
+    [treatment_experience] NVARCHAR (255) NULL,
+    [gender]               NVARCHAR (40)  NULL,
+    [date_of_birth]        VARCHAR (20)   NULL,
+    [goal]                 NVARCHAR (255) NULL,
+    [user_type]            NVARCHAR (20)  NULL,
+    [opt_in]               BIT            NULL,
+    [apple_competition]    BIT            NULL,
+    [account]              NVARCHAR (10)  NULL,
+    [account2]             NVARCHAR (10)  NULL,
+    [account3]             NVARCHAR (10)  NULL,
+    [finance_marker]       BIT            NULL,
+    [source]               NVARCHAR (255) NULL,
+    [visitor_id]           NVARCHAR (12)  NULL,
+    [minutes_on_site]      NVARCHAR (20)  NULL,
+    [client_ip]            NVARCHAR (30)  NULL,
+    [created_at]           DATETIME2 (7)  NULL,
+    [updated_at]           DATETIME2 (7)  NULL
+)
+WITH (CLUSTERED INDEX([id]), DISTRIBUTION = HASH([id]));
+

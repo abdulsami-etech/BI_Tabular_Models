@@ -1,0 +1,13 @@
+﻿CREATE VIEW [DWSFMC].[Standard_Tracking_Opens]
+AS SELECT [ClientID]
+      ,[SendID]
+      ,[SubscriberKey]
+      ,[EmailAddress]
+      ,[SubscriberID]
+      ,[ListID]
+      ,[EventDate]
+      ,[EventType]
+      ,[BatchID]
+      ,[TriggeredSendExternalKey]
+      ,[IsUnique]
+  FROM [SrcSFMC].[Standard_Tracking_Opens];

@@ -1,0 +1,30 @@
+﻿CREATE TABLE [SrcSFDC].[Territory2] (
+    [LZBatchID]              INT             NOT NULL,
+    [ADLSBatchID]            INT             NOT NULL,
+    [ADLSTimestamp]          DATETIME2 (0)   NOT NULL,
+    [AccountAccessLevel]     NVARCHAR (40)   NOT NULL,
+    [CaseAccessLevel]        NVARCHAR (40)   NOT NULL,
+    [Collection_Agent__c]    NVARCHAR (255)  NULL,
+    [ContactAccessLevel]     NVARCHAR (40)   NOT NULL,
+    [CurrencyIsoCode]        NVARCHAR (3)    NOT NULL,
+    [Description]            NVARCHAR (1000) NULL,
+    [DeveloperName]          NVARCHAR (80)   NOT NULL,
+    [ForecastUserId]         NCHAR (18)      NULL,
+    [Friendly_Name__c]       NVARCHAR (80)   NULL,
+    [Id]                     NCHAR (18)      NOT NULL,
+    [Is_SAM_Territory__c]    BIT             NULL,
+    [LastModifiedById]       NCHAR (18)      NULL,
+    [LastModifiedDate]       DATETIME2 (7)   NOT NULL,
+    [Name]                   NVARCHAR (80)   NOT NULL,
+    [OpportunityAccessLevel] NVARCHAR (40)   NOT NULL,
+    [ParentTerritory2Id]     NCHAR (18)      NULL,
+    [SystemModstamp]         DATETIME2 (7)   NOT NULL,
+    [Territory2ModelId]      NCHAR (18)      NOT NULL,
+    [Territory2TypeId]       NCHAR (18)      NOT NULL,
+    [Territory_ID__c]        NVARCHAR (25)   NOT NULL,
+    [Territory_Level__c]     NVARCHAR (255)  NULL,
+    [Timezone__c]            NVARCHAR (80)   NULL,
+    [Treatment_Team__c]      NVARCHAR (255)  NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

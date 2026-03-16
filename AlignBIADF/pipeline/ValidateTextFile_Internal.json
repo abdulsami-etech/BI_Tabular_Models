@@ -1,0 +1,835 @@
+{
+	"name": "ValidateTextFile_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get LMD and Structure",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Get File Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSV2CSV",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@activity('Get File Details').output.FirstRow.ToValidateFolder",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"ColumnDelimiter": {
+								"value": "@activity('Get File Details').output.FirstRow.TextColumnDelimiter",
+								"type": "Expression"
+							},
+							"SkipLineCount": {
+								"value": "@activity('Get File Details').output.FirstRow.TextSkipLineCount",
+								"type": "Expression"
+							},
+							"IsFirstRowHeader": {
+								"value": "@activity('Get File Details').output.FirstRow.TextIsFirstRowHeader",
+								"type": "Expression"
+							},
+							"EscapeChar": {
+								"value": "@activity('Get File Details').output.FirstRow.TextEscapeChar",
+								"type": "Expression"
+							},
+							"QuoteChar": {
+								"value": "@activity('Get File Details').output.FirstRow.TextQuoteChar",
+								"type": "Expression"
+							},
+							"NullValueChar": "\\N",
+							"Encoding": {
+								"value": "@activity('Get File Details').output.FirstRow.TextEncoding",
+								"type": "Expression"
+							},
+							"TreatEmptyAsNull": {
+								"value": "@activity('Get File Details').output.FirstRow.TextTreatEmptyAsNull",
+								"type": "Expression"
+							},
+							"RowDelimiter": {
+								"value": "@activity('Get File Details').output.FirstRow.TextRowDelimiter",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"lastModified",
+						"structure"
+					]
+				}
+			},
+			{
+				"name": "Get File Details",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "select\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/ToProcess' as ToProcessFolder\n\t,\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/Processed' as ProcessedFolder\n\t,\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/ToValidate' as ToValidateFolder\n\t,\t'files/' + o.SourceSystem + '/' + o.ObjectName + '/Error' as ErrorFolder\n\t,\to.SourceSystem\n\t,\to.ObjectName\n\t,\to.ColumnList\n\t,\to.QueryFilter\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextColumnDelimiter') as TextColumnDelimiter\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextEscapeChar') as TextEscapeChar\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextIsFirstRowHeader') as TextIsFirstRowHeader\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextQuoteChar') as TextQuoteChar\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextSkipLineCount') as TextSkipLineCount\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextTreatEmptyAsNull') as TextTreatEmptyAsNull\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextRowDelimiter') as TextRowDelimiter\n\t,\tCTRL.GetSourceSystemProperty(o.SourceSystem, 'TextEncoding') as TextEncoding\n        , '' as TextNullValueChar\nfrom CTRL.ADLObject o\nwhere o.ObjectID = @{pipeline().parameters.ObjectID}",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy to Temp table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Create temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureBlobFSSource",
+						"recursive": true,
+						"readBehavior": "query"
+					},
+					"sink": {
+						"type": "SqlDWSink"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ADLSV2CSV",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@activity('Get File Details').output.FirstRow.ToValidateFolder",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"ColumnDelimiter": {
+								"value": "@activity('Get File Details').output.FirstRow.TextColumnDelimiter",
+								"type": "Expression"
+							},
+							"SkipLineCount": {
+								"value": "@int(activity('Get File Details').output.FirstRow.TextSkipLineCount)",
+								"type": "Expression"
+							},
+							"IsFirstRowHeader": {
+								"value": "@bool(activity('Get File Details').output.FirstRow.TextIsFirstRowHeader)",
+								"type": "Expression"
+							},
+							"EscapeChar": {
+								"value": "@activity('Get File Details').output.FirstRow.TextEscapeChar",
+								"type": "Expression"
+							},
+							"QuoteChar": {
+								"value": "@activity('Get File Details').output.FirstRow.TextQuoteChar",
+								"type": "Expression"
+							},
+							"NullValueChar": "\\N",
+							"Encoding": {
+								"value": "@activity('Get File Details').output.FirstRow.TextEncoding",
+								"type": "Expression"
+							},
+							"TreatEmptyAsNull": {
+								"value": "@bool(activity('Get File Details').output.FirstRow.TextTreatEmptyAsNull)",
+								"type": "Expression"
+							},
+							"RowDelimiter": {
+								"value": "@activity('Get File Details').output.FirstRow.TextRowDelimiter",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDW_temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "@activity('Create temp table').output.firstRow.TempTableName"
+						}
+					}
+				]
+			},
+			{
+				"name": "Create temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get LMD and Structure",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLCreateTempTable]",
+						"storedProcedureParameters": {
+							"ColumnList": {
+								"type": "String",
+								"value": null
+							},
+							"jsonTableStructure": {
+								"type": "String",
+								"value": {
+									"value": "@string(activity('Get LMD and Structure').output.structure)",
+									"type": "Expression"
+								}
+							},
+							"ObjectName": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get File Details').output.firstRow.ObjectName",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get Validation Details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy to Temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set variable ObjectName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT ColumnName,LookupTableName,LookupColumnName  FROM CTRL.LZObjectColumn \nWHERE LookupTableName IS NOT NULL AND LookupColumnName IS NOT NULL \nAND LZObjectID IN (SELECT DISTINCT LZObjectID FROM CTRL.LZObject WHERE SourceSystem ='@{variables('SourceSystem')}'\nAND ObjectName = '@{variables('ObjectName')}' AND Destination = 'LZ')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Set variable SourceSystem",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get File Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "SourceSystem",
+					"value": {
+						"value": "@activity('Get File Details').output.firstRow.SourceSystem",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable ObjectName",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable SourceSystem",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ObjectName",
+					"value": {
+						"value": "@activity('Get File Details').output.firstRow.ObjectName",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "For Each Column",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Validation Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Validation Details').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Exec ValidateTextFile",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlDWSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[ValidateTextFile]",
+									"storedProcedureParameters": {
+										"LookupColumnName": {
+											"type": "String",
+											"value": {
+												"value": "@item().LookupColumnName",
+												"type": "Expression"
+											}
+										},
+										"LookupTableName": {
+											"type": "String",
+											"value": {
+												"value": "@item().LookupTableName",
+												"type": "Expression"
+											}
+										},
+										"SourceColumnName": {
+											"type": "String",
+											"value": {
+												"value": "@item().ColumnName",
+												"type": "Expression"
+											}
+										},
+										"tempTableName": {
+											"type": "String",
+											"value": {
+												"value": "@activity('Create temp table').output.firstRow.TempTableName",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDW",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "If Error Count GT Zero",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Exec ValidateTextFile",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(activity('Exec ValidateTextFile').output.firstRow.RowsUpdated,0)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Append ErrorRecordsCount",
+										"type": "AppendVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "ErrorRecordsCount",
+											"value": {
+												"value": "@activity('Exec ValidateTextFile').output.firstRow.RowsUpdated",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Not Error",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "For Each Column",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@empty(variables('ErrorRecordsCount'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Copy to Error Folder",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlDWSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureBlobFSSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQLDW_temp",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@activity('Create temp table').output.firstRow.TempTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSV2CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@activity('Get File Details').output.firstRow.ErrorFolder",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"ColumnDelimiter": {
+											"value": "@activity('Get File Details').output.firstRow.TextColumnDelimiter",
+											"type": "Expression"
+										},
+										"SkipLineCount": {
+											"value": "@activity('Get File Details').output.firstRow.TextSkipLineCount",
+											"type": "Expression"
+										},
+										"IsFirstRowHeader": {
+											"value": "@activity('Get File Details').output.firstRow.TextIsFirstRowHeader",
+											"type": "Expression"
+										},
+										"EscapeChar": {
+											"value": "@activity('Get File Details').output.firstRow.TextEscapeChar",
+											"type": "Expression"
+										},
+										"QuoteChar": {
+											"value": "@activity('Get File Details').output.firstRow.TextQuoteChar",
+											"type": "Expression"
+										},
+										"NullValueChar": {
+											"value": "@activity('Get File Details').output.firstRow.TextNullValueChar",
+											"type": "Expression"
+										},
+										"Encoding": {
+											"value": "@activity('Get File Details').output.firstRow.TextEncoding",
+											"type": "Expression"
+										},
+										"TreatEmptyAsNull": {
+											"value": "@activity('Get File Details').output.firstRow.TextTreatEmptyAsNull",
+											"type": "Expression"
+										},
+										"RowDelimiter": {
+											"value": "@activity('Get File Details').output.firstRow.TextRowDelimiter",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Copy to ToProcess Folder",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@substring(activity('Get File Details').output.FirstRow.ToValidateFolder, 6, sub(length(activity('Get File Details').output.FirstRow.ToValidateFolder), 6))",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@substring(activity('Get File Details').output.FirstRow.ToProcessFolder, 6, sub(length(activity('Get File Details').output.FirstRow.ToProcessFolder), 6))",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Drop temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Check If Mail Alert Can Be Skipped",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "@concat('drop table ', activity('Create temp table').output.firstRow.TempTableName, ' select 1')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Delete File from ToValidate folder",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Drop temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2Binary",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@substring(activity('Get File Details').output.FirstRow.ToValidateFolder, 6, sub(length(activity('Get File Details').output.FirstRow.ToValidateFolder), 6))",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"Container": "files"
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true
+					}
+				}
+			},
+			{
+				"name": "Check If Mail Alert Can Be Skipped",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "If Not Error",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(empty(variables('ErrorRecordsCount')),empty(pipeline().parameters.AlertProperty))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "SendEmailAlert",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "GetLogicAppURL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "GetEmailToList",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@activity('GetLogicAppURL').output.firstRow.PropertyValue",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"body": {
+									"value": "{\n\t                \"Subject\":\"@{concat('Attention: Validation failed for ',pipeline().parameters.FileName,' in ',pipeline().DataFactory)}\",\n                \"EmailTo\":\"@{activity('GetEmailToList').output.firstRow.PropertyValue}\",\n                \"Importance\":\"High\",\n                \"Message\":\"@{concat('Error: Please check the file ',pipeline().parameters.FileName,' in ',activity('Get File Details').output.firstRow.ErrorFolder,' folder for the error details'\n                ,'<br><br>Thanks,<br>IT Team')}\",\n                \"EmailCc\":\"\"\n}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "GetLogicAppURL",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "Select PropertyValue from [CTRL].[SendEmailProperty]\nwhere [PropertyName] = 'Send_Email_Alert_LogicApp_URL'\nand [Environment] = '@{pipeline().globalParameters.Environment}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "GetEmailToList",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "Select PropertyValue from [CTRL].[SendEmailProperty]\nwhere [PropertyName] = 'Fcst_ALLForecast_SendEmailTo'\nand [Environment] = '@{pipeline().globalParameters.Environment}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ObjectID": {
+				"type": "int"
+			},
+			"FileName": {
+				"type": "string"
+			},
+			"AlertProperty": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"ErrorRecordsCount": {
+				"type": "Array"
+			},
+			"SourceSystem": {
+				"type": "String"
+			},
+			"ObjectName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Validation"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,32 @@
+{
+	"name": "ADLSv2_SAPRecon",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLSv2",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"BatchID": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat('ReconciliationReport ',dataset().BatchID)",
+					"type": "Expression"
+				},
+				"folderPath": "SAPFile/SAPDataRecon/ToProcess",
+				"fileSystem": "files"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}

@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_Saga",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_AzureDB_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "SAGA"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2021-10-29T05:30:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

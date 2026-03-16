@@ -1,0 +1,153 @@
+{
+	"name": "DS_SQLDW_PowerBI",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLDW",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [
+			{
+				"name": "ID",
+				"type": "nvarchar"
+			},
+			{
+				"name": "RecordType",
+				"type": "nvarchar"
+			},
+			{
+				"name": "CreationTime",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Operation",
+				"type": "nvarchar"
+			},
+			{
+				"name": "OrganizationId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "UserType",
+				"type": "nvarchar"
+			},
+			{
+				"name": "UserId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ClientIP",
+				"type": "nvarchar"
+			},
+			{
+				"name": "UserAgent",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Activity",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ItemName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "WorkSpaceName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "DatasetName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ReportName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "CapacityId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "CapacityName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "WorkspaceId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ObjectId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "DatasetId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ReportId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "EmbedTokenId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Username",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Roles",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Datasets",
+				"type": "nvarchar"
+			},
+			{
+				"name": "IsSuccess",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ReportType",
+				"type": "nvarchar"
+			},
+			{
+				"name": "RequestId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ActivityId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "DistributionMethod",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ConsumptionMethod",
+				"type": "nvarchar"
+			},
+			{
+				"name": "continuationToken",
+				"type": "nvarchar"
+			},
+			{
+				"name": "lastResultSet",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ADF_PipelineRunId",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ADF_PipelineTriggerTime",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "Stage",
+			"table": "PowerBI_ActivityLog"
+		}
+	}
+}

@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcMESCorp].[TRACKED_OBJECT_HISTORY] (
+    [LZBatchID]               INT             NOT NULL,
+    [ADLSBatchID]             INT             NOT NULL,
+    [ADLSTimestamp]           DATETIME2 (0)   NOT NULL,
+    [tobj_history_key]        BIGINT          NOT NULL,
+    [site_num]                INT             NOT NULL,
+    [tobj_key]                BIGINT          NOT NULL,
+    [tobj_type]               NVARCHAR (50)   NOT NULL,
+    [route_key]               BIGINT          NULL,
+    [route_name]              NVARCHAR (64)   NULL,
+    [route_step_key]          BIGINT          NULL,
+    [route_step_name]         NVARCHAR (64)   NULL,
+    [op_key]                  BIGINT          NULL,
+    [op_name]                 NVARCHAR (64)   NULL,
+    [start_user_name]         NVARCHAR (64)   NULL,
+    [start_time]              DATETIME        NULL,
+    [complete_user_name]      NVARCHAR (64)   NULL,
+    [complete_time]           DATETIME        NULL,
+    [complete_comment]        NVARCHAR (255)  NULL,
+    [complete_reason]         NVARCHAR (64)   NULL,
+    [complete_count]          INT             NULL,
+    [complete_pause_duration] INT             NULL,
+    [start_count]             INT             NOT NULL,
+    [complete_quantity]       NUMERIC (23, 9) NULL,
+    [start_time_u]            DATETIME        NULL,
+    [start_time_z]            NVARCHAR (64)   NULL,
+    [complete_time_u]         DATETIME        NULL,
+    [complete_time_z]         NVARCHAR (64)   NULL,
+    [start_quantity]          NUMERIC (23, 9) NULL,
+    [start_pause_duration]    INT             NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([tobj_key]));
+

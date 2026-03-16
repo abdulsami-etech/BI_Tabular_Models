@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_Fcst",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_Text_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "Fcst",
+					"LoadToLZ": true
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 4,
+				"startTime": "2021-07-27T00:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

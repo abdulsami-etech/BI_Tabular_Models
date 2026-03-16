@@ -1,0 +1,20 @@
+{
+	"name": "HashSensitiveData",
+	"properties": {
+		"annotations": [],
+		"type": "AzureFunction",
+		"typeProperties": {
+			"functionAppUrl": "@{pipeline().globalParameters.HashSensitiveDataAzureFunctionURL}",
+			"functionKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AzureFunctionHashSenstiveDataKey",
+				"secretVersion": ""
+			},
+			"authentication": "Anonymous"
+		}
+	}
+}

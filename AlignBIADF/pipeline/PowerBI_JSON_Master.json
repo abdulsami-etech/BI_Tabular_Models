@@ -1,0 +1,180 @@
+{
+	"name": "PowerBI_JSON_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Max CreationTime in Target",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@range(pipeline().parameters.ExtractFromPastDay,add(pipeline().parameters.DaysToExtractInThePast,activity('Get Max CreationTime in Target').output.firstRow.NoOfRetroDays))",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Extract PowerBI data to ADLSv2",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"additionalColumns": [
+										{
+											"name": "ADF_PipelineRunId",
+											"value": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "ADF_PipelineTriggerTime",
+											"value": {
+												"value": "@formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd hh:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									],
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"AbsoluteUrl": {
+											"value": "$.continuationUri",
+											"type": "Expression"
+										}
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings",
+										"filePattern": "arrayOfObjects"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "ADLSv2",
+										"type": "LinkedServiceReference"
+									},
+									"path": "test/PowerBI"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_REST_PowerBI",
+									"type": "DatasetReference",
+									"parameters": {
+										"AdminAPI": {
+											"value": "activityevents?startDateTime='@{formatDateTime(getPastTime(int(item()), 'Day'), 'yyyy-MM-dd')}T00:00:00.000Z'&endDateTime='@{formatDateTime(getPastTime(int(item()), 'Day'), 'yyyy-MM-dd')}T23:59:59.999Z'",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_JSON_PowerBI",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Execute PowerBI_JSON_Internal pipeline",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Extract PowerBI data to ADLSv2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PowerBI_JSON_Internal",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ObjectList": {
+										"value": "@pipeline().parameters.ObjectList",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Max CreationTime in Target",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "select case when datediff(day,cast(ISNULL(max(CreationTime), getdate()-31) AS date),getdate())-2 <= 0 then 0 \n\t\t\twhen datediff(day,cast(ISNULL(max(CreationTime), getdate()-31) AS date),getdate())-2 >= 29 then 29 \n\t\t\telse datediff(day,cast(ISNULL(max(CreationTime), getdate()-31) AS date),getdate())-2 end as NoOfRetroDays \nfrom SrcPowerBI.ActivityLog",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"DaysToExtractInThePast": {
+				"type": "int",
+				"defaultValue": 1
+			},
+			"ObjectList": {
+				"type": "string",
+				"defaultValue": "1000046"
+			},
+			"ExtractFromPastDay": {
+				"type": "int",
+				"defaultValue": 1
+			}
+		},
+		"folder": {
+			"name": "PowerBIDataExtract"
+		},
+		"annotations": []
+	}
+}

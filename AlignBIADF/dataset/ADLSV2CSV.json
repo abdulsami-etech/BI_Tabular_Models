@@ -1,0 +1,103 @@
+{
+	"name": "ADLSV2CSV",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLSv2",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FilePath": {
+				"type": "string"
+			},
+			"FileName": {
+				"type": "string"
+			},
+			"ColumnDelimiter": {
+				"type": "string",
+				"defaultValue": "|"
+			},
+			"SkipLineCount": {
+				"type": "int",
+				"defaultValue": 0
+			},
+			"IsFirstRowHeader": {
+				"type": "bool",
+				"defaultValue": true
+			},
+			"EscapeChar": {
+				"type": "string"
+			},
+			"QuoteChar": {
+				"type": "string",
+				"defaultValue": "\""
+			},
+			"NullValueChar": {
+				"type": "string",
+				"defaultValue": "\\N"
+			},
+			"Encoding": {
+				"type": "string",
+				"defaultValue": "UTF-8"
+			},
+			"TreatEmptyAsNull": {
+				"type": "bool",
+				"defaultValue": true
+			},
+			"RowDelimiter": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureBlobFSFile",
+		"typeProperties": {
+			"format": {
+				"type": "TextFormat",
+				"columnDelimiter": {
+					"value": "@dataset().ColumnDelimiter",
+					"type": "Expression"
+				},
+				"rowDelimiter": {
+					"value": "@dataset().RowDelimiter",
+					"type": "Expression"
+				},
+				"escapeChar": {
+					"value": "@dataset().EscapeChar",
+					"type": "Expression"
+				},
+				"quoteChar": {
+					"value": "@dataset().QuoteChar",
+					"type": "Expression"
+				},
+				"nullValue": {
+					"value": "@dataset().NullValueChar",
+					"type": "Expression"
+				},
+				"encodingName": {
+					"value": "@dataset().Encoding",
+					"type": "Expression"
+				},
+				"treatEmptyAsNull": {
+					"value": "@dataset().TreatEmptyAsNull",
+					"type": "Expression"
+				},
+				"skipLineCount": {
+					"value": "@dataset().SkipLineCount",
+					"type": "Expression"
+				},
+				"firstRowAsHeader": {
+					"value": "@dataset().IsFirstRowHeader",
+					"type": "Expression"
+				}
+			},
+			"fileName": {
+				"value": "@dataset().FileName",
+				"type": "Expression"
+			},
+			"folderPath": {
+				"value": "@dataset().FilePath",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

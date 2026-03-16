@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_SFDC_History_Event",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SQLServer_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "25170",
+					"SourceSystem": "SFDC_History"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-06-23T09:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

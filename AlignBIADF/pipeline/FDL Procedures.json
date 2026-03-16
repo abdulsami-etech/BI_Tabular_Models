@@ -1,0 +1,223 @@
+{
+	"name": "FDL Procedures",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetDWObject1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "Select * From [CTRL].[DWObject] where [DWObjectID] IN (101,103) AND [FDLActiveFlag] = 1;",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_Object1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetDWObject1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetDWObject1').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Execute DWObject 1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@{item().SPName}",
+									"type": "Expression"
+								},
+								"storedProcedureParameters": {
+									"BatchID": {
+										"value": "1",
+										"type": "Int32"
+									},
+									"LastSuccessfullDWTimestamp": {
+										"value": {
+											"value": "@{pipeline().TriggerTime}",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDW",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "GetDWObject2",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ForEach_Object1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "Select * From [CTRL].[DWObject] where [DWObjectID] IN (100,102) AND [FDLActiveFlag] = 1;",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEacch_Object2",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetDWObject2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetDWObject2').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Execute DWObject",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@item().SPName",
+									"type": "Expression"
+								},
+								"storedProcedureParameters": {
+									"BATCHID": {
+										"value": "2",
+										"type": "Int32"
+									},
+									"LASTSUCCESSFULLDWTIMESTAMP": {
+										"value": {
+											"value": "@pipeline().TriggerTime",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDW",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Execute Model Processing",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ForEacch_Object2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "AAS_Model_Processing_Delta_Logs",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ModelName": {
+							"value": "@{pipeline().parameters.ModelName}",
+							"type": "Expression"
+						},
+						"Full1Delta0": "0",
+						"FunctionApp": {
+							"value": "@pipeline().parameters.FunctionApp",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ModelName": {
+				"type": "string"
+			},
+			"FunctionApp": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Finance"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,40 @@
+{
+	"name": "S3_Binary",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AmazonS3",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"S3Bucket": {
+				"type": "string"
+			},
+			"S3Folder": {
+				"type": "string"
+			},
+			"S3FileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AmazonS3Location",
+				"bucketName": {
+					"value": "@dataset().S3Bucket",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().S3Folder",
+					"type": "Expression"
+				},
+				"fileName": {
+					"value": "@dataset().S3FileName",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

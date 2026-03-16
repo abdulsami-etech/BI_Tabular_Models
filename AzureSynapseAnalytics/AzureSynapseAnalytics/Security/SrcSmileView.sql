@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcSmileView]
+    AUTHORIZATION [dbo];
+

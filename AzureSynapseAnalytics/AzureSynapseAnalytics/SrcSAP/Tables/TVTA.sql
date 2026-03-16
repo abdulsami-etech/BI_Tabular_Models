@@ -1,0 +1,31 @@
+﻿CREATE TABLE [SrcSAP].[TVTA] (
+    [LZBatchID]        INT           NOT NULL,
+    [ADLSBatchID]      INT           NOT NULL,
+    [ADLSTimestamp]    DATETIME2 (0) NOT NULL,
+    [MANDT]            NVARCHAR (3)  NOT NULL,
+    [VKORG]            NVARCHAR (4)  NOT NULL,
+    [VTWEG]            NVARCHAR (2)  NOT NULL,
+    [SPART]            NVARCHAR (2)  NOT NULL,
+    [VTWKU]            NVARCHAR (2)  NOT NULL,
+    [SPAKU]            NVARCHAR (2)  NOT NULL,
+    [VTWKO]            NVARCHAR (2)  NOT NULL,
+    [SPAKO]            NVARCHAR (2)  NOT NULL,
+    [MABER]            NVARCHAR (2)  NOT NULL,
+    [VKOAU]            NVARCHAR (4)  NOT NULL,
+    [VTWAU]            NVARCHAR (2)  NOT NULL,
+    [SPAAU]            NVARCHAR (2)  NOT NULL,
+    [GSBER]            NVARCHAR (4)  NOT NULL,
+    [REGGB]            NVARCHAR (3)  NOT NULL,
+    [REVFP]            NVARCHAR (1)  NOT NULL,
+    [FIXMG]            NVARCHAR (1)  NOT NULL,
+    [AFIND]            NVARCHAR (1)  NOT NULL,
+    [KKBER]            NVARCHAR (4)  NOT NULL,
+    [J_1ASNR]          NVARCHAR (4)  NOT NULL,
+    [J_1AESNR]         NVARCHAR (4)  NOT NULL,
+    [ISP_VB]           NVARCHAR (10) NOT NULL,
+    [ISM_BP_VTB_GROUP] NVARCHAR (4)  NOT NULL,
+    [J_3GKBAUL]        NVARCHAR (1)  NOT NULL,
+    [OID_CHECKC]       NVARCHAR (1)  NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [VKORG], [VTWEG], [SPART]), DISTRIBUTION = HASH([SPART]));
+

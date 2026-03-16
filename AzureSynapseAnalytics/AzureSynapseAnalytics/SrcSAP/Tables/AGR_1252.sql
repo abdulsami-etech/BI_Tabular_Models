@@ -1,0 +1,13 @@
+﻿CREATE TABLE [SrcSAP].[AGR_1252] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [AGR_NAME]      NVARCHAR (30) NOT NULL,
+    [COUNTER]       NVARCHAR (6)  NOT NULL,
+    [VARBL]         NVARCHAR (40) NOT NULL,
+    [LOW]           NVARCHAR (40) NOT NULL,
+    [HIGH]          NVARCHAR (40) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [AGR_NAME], [COUNTER]), DISTRIBUTION = HASH([AGR_NAME]));
+

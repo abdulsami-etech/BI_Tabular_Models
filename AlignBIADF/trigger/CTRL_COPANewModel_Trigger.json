@@ -1,0 +1,43 @@
+{
+	"name": "CTRL_COPANewModel_Trigger",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline Finance",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ProcessAASDatabase",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"WebhookURLToken": {
+						"type": "SecureString",
+						"value": "**********"
+					},
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbitab",
+					"ASDatabase": "RevVolCogs",
+					"ASRefreshType": "Full"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-08-18T21:32:00.000Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						12
+					]
+				}
+			}
+		}
+	}
+}

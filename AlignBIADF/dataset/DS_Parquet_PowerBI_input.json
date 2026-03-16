@@ -1,0 +1,166 @@
+{
+	"name": "DS_Parquet_PowerBI_input",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLSv2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "data_9897ac3c-9dde-4cad-8a18-fd4342a9567d_2186cc24-82fe-4d1a-a0e0-9a1c9992c00d.parquet",
+				"folderPath": "PowerBI/ActivityLog/Processed",
+				"fileSystem": "files"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "continuationToken",
+				"type": "UTF8"
+			},
+			{
+				"name": "lastResultSet",
+				"type": "UTF8"
+			},
+			{
+				"name": "ADF_PipelineRunId",
+				"type": "UTF8"
+			},
+			{
+				"name": "ADF_PipelineTriggerTime",
+				"type": "UTF8"
+			},
+			{
+				"name": "Id",
+				"type": "UTF8"
+			},
+			{
+				"name": "RecordType",
+				"type": "UTF8"
+			},
+			{
+				"name": "CreationTime",
+				"type": "UTF8"
+			},
+			{
+				"name": "Operation",
+				"type": "UTF8"
+			},
+			{
+				"name": "OrganizationId",
+				"type": "UTF8"
+			},
+			{
+				"name": "UserType",
+				"type": "UTF8"
+			},
+			{
+				"name": "UserId",
+				"type": "UTF8"
+			},
+			{
+				"name": "ClientIP",
+				"type": "UTF8"
+			},
+			{
+				"name": "UserAgent",
+				"type": "UTF8"
+			},
+			{
+				"name": "Activity",
+				"type": "UTF8"
+			},
+			{
+				"name": "ItemName",
+				"type": "UTF8"
+			},
+			{
+				"name": "WorkSpaceName",
+				"type": "UTF8"
+			},
+			{
+				"name": "DatasetName",
+				"type": "UTF8"
+			},
+			{
+				"name": "ReportName",
+				"type": "UTF8"
+			},
+			{
+				"name": "CapacityId",
+				"type": "UTF8"
+			},
+			{
+				"name": "CapacityName",
+				"type": "UTF8"
+			},
+			{
+				"name": "WorkspaceId",
+				"type": "UTF8"
+			},
+			{
+				"name": "ObjectId",
+				"type": "UTF8"
+			},
+			{
+				"name": "DatasetId",
+				"type": "UTF8"
+			},
+			{
+				"name": "ReportId",
+				"type": "UTF8"
+			},
+			{
+				"name": "EmbedTokenId",
+				"type": "UTF8"
+			},
+			{
+				"name": "IsSuccess",
+				"type": "UTF8"
+			},
+			{
+				"name": "ReportType",
+				"type": "UTF8"
+			},
+			{
+				"name": "RequestId",
+				"type": "UTF8"
+			},
+			{
+				"name": "ActivityId",
+				"type": "UTF8"
+			},
+			{
+				"name": "DistributionMethod",
+				"type": "UTF8"
+			},
+			{
+				"name": "ConsumptionMethod",
+				"type": "UTF8"
+			},
+			{
+				"name": "AppReportId",
+				"type": "UTF8"
+			},
+			{
+				"name": "AppName",
+				"type": "UTF8"
+			},
+			{
+				"name": "Username",
+				"type": "UTF8"
+			},
+			{
+				"name": "Roles",
+				"type": "UTF8"
+			},
+			{
+				"name": "Datasets",
+				"type": "UTF8"
+			}
+		]
+	}
+}

@@ -1,0 +1,6 @@
+﻿CREATE TABLE [SrcSFDC].[IsDeletedRows] (
+    [Id]        NCHAR (18)     NOT NULL,
+    [TableName] NVARCHAR (255) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([Id]));
+

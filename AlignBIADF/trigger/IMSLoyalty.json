@@ -1,0 +1,32 @@
+{
+	"name": "IMSLoyalty",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ImsLoyalty_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"DatabricksNotebookPath": "/Loyalty-IMS/src_main/ImsLoyalty",
+					"SharepointToAdlsLogicApp": "https://prod-27.westus2.logic.azure.com:443/workflows/c2ccfe1e8a5a4bb99f5031e3a75c2a79/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=EXPxitNmeGl7qvSh2d_KXTLf7yDQxDc3XWxjWRhfiWU",
+					"AdlsToSharepointLogicApp": "https://prod-31.westus2.logic.azure.com:443/workflows/1a88d7e0b7ed4d81a9e4ba869f6326bb/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=3MHwLyzpN8gfOLIvs1z3vSBO8BJH6zm73l83hsrEcjg",
+					"AdlsContainerConnection": "https://pralignbiadl.dfs.core.windows.net",
+					"ClusterID": "0729-114923-sorer514",
+					"ImsLoyaltySharePointSite": "https://aligntech.sharepoint.com/sites/PeakRewardsBIFiles"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2021-07-21T06:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

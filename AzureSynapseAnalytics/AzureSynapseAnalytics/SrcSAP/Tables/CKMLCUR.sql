@@ -1,0 +1,13 @@
+﻿CREATE TABLE [SrcSAP].[CKMLCUR] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRSL]         NVARCHAR (1)  NOT NULL,
+    [CURTP]         NVARCHAR (2)  NOT NULL,
+    [DDTEXT]        NVARCHAR (60) NOT NULL,
+    [TEXT10]        NVARCHAR (10) NOT NULL,
+    [TEXT60]        NVARCHAR (60) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRSL], [CURTP]), DISTRIBUTION = HASH([CURTP]));
+

@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcTPSharing]
+    AUTHORIZATION [dbo];
+

@@ -1,0 +1,30 @@
+{
+	"name": "DST_LZ_MES_MXs",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "MES_AFAB_MX1,MES_AFAB_MX2,MES_FAB_MX1,MES_FAB_MX2",
+					"Destination": "LZ",
+					"ObjectList": "11012,11026,11027,11033,11030,11035,11017,11031,12012,12026,12027,12033,12030,12031,12017,12035,8001,8009,8010,8016,8017,8024,8025,8027,9001,9009,9010,9016,9017,9024,9025,9027,11013,12013"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-02-04T00:45:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

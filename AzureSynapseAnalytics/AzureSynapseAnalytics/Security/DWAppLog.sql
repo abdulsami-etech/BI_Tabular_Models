@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWAppLog]
+    AUTHORIZATION [dbo];
+

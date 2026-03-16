@@ -1,0 +1,766 @@
+{
+	"name": "DW_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Generate new BatchId",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Wait if previous is running",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.SchemaName",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Batch Info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load SCD",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SchemaName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get DW Object list",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n'select  DWObjectId\n,        ObjectName\n,        isnull(LastSuccessfullDWTimestamp, ''19000101'') as LastSuccessfullDWTimestamp\n,        convert(varchar, IsForceFullLoadOnNextRun) as IsForceFullLoadOnNextRun\n,        isnull(HubSPName, '''') as HubSPName\n,        isnull(SPName, '''') as SPName\n,        isnull(SCDSPName, '''') as SCDSPName\n,        NewLastSuccessfullDWTimestamp\nfrom CTRL.DWGetObjectList(''', pipeline().parameters.SchemaName,''',''',pipeline().parameters.ObjectList, ''')'\n)",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Load Hubs",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get DW Object list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get DW Object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Is Hub",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@not(equals(item().HubSPName, ''))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Load Hub Object",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "DW_LoadObject",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"StoredProcedureName": {
+													"value": "@{item().HubSPName}",
+													"type": "Expression"
+												},
+												"Parameters": {
+													"value": "@concat(\n\t'@BatchID = ', activity('Generate new BatchId').output.firstRow.BatchId,\n\t', @LastSuccessfullDWTimestamp = ''', item().LastSuccessfullDWTimestamp, ''''\n)\n",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@activity('Generate new BatchId').output.firstRow.BatchID",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Load Dims and Facts",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Load Hubs",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get DW Object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Is Dim or Fact",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@not(equals(item().SPName, ''))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Load Dim or Fact",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "DW_LoadObject",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"StoredProcedureName": {
+													"value": "@{item().SPName}",
+													"type": "Expression"
+												},
+												"Parameters": {
+													"value": "@concat(\n\t'@BatchID = ', activity('Generate new BatchId').output.firstRow.BatchId,\n\t', @LastSuccessfullDWTimestamp = ''', item().LastSuccessfullDWTimestamp, '''',\n\tif(\n\t\tnot(empty(item().IsForceFullLoadOnNextRun)), \n\t\tconcat(', @IsForceFullLoad = ', item().IsForceFullLoadOnNextRun), \n\t\t''\n\t)\n)",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@activity('Generate new BatchId').output.firstRow.BatchID",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "Set New Last Modified Date",
+										"description": "this one will be used in the next loading as a start date",
+										"type": "Lookup",
+										"dependsOn": [
+											{
+												"activity": "Load Dim or Fact",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "@concat(\n\t'update CTRL.DWObject set',\n\t' LastSuccessfullDWTimestamp = ''', item().NewLastSuccessfullDWTimestamp, '''',\n\t', DateUpdated = getdate()',\n\tif(equals(item().IsForceFullLoadOnNextRun, '1'), ', IsForceFullLoadOnNextRun = 0', ''),\n\t' where DWObjectId = ', item().DWObjectId,\n\t' select 1'\n)",
+													"type": "Expression"
+												},
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "SQLDBConfig",
+												"type": "DatasetReference"
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "On failure - Load Hubs",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load Hubs",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SchemaName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Load Dims and Facts",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load Dims and Facts",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SchemaName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Load SCD",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Load Dims and Facts",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get DW Object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Is SCD",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@not(equals(item().SCDSPName, ''))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Load SCD object",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "DW_LoadObject",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"StoredProcedureName": {
+													"value": "@{item().SCDSPName}",
+													"type": "Expression"
+												},
+												"Parameters": {
+													"value": "@if(\n\tequals(item().SCDSPName, 'CTRL.DWRefreshSCDTable'),\n\tconcat(\n\t\t'@BatchID = ', activity('Generate new BatchId').output.firstRow.BatchId,\n\t\t', @MainSchemaName = ''', pipeline().parameters.SchemaName, '''',\n\t\t', @MainTableName = ''', item().ObjectName, '''',\n\t\t', @SessionID = ''', guid(), ''''\n\t),\n\tconcat(\n\t\t'@BatchID = ', activity('Generate new BatchId').output.firstRow.BatchId,\n\t\t', @LastSuccessfullDWTimestamp = ''', item().LastSuccessfullDWTimestamp, ''''\n\t)\n)",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@activity('Generate new BatchId').output.firstRow.BatchID",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "On failure - Load SCD",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load SCD",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SchemaName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Wait if previous is running",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Set Resource Group",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get current subscription",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(variables('IsNeedToWait'))",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Get running pipelines",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat(\n\t'https://management.azure.com/subscriptions/',\n\tactivity('Get current subscription').output.Value[0].subscriptionId,\n\t'/resourceGroups/',\n\tvariables('ResourceGroup'),\n\t'/providers/Microsoft.DataFactory/factories/',\n\tpipeline().DataFactory,\n\t'/queryPipelineRuns?api-version=', \n\tvariables('ADFAPIVersion')\n)",
+									"type": "Expression"
+								},
+								"connectVia": {
+									"referenceName": "AzureIR",
+									"type": "IntegrationRuntimeReference"
+								},
+								"method": "POST",
+								"headers": {
+									"Content-Type": "application/json",
+									"Accept": "application/json"
+								},
+								"body": {
+									"value": "@concat(\n\t'{ ',\n\t'\"lastUpdatedAfter\": \"', formatDateTime(getPastTime(3, 'Day'), 'yyyy-MM-ddTHH:mm:ssZ'), '\", ',\n\t'\"lastUpdatedBefore\": \"', formatDateTime(getFutureTime(1, 'Day'), 'yyyy-MM-ddTHH:mm:ssZ'), '\", ',\n\t'\"filters\": [{ \"operand\": \"PipelineName\", \"operator\": \"Equals\", \"values\": [\"' ,pipeline().Pipeline, '\"] }, { \"operand\": \"Status\", \"operator\": \"Equals\", \"values\": [\"InProgress\"] }], ',\n\t'\"orderBy\":[{\"orderBy\":\"RunStart\",\"order\":\"ASC\"}]',\n\t' }'\n)",
+									"type": "Expression"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://management.azure.com/"
+								}
+							}
+						},
+						{
+							"name": "Filter by input parameters",
+							"type": "Filter",
+							"dependsOn": [
+								{
+									"activity": "Get running pipelines",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"items": {
+									"value": "@activity('Get running pipelines').output.value",
+									"type": "Expression"
+								},
+								"condition": {
+									"value": "@equals(item().parameters.SchemaName, pipeline().parameters.SchemaName)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set IsNeedToWait",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Filter by input parameters",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "IsNeedToWait",
+								"value": {
+									"value": "@and(\n\tgreater(activity('Filter by input parameters').output.FilteredItemsCount, 0),\n\tnot(equals(activity('Filter by input parameters').output.Value[0].runId, pipeline().RunId))\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Is need to wait",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set IsNeedToWait",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@variables('IsNeedToWait')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Wait 1 minute",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 60
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "On failure - Get running pipelines",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get running pipelines",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "IsNeedToWait",
+								"value": {
+									"value": "@bool(false)",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "Set Resource Group",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ResourceGroup",
+					"value": {
+						"value": "@concat(pipeline().DataFactory, 'rg')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get list of subscriptions",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(\n\t'https://management.azure.com/subscriptions?api-version=', \n\tvariables('ResourceManagementAPIVersion')\n)\n",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AzureIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "Set SubscriptionName",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "SubscriptionName",
+					"value": {
+						"value": "@concat(\n\t'BI-DW-', \n\tsubstring(\n\t\tpipeline().DataFactory,\n\t\t0,\n\t\tindexof(pipeline().DataFactory, 'alignbiadf')\n\t)\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get current subscription",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Set SubscriptionName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get list of subscriptions",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get list of subscriptions').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(toLower(item().displayName), toLower(variables('SubscriptionName')))",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SchemaName": {
+				"type": "string"
+			},
+			"ObjectList": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"IsRunning": {
+				"type": "Boolean",
+				"defaultValue": true
+			},
+			"ResourceGroup": {
+				"type": "String"
+			},
+			"IsNeedToWait": {
+				"type": "Boolean"
+			},
+			"ResourceManagementAPIVersion": {
+				"type": "String",
+				"defaultValue": "2020-01-01"
+			},
+			"ADFAPIVersion": {
+				"type": "String",
+				"defaultValue": "2018-06-01"
+			},
+			"SubscriptionName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "LZToDW"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

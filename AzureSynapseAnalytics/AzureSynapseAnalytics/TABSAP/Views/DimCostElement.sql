@@ -1,0 +1,58 @@
+﻿CREATE VIEW [TABSAP].[DimCostElement] AS SELECT DISTINCT [KOKRS] as [Controlling Area],
+      		SrcSAP.[CSKB].[KSTAR]as [Cost Element],
+      		csku.[KTEXT] as [Cost Element Text],
+      		[DATBI]as [Valid To Date],
+      		[DATAB]as [Valid-From Date],
+      		[KATYP]as [Cost element category],
+      		[EIGEN]as [Cost element attributes],
+      		[MSEHI]as [Unit of Measurement],
+      		CONCAT(KOKRS,',', SrcSAP.CSKB.KSTAR) AS COST_ELMNT_KEY,
+      		CASE WHEN  SrcSAP.[CSKB].[KSTAR] in ('0000942003','0000942008') then 'ALL' else 'UNA' end [Cost Allocation],
+      		[Level1] as[Level 1],
+      		[Level2] as[Level 2],
+      		cast(Level2Sort As int) as level2Seq,
+      		[Level3] as [Level 3],
+      		CAST(Level3Sort AS INT) as level3Seq,
+      		[Level4] as [Level 4],
+      		CAST(Level4Sort AS INT) as level4Seq,
+      		[Level5] as [Level 5],
+      		CAST(Level5Sort as INT) as level5Seq,
+      		[Level6]as [Level 6],
+      		CAST(Level6Sort AS INT) as level6Seq,
+      		[Level7] as [Level 7],
+      		CAST(Level7Sort AS INT) as level7Seq,
+      		[Level8] as [Level 8],
+      		CAST(Level8Sort AS INT) as level8Seq
+      		 FROM [SrcSAP].[CSKB]
+      INNER JOIN [SrcSAPFile].[CostElementHier]
+      ON [SrcSAP].[CSKB].KSTAR = CONCAT('0000', [SrcSAPFile].[CostElementHier].[CostElement])
+      LEFT JOIN [SrcSAP].[CSKU] csku on csku.KSTAR = [SrcSAP].[CSKB].KSTAR
+      WHERE [KOKRS] = '1000' AND csku.SPRAS = 'E'
+      and csku.KTOPL = 'GCOA'
+      UNION
+      SELECT DISTINCT '' [Controlling Area],
+      		[Volume Account] [Cost Element],
+      		[Volume Account] [Cost Element Text],
+      		'' [Valid To Date],
+      		'' [Valid-From Date],
+      		'' [Cost element category],
+      		'' [Cost element attributes],
+      		'' [Unit of Measurement],
+      		CONCAT(1000,',',[Volume Account]) COST_ELMNT_KEY,
+      		'' [Cost Allocation],
+      		'' [Level 1],
+      		'' [Level 2],
+      		0  level2Seq,
+      		'' [Level 3],
+      		0 level3Seq,
+      		'' [Level 4],
+      		0  level4Seq,
+      		'' [Level 5],
+      		0  level5Seq,
+      		'' [Level 6],
+      		0  level6Seq,
+      		'' [Level 7],
+      		0 level7Seq,
+      		'' [Level 8],
+      		0 level8Seq
+      		 FROM [TABSAP].[FactShipments_Materialized];

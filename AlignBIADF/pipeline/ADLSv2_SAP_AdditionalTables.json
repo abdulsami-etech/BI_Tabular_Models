@@ -1,0 +1,118 @@
+{
+	"name": "ADLSv2_SAP_AdditionalTables",
+	"properties": {
+		"description": "This Pipeline is an additional pipeline used to load the non delta supported",
+		"activities": [
+			{
+				"name": "GetObjectIDs",
+				"description": "This lookup is used to pick the objects where queryfilter is not null",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "\nSELECT  ObjectID FROM ctrl.ADLObject WHERE QueryFilter is not null\nAND Sourcesystem='SAP'\nAND isFullLoad=1\nAND IsActive=1\nAND status='Ready'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Iterate ObjectIds",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetObjectIDs",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetObjectIDs').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "ADLSv2_SAP_Master",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "ADLSv2_SAP_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ObjectList": {
+										"value": "@string(item().objectId)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "UpdateADLObjectIsFullLoad",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Iterate ObjectIds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "Update ctrl.adlobjectfile\nset IsFullLoad=0\nFROM  ctrl.adlobjectfile files\ninner join ctrl.adlobject obj\non obj.objectid=files.objectid\nwhere  QueryFilter is not null\nAND SourceSystem='SAP'\nAND files.Status='Ready'\n\nSELECT 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"variables": {
+			"ObjectID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	}
+}

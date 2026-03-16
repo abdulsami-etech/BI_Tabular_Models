@@ -1,0 +1,68 @@
+{
+	"name": "VolumeAASModel_SelectedProcessing_OnlyDEV",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "AASDatabaseSelectedProcessing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbitab",
+					"ASDatabase": "Daily_NRT_Volume",
+					"BodyMessage": {
+						"Type": "Full",
+						"CommitMode": "transactional",
+						"MaxParallelism": 2,
+						"RetryCount": 2,
+						"Objects": [
+							{
+								"table": "Volume",
+								"partition": "Volume_CQ"
+							},
+							{
+								"table": "Volume",
+								"partition": "Volume_PQ"
+							},
+							{
+								"table": "CCPostings",
+								"partition": "CCPostings_CQ"
+							},
+							{
+								"table": "CCPostings",
+								"partition": "CCPostings_PQ"
+							},
+							{
+								"table": "Forecast"
+							},
+							{
+								"table": "Geography"
+							},
+							{
+								"table": "Treatment Option"
+							},
+							{
+								"table": "LastRefreshTimeStmap"
+							},
+							{
+								"table": "Date"
+							}
+						]
+					}
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 2,
+				"startTime": "2021-09-09T08:40:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

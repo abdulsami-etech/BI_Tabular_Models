@@ -1,0 +1,27 @@
+{
+	"name": "PostGres_Dyna",
+	"properties": {
+		"type": "PostgreSql",
+		"annotations": [],
+		"parameters": {
+			"ConnStringSecretName": {
+				"type": "string",
+				"defaultValue": "IDSConnectionString"
+			}
+		},
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "@linkedService().ConnStringSecretName"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AlignSelfhostedIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

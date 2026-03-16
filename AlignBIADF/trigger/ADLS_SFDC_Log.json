@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_SFDC_Log",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SFDC_Master_with_logging",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "10"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-01-14T09:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

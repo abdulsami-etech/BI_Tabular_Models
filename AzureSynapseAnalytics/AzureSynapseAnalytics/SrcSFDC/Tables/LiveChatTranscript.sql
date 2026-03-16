@@ -1,0 +1,61 @@
+CREATE TABLE [SrcSFDC].[LiveChatTranscript]
+(
+	[LZBatchID] [int] NOT NULL,
+	[ADLSBatchID] [int] NOT NULL,
+	[ADLSTimestamp] [datetime2](0) NOT NULL,
+	[Abandoned] [int] NULL,
+	[AccountId] [nchar](18) NULL,
+	[AverageResponseTimeOperator] [int] NULL,
+	[AverageResponseTimeVisitor] [int] NULL,
+	[Body] [nvarchar](max) NULL,
+	[Browser] [nvarchar](200) NULL,
+	[BrowserLanguage] [nvarchar](200) NULL,
+	[CaseId] [nchar](18) NULL,
+	[ChatDuration] [int] NULL,
+	[ChatKey] [nvarchar](200) NULL,
+	[ContactId] [nchar](18) NULL,
+	[CreatedById] [nchar](18) NULL,
+	[CreatedDate] [datetime2](7) NULL,
+	[CurrencyIsoCode] [nvarchar](3) NULL,
+	[EndedBy] [nvarchar](255) NULL,
+	[EndTime] [datetime2](7) NULL,
+	[Id] [nchar](18) NOT NULL,
+	[IpAddress] [nvarchar](39) NULL,
+	[IsChatbotSession] [bit] NULL,
+	[IsDeleted] [bit] NULL,
+	[LastModifiedById] [nchar](18) NULL,
+	[LastModifiedDate] [datetime2](7) NULL,
+	[LastReferencedDate] [datetime2](7) NULL,
+	[LastViewedDate] [datetime2](7) NULL,
+	[LeadId] [nchar](18) NULL,
+	[LiveChatButtonId] [nchar](18) NULL,
+	[LiveChatDeploymentId] [nchar](18) NULL,
+	[LiveChatVisitorId] [nchar](18) NULL,
+	[Location] [nvarchar](200) NULL,
+	[MaxResponseTimeOperator] [int] NULL,
+	[MaxResponseTimeVisitor] [int] NULL,
+	[Name] [nvarchar](255) NULL,
+	[OperatorMessageCount] [int] NULL,
+	[OwnerId] [nchar](18) NULL,
+	[Platform] [nvarchar](200) NULL,
+	[ReferrerUri] [nvarchar](200) NULL,
+	[RequestTime] [datetime2](7) NULL,
+	[ScreenResolution] [nvarchar](200) NULL,
+	[SkillId] [nchar](18) NULL,
+	[StartTime] [datetime2](7) NULL,
+	[Status] [nvarchar](255) NULL,
+	[SupervisorTranscriptBody] [nvarchar](max) NULL,
+	[SystemModstamp] [datetime2](7) NOT NULL,
+	[UserAgent] [nvarchar](200) NULL,
+	[VisitorMessageCount] [int] NULL,
+	[VisitorNetwork] [nvarchar](200) NULL,
+	[WaitTime] [int] NULL
+)
+WITH
+(
+	DISTRIBUTION = HASH ( [Id] ),
+	CLUSTERED INDEX
+	(
+		[Id] ASC
+	)
+);

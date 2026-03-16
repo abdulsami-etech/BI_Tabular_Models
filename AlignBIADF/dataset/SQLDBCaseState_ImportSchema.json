@@ -1,0 +1,30 @@
+{
+	"name": "SQLDBCaseState_ImportSchema",
+	"properties": {
+		"description": "Dataset for Azure SQL DB",
+		"linkedServiceName": {
+			"referenceName": "SQLDBCaseState",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"structure": [
+			{
+				"name": "Prop_0",
+				"type": "Decimal"
+			}
+		],
+		"typeProperties": {
+			"tableName": {
+				"value": "[stage].[Temp_CasetStateCCAShipmentPredictions]",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

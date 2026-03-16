@@ -1,0 +1,46 @@
+{
+	"name": "RESTAPIAuth",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "RESTAPI",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"URL": {
+				"type": "string"
+			},
+			"Method": {
+				"type": "string"
+			},
+			"RequestBody": {
+				"type": "string"
+			},
+			"Authorization": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@dataset().URL",
+				"type": "Expression"
+			},
+			"requestMethod": {
+				"value": "@dataset().Method",
+				"type": "Expression"
+			},
+			"additionalHeaders": {
+				"Authorization": {
+					"value": "@dataset().Authorization",
+					"type": "Expression"
+				}
+			},
+			"requestBody": {
+				"value": "@dataset().RequestBody",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,12 @@
+{
+	"name": "SNOW",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SNOW",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "ServiceNowObject"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

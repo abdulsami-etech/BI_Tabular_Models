@@ -1,0 +1,431 @@
+{
+	"name": "ImsLoyalty_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Logic app from Sharepoint to ADLS",
+				"description": "Logic app to copy files from from Sharepoint to ADLS",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@pipeline().parameters.SharepointToAdlsLogicApp",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"body": {
+						"value": "{\n\t\"SharePointSite\":\"@{pipeline().parameters.ImsLoyaltySharePointSite}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "File exists or not",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get unprocessed file info",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(length(activity('Get unprocessed file info').output.childitems),0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Logic app to Copy from ADLS",
+							"description": "Copy files from ADLS to sharepoint",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Transformation",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@pipeline().parameters.AdlsToSharepointLogicApp",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"body": {
+									"value": "{\n            \"SharePointSite\":\"@{pipeline().parameters.ImsLoyaltySharePointSite}\"\n}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Transformation",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": {
+									"value": "@pipeline().parameters.DatabricksNotebookPath",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ImsLoyaltyNotebook",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"ClusterID": {
+										"value": "@pipeline().parameters.ClusterID",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Failure logs of Databricks notebook",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Transformation",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT '@{pipeline().DataFactory}' as DataFactory_Name,\n'@{pipeline().Pipeline}' as Pipeline_Name,\n'@{pipeline().RunId}' as RunId,\n'@{pipeline().TriggerType}' as TriggerType,\n'@{pipeline().TriggerTime}' as TriggerTime,\n'Databricks Notebook has failed' \nas Error",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ImsFailureLog",
+									"type": "DatasetReference",
+									"parameters": {
+										"AdlsContainer": {
+											"value": "@pipeline().parameters.AdlsContainerConnection",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Failure logs of Logic app from Adls to Sharepoint",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Logic app to Copy from ADLS",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT '@{pipeline().DataFactory}' as DataFactory_Name,\n'@{pipeline().Pipeline}' as Pipeline_Name,\n'@{pipeline().RunId}' as RunId,\n'@{pipeline().TriggerType}' as TriggerType,\n'@{pipeline().TriggerTime}' as TriggerTime,\n'Logic app from Adls to Sharepoint has failed' \nas Error",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ImsFailureLog",
+									"type": "DatasetReference",
+									"parameters": {
+										"AdlsContainer": {
+											"value": "@pipeline().parameters.AdlsContainerConnection",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Success Logs",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Logic app to Copy from ADLS",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT '@{pipeline().DataFactory}' as DataFactory_Name,\n'@{pipeline().Pipeline}' as Pipeline_Name,\n'@{pipeline().RunId}' as RunId,\n'@{pipeline().TriggerType}' as TriggerType,\n'@{pipeline().TriggerTime}' as TriggerTime,\n'Pipeline completed successfully' \nas Message",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ImsSuccessLog",
+									"type": "DatasetReference",
+									"parameters": {
+										"AdlsContainer": {
+											"value": "@pipeline().parameters.AdlsContainerConnection",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Get unprocessed file info",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Logic app from Sharepoint to ADLS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Unprocessed_Loyalty_file",
+						"type": "DatasetReference",
+						"parameters": {
+							"AdlsContainer": {
+								"value": "@pipeline().parameters.AdlsContainerConnection",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Copy logs on failure",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Logic app from Sharepoint to ADLS",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT '@{pipeline().DataFactory}' as DataFactory_Name,\n'@{pipeline().Pipeline}' as Pipeline_Name,\n'@{pipeline().RunId}' as RunId,\n'@{pipeline().TriggerType}' as TriggerType,\n'@{pipeline().TriggerTime}' as TriggerTime,\n'Logic app from Sharepoint to ADLS has failed' \nas Error",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ImsFailureLog",
+						"type": "DatasetReference",
+						"parameters": {
+							"AdlsContainer": {
+								"value": "@pipeline().parameters.AdlsContainerConnection",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"DatabricksNotebookPath": {
+				"type": "string",
+				"defaultValue": "/Loyalty-IMS/src_main/ImsLoyalty"
+			},
+			"SharepointToAdlsLogicApp": {
+				"type": "string",
+				"defaultValue": "https://prod-66.westus.logic.azure.com:443/workflows/3962fc7bd0834ad58b5ce91470a73c92/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=VJh9pMsakkgq6e53GEaS3SniX9lEFaaDdf0-h8llOSk"
+			},
+			"AdlsToSharepointLogicApp": {
+				"type": "string",
+				"defaultValue": "https://prod-133.westus.logic.azure.com:443/workflows/ec5ee168570a4dbaad94039bb66412f5/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=lwYuCVtayi1JxSjWYXJ1wRW04xyyLLmEu0qzDy-RIfE"
+			},
+			"AdlsContainerConnection": {
+				"type": "string",
+				"defaultValue": "https://dev2alignbiadl.dfs.core.windows.net"
+			},
+			"ClusterID": {
+				"type": "string",
+				"defaultValue": "0520-085625-kite59"
+			},
+			"ImsLoyaltySharePointSite": {
+				"type": "string",
+				"defaultValue": "https://aligntech.sharepoint.com/sites/LoyaltyProjectBI"
+			}
+		},
+		"folder": {
+			"name": "IMS_loyalty"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,619 @@
+{
+	"name": "SQL_Potgres_Metadata_Columns",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup Temp table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "Truncate table Temp.MetaDataColumns\nselect 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "source type is sqlserver",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup Temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(pipeline().parameters.SourceSystemType,'MSSQL')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Copy metadata into temp for sqlserver",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@concat('Select ',concat('''',concat(pipeline().parameters.SourceSystemName,concat('''',concat(' as SourceSystemName , ',concat(' ''MSSQL'' as SourceSystemType, TABLE_SCHEMA, TABLE_NAME,COLUMN_NAME,\nORDINAL_POSITION,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,NUMERIC_PRECISION, NUMERIC_SCALE,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS'))))))",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQLServer_DS",
+									"type": "DatasetReference",
+									"parameters": {
+										"dsConnStringSecretName": "@pipeline().parameters.ConnectionString"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBConfig_Temp",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "Temp.MetaDataColumns"
+									}
+								}
+							]
+						},
+						{
+							"name": "On failure - Copy metadata into temp for sqlserver",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy metadata into temp for sqlserver",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+								"storedProcedureParameters": {
+									"SourceSystem": {
+										"value": {
+											"value": "@variables('SourceSystem')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"BatchID": {
+										"value": {
+											"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"ErrorMessage": {
+										"value": "See ETL log",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "postgres without schema",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup Temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(pipeline().parameters.SchemaName,''),equals(pipeline().parameters.SourceSystemType,'PostgreSQL'))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Copy metadata into temp for postgresql without schema",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "PostgreSqlSource",
+									"query": {
+										"value": "@concat('Select ',concat('''',concat(pipeline().parameters.SourceSystemName,\nconcat('''',concat(' as \"SourceSystemName\", ''PostgreSQL'' as \"SourceSystemType\",table_schema as \"TABLE_SCHEMA\",table_name as \"TABLE_NAME\",column_name AS \"COLUMN_NAME\",\nordinal_position AS \"ORDINAL_POSITION\",data_type AS \"DATA_TYPE\", \ncharacter_maximum_length AS \"CHARACTER_MAXIMUM_LENGTH\",numeric_precision AS \"NUMERIC_PRECISION\",\nnumeric_scale AS \"NUMERIC_SCALE\", is_nullable AS \"IS_NULLABLE\" from information_schema.\"columns\" ')))))",
+										"type": "Expression"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "PostgresGenericDS",
+									"type": "DatasetReference",
+									"parameters": {
+										"dsConnStringSecretName": {
+											"value": "@pipeline().parameters.ConnectionString",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBConfig_Temp",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "Temp.MetaDataColumns"
+									}
+								}
+							]
+						},
+						{
+							"name": "On failure - Copy metadata into temp for postgresql",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy metadata into temp for postgresql without schema",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+								"storedProcedureParameters": {
+									"SourceSystem": {
+										"value": {
+											"value": "@variables('SourceSystem')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"BatchID": {
+										"value": {
+											"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"ErrorMessage": {
+										"value": "See ETL log",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Stored procedure for ctrl table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "source type is sqlserver",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "postgres without schema",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "postgres with schema",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[LoadMetadata]"
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure for ctrl table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Lookup Temp table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Lookup Temp table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Stored procedure for ctrl table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure for ctrl table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "postgres with schema",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup Temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(equals(pipeline().parameters.SourceSystemType,'PostgreSQL'),not(equals(pipeline().parameters.SchemaName,'')))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Copy metadata into temp for postgresql",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "PostgreSqlSource",
+									"query": {
+										"value": "@concat('Select ',concat('''',concat(pipeline().parameters.SourceSystemName,\nconcat('''',concat(' as \"SourceSystemName\", ''PostgreSQL'' as \"SourceSystemType\",table_schema as \"TABLE_SCHEMA\",table_name as \"TABLE_NAME\",column_name AS \"COLUMN_NAME\",\nordinal_position AS \"ORDINAL_POSITION\",data_type AS \"DATA_TYPE\", \ncharacter_maximum_length AS \"CHARACTER_MAXIMUM_LENGTH\",numeric_precision AS \"NUMERIC_PRECISION\",\nnumeric_scale AS \"NUMERIC_SCALE\", is_nullable AS \"IS_NULLABLE\" from information_schema.\"columns\" \nwhere table_schema=', concat('''',concat(pipeline().parameters.SchemaName,'''')))))))",
+										"type": "Expression"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "PostgresGenericDS",
+									"type": "DatasetReference",
+									"parameters": {
+										"dsConnStringSecretName": {
+											"value": "@pipeline().parameters.ConnectionString",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBConfig_Temp",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "Temp.MetaDataColumns"
+									}
+								}
+							]
+						},
+						{
+							"name": "On failure - Copy metadata into temp for postgresql1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy metadata into temp for postgresql",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+								"storedProcedureParameters": {
+									"SourceSystem": {
+										"value": {
+											"value": "@variables('SourceSystem')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"BatchID": {
+										"value": {
+											"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"ErrorMessage": {
+										"value": "See ETL log",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ConnectionString": {
+				"type": "string",
+				"defaultValue": "IDSConnectionString"
+			},
+			"SourceSystemName": {
+				"type": "string",
+				"defaultValue": "IDS"
+			},
+			"SourceSystemType": {
+				"type": "string",
+				"defaultValue": "PostgreSQL"
+			},
+			"SchemaName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "Metadata"
+			}
+		},
+		"folder": {
+			"name": "Metadata"
+		},
+		"annotations": []
+	}
+}

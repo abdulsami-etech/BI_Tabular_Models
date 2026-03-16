@@ -1,0 +1,107 @@
+{
+	"name": "DW_AAS_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute Pipeline DW_Master",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "DW_Master",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SchemaName": {
+							"value": "@pipeline().parameters.SchemaName",
+							"type": "Expression"
+						},
+						"ObjectList": {
+							"value": "@pipeline().parameters.ObjectList",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Execute Pipeline AASDatabaseSelectedProcessing",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute Pipeline DW_Master",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "AASDatabaseSelectedProcessing",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ASRegion": {
+							"value": "@pipeline().parameters.ASRegion",
+							"type": "Expression"
+						},
+						"ASServerSuffix": {
+							"value": "@pipeline().parameters.ASServerSuffix",
+							"type": "Expression"
+						},
+						"ASDatabase": {
+							"value": "@pipeline().parameters.ASDatabase",
+							"type": "Expression"
+						},
+						"BodyMessage": {
+							"value": "@pipeline().parameters.BodyMessage",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SchemaName": {
+				"type": "string"
+			},
+			"ObjectList": {
+				"type": "string"
+			},
+			"ASRegion": {
+				"type": "string",
+				"defaultValue": "westus.asazure.windows.net"
+			},
+			"ASServerSuffix": {
+				"type": "string",
+				"defaultValue": "alignbitab"
+			},
+			"ASDatabase": {
+				"type": "string",
+				"defaultValue": "Volume"
+			},
+			"BodyMessage": {
+				"type": "string",
+				"defaultValue": {
+					"Type": "Full",
+					"CommitMode": "transactional",
+					"MaxParallelism": 2,
+					"RetryCount": 2,
+					"Objects": [
+						{
+							"table": "FactVolume",
+							"partition": "Volume_CQ"
+						}
+					]
+				}
+			}
+		},
+		"folder": {
+			"name": "LZToDW"
+		},
+		"annotations": []
+	}
+}

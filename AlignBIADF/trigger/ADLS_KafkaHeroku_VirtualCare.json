@@ -1,0 +1,29 @@
+{
+	"name": "ADLS_KafkaHeroku_VirtualCare",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_KafkaHeroku_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "26001,26002,26003,26004,26005,26006,26007,26008,26010,26011",
+					"KafkaAlertRecipientsKeyVaultSecretName": "VirtualCareAlertRecipients",
+					"RegionList": "NA,EMEA,APAC"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2021-09-07T03:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

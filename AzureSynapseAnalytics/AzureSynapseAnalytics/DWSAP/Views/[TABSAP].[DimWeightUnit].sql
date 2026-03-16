@@ -1,0 +1,7 @@
+--BI-12996 New View
+CREATE VIEW [TABSAP].[DimWeightUnit] AS 
+SELECT 
+  DISTINCT MSEHI as [Weight Unit] 
+FROM 
+  SrcSAP.T006 t006 
+  INNER JOIN SrcSAP.VBAP vbap On vbap.GEWEI = MSEHI;

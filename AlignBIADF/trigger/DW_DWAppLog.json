@@ -1,0 +1,28 @@
+{
+	"name": "DW_DWAppLog",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline SalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DWAppLog"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-02-24T01:45:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,19 @@
+{
+	"name": "ImsLoyaltyNotebook",
+	"properties": {
+		"parameters": {
+			"ClusterID": {
+				"type": "string",
+				"defaultValue": "0629-092107-flush111"
+			}
+		},
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-1903056636402327.7.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/a051d865-71b3-4930-8752-6a2e0a5e970d/resourceGroups/DEV2alignbirg/providers/Microsoft.Databricks/workspaces/dev2alignbidatabricks",
+			"existingClusterId": "@linkedService().ClusterID"
+		}
+	}
+}

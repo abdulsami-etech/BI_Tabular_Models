@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcMESCorp].[OPERATION] (
+    [LZBatchID]            INT            NOT NULL,
+    [ADLSBatchID]          INT            NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)  NOT NULL,
+    [op_key]               BIGINT         NOT NULL,
+    [site_num]             INT            NOT NULL,
+    [op_name]              NVARCHAR (64)  NOT NULL,
+    [description]          NVARCHAR (255) NULL,
+    [category]             NVARCHAR (50)  NULL,
+    [image_key]            BIGINT         NULL,
+    [inst_list_key]        BIGINT         NULL,
+    [dcs_list_key]         BIGINT         NULL,
+    [form_key]             BIGINT         NULL,
+    [cycle_duration]       INT            NULL,
+    [value_added]          INT            NULL,
+    [failure]              INT            NULL,
+    [creation_time]        DATETIME       NOT NULL,
+    [last_modified_time]   DATETIME       NOT NULL,
+    [version]              INT            NOT NULL,
+    [access_level]         INT            NOT NULL,
+    [checkout_user_key]    BIGINT         NULL,
+    [uda_0]                NVARCHAR (255) NULL,
+    [uda_1]                NVARCHAR (255) NULL,
+    [uda_2]                NVARCHAR (255) NULL,
+    [uda_3]                NVARCHAR (255) NULL,
+    [uda_4]                NVARCHAR (255) NULL,
+    [creation_time_u]      DATETIME       NULL,
+    [creation_time_z]      NVARCHAR (64)  NULL,
+    [last_modified_time_u] DATETIME       NULL,
+    [last_modified_time_z] NVARCHAR (64)  NULL
+)
+WITH (HEAP, DISTRIBUTION = ROUND_ROBIN);
+

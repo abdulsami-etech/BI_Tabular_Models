@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcMesOMS]
+    AUTHORIZATION [dbo];
+

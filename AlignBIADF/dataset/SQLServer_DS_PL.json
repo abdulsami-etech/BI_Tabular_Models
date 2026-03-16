@@ -1,0 +1,23 @@
+{
+	"name": "SQLServer_DS_PL",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLServer_Generic_PL",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"ConnStringSecretName": {
+					"value": "@dataset().dsConnStringSecretName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"dsConnStringSecretName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": []
+	}
+}

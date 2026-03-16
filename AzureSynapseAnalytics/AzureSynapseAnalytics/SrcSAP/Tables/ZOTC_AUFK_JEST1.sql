@@ -1,0 +1,23 @@
+﻿CREATE TABLE [SrcSAP].[ZOTC_AUFK_JEST1] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (20) NOT NULL,
+    [AUFNR]         NVARCHAR (20) NULL,
+    [KDAUF]         NVARCHAR (20) NULL,
+    [OBJNR]         NVARCHAR (25) NOT NULL,
+    [ERDAT]         NVARCHAR (15) NULL,
+    [AENAM]         NVARCHAR (20) NULL,
+    [AEDAT]         NVARCHAR (10) NULL,
+    [ERNAM]         NVARCHAR (15) NULL,
+    [AUART]         NVARCHAR (10) NULL,
+    [AUTYP]         NVARCHAR (10) NULL,
+    [BUKRS]         NVARCHAR (15) NULL,
+    [WERKS]         NVARCHAR (15) NULL,
+    [KDPOS]         NVARCHAR (10) NULL,
+    [JEST_OBJNR]    NVARCHAR (25) NULL,
+    [STAT]          NVARCHAR (15) NOT NULL,
+    [INACT]         NVARCHAR (15) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([OBJNR]));
+

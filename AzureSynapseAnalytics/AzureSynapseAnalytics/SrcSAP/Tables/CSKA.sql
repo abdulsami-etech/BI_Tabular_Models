@@ -1,0 +1,16 @@
+﻿CREATE TABLE [SrcSAP].[CSKA] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [KTOPL]         NVARCHAR (4)  NOT NULL,
+    [KSTAR]         NVARCHAR (10) NOT NULL,
+    [ERSDA]         NVARCHAR (8)  NOT NULL,
+    [USNAM]         NVARCHAR (12) NOT NULL,
+    [STEKZ]         NVARCHAR (1)  NOT NULL,
+    [ZAHKZ]         NVARCHAR (1)  NOT NULL,
+    [KSTSN]         NVARCHAR (10) NOT NULL,
+    [FUNC_AREA]     NVARCHAR (16) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [KTOPL], [KSTAR]), DISTRIBUTION = HASH([KTOPL]));
+

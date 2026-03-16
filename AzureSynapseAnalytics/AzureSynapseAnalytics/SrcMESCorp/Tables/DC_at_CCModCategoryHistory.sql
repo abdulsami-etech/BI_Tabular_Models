@@ -1,0 +1,32 @@
+﻿CREATE TABLE [SrcMESCorp].[DC_at_CCModCategoryHistory] (
+    [LZBatchID]            INT            NOT NULL,
+    [ADLSBatchID]          INT            NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)  NOT NULL,
+    [dc_instance_key]      BIGINT         NOT NULL,
+    [site_num]             INT            NOT NULL,
+    [creation_time]        DATETIME       NOT NULL,
+    [creation_time_u]      DATETIME       NULL,
+    [creation_time_z]      NVARCHAR (64)  NULL,
+    [last_modified_time]   DATETIME       NULL,
+    [last_modified_time_u] DATETIME       NULL,
+    [last_modified_time_z] NVARCHAR (64)  NULL,
+    [is_finished]          TINYINT        NULL,
+    [route_name]           NVARCHAR (64)  NULL,
+    [op_name]              NVARCHAR (64)  NULL,
+    [user_name]            NVARCHAR (64)  NULL,
+    [dscomment]            NVARCHAR (255) NULL,
+    [dslocation]           NVARCHAR (64)  NULL,
+    [object_key]           BIGINT         NOT NULL,
+    [object_name]          NVARCHAR (128) NULL,
+    [object_type]          NVARCHAR (64)  NOT NULL,
+    [category_id]          BIGINT         NULL,
+    [ccmod_date]           DATETIME       NULL,
+    [ccmod_date_u]         DATETIME       NULL,
+    [comments]             NVARCHAR (500) NULL,
+    [complete_time]        BIGINT         NULL,
+    [recc_date]            DATETIME       NULL,
+    [recc_date_u]          DATETIME       NULL,
+    [subcategory_id]       BIGINT         NULL
+)
+WITH (HEAP, DISTRIBUTION = ROUND_ROBIN);
+

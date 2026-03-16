@@ -1,0 +1,44 @@
+{
+	"name": "VolumeAASModel_FullProcessing_Daily",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "AASDatabaseSelectedProcessing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbiaas",
+					"ASDatabase": "Daily_NRT_Volume",
+					"BodyMessage": {
+						"Type": "Full",
+						"CommitMode": "transactional",
+						"MaxParallelism": 2,
+						"RetryCount": 2,
+						"Objects": []
+					}
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-07-23T00:05:00",
+				"timeZone": "Pacific Standard Time",
+				"schedule": {
+					"minutes": [
+						20
+					],
+					"hours": [
+						0
+					]
+				}
+			}
+		}
+	}
+}

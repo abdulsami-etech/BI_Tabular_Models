@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_EventHub",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline SalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_JSON_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "EventHub"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-03-23T10:15:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

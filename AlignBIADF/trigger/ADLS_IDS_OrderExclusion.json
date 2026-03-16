@@ -1,0 +1,65 @@
+{
+	"name": "ADLS_IDS_OrderExclusion",
+	"properties": {
+		"description": "Exluding this trigger for 2 hours to enable execution of  ADLS_IDS_Weekly trigger",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Region_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "1002",
+					"SourceSystem": "IDS"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2021-07-01T07:52:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						0,
+						15,
+						30,
+						45
+					],
+					"hours": [
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						14,
+						16
+					],
+					"weekDays": [
+						"Sunday"
+					]
+				}
+			}
+		}
+	}
+}

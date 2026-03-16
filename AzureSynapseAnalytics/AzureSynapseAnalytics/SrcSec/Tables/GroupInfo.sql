@@ -1,0 +1,8 @@
+﻿CREATE TABLE [SrcSec].[GroupInfo] (
+    [GroupName] VARCHAR (100) NULL,
+    [Region]    VARCHAR (100) NULL,
+    [Dataset]   VARCHAR (100) NULL,
+    [Scenario]  VARCHAR (100) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = REPLICATE);
+

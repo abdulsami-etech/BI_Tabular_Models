@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_Splunk",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline SalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "Splunk",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-02-04T01:30:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

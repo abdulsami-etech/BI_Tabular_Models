@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcSAPFile]
+    AUTHORIZATION [dbo];
+

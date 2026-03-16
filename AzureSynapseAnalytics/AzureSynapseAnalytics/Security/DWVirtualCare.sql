@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWVirtualCare]
+    AUTHORIZATION [dbo];
+

@@ -1,0 +1,140 @@
+{
+	"name": "DW_LoadDimDateTime",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Max SKDate",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "SELECT  ISNULL(MAX(DateKey),'1999-12-31') AS MaxDateKey\n\t,\tCONVERT(DATE,GETUTCDATE()) AS CurrentDate\n\t,\tCASE WHEN MAX(SKDate) IS NULL THEN '2000-01-01' ELSE DATEADD(dd, 1, MAX(DateKey)) END AS StartDateKey\n\t,\tCASE WHEN MAX(SKDate) IS NULL THEN CONVERT(DATE,DATEADD (dd, -1, DATEADD(yy, DATEDIFF(yy, 0, GETUTCDATE()) +2, 0))) \n\t\t\t ELSE CONVERT(DATE,DATEADD (dd, -1, DATEADD(yy, DATEDIFF(yy, 0, MAX(DateKey)) +2, 0))) END AS EndDateKey\nFROM [DW].[DimDateTime]\nWHERE SKDate != 99991231",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check For LoadDimDateTime",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Max SKDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@lessOrEquals(activity('Get Max SKDate').output.firstRow.MaxDateKey,adddays(activity('Get Max SKDate').output.firstRow.CurrentDate,30))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Exec DimDateTime",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[DW].[LoadDimDateTime]",
+								"storedProcedureParameters": {
+									"End_Date": {
+										"value": {
+											"value": "@activity('Get Max SKDate').output.firstRow.EndDateKey",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"Start_Date": {
+										"value": {
+											"value": "@activity('Get Max SKDate').output.firstRow.StartDateKey",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDW",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Exec usp_update_time_period_types",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Check For LoadDimDateTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[DW].[usp_update_time_period_types]",
+						"storedProcedureParameters": {
+							"CurrentDateOverride": {
+								"type": "DateTime",
+								"value": {
+									"value": "@pipeline().parameters.CurrentDateOverride",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			}
+		],
+		"parameters": {
+			"CurrentDateOverride": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "LZToDW"
+		},
+		"annotations": []
+	}
+}

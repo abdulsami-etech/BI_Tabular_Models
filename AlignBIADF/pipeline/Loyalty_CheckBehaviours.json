@@ -1,0 +1,103 @@
+{
+	"name": "Loyalty_CheckBehaviours",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get behaviour ADW queries",
+				"description": "Test",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n\t'select Id, TableSchemaQuery, Query from Monitoring.BehaviourADWQueries',\n\tif(empty(pipeline().parameters.BehaviourIdList), \n\t\t'', \n\t\tconcat(\n\t\t\t' where Id in (',\n\t\t\tpipeline().parameters.BehaviourIdList,\n\t\t\t')'\n\t\t)\n\t)\n)",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBLoyalty",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dummy"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "For Each Behavior",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get behaviour ADW queries",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get behaviour ADW queries').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Run check behaviour internal",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Loyalty_CheckBehaviour_Internal",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Id": {
+										"value": "@item().Id",
+										"type": "Expression"
+									},
+									"TableSchemaQuery": {
+										"value": "@item().TableSchemaQuery",
+										"type": "Expression"
+									},
+									"Query": {
+										"value": "@item().Query",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"BehaviourIdList": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"TempTableName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Loyalty"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

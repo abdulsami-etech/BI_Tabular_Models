@@ -1,0 +1,29 @@
+{
+	"name": "Operations_Tumbling_4hrs",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "DW_Master",
+				"type": "PipelineReference"
+			},
+			"parameters": {
+				"SchemaName": "DWSAP",
+				"ObjectList": "109,110,111,112"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Hour",
+			"interval": 4,
+			"startTime": "2021-09-30T05:40:00Z",
+			"delay": "00:00:00",
+			"maxConcurrency": 50,
+			"retryPolicy": {
+				"intervalInSeconds": 30
+			},
+			"dependsOn": []
+		}
+	}
+}

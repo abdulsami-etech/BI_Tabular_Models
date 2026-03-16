@@ -1,0 +1,29 @@
+{
+	"name": "ADLS_TPSService",
+	"properties": {
+		"description": "Source To ADLS Tigger for TPS Source",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Region_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "24001",
+					"SourceSystem": "TPS"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2021-05-07T11:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

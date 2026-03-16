@@ -1,0 +1,86 @@
+{
+	"name": "DWMasterAASModelProcessing",
+	"properties": {
+		"description": "This pipeline invokes DW Pipeline and AAS Model processing after successful completion of DW Master\n",
+		"activities": [
+			{
+				"name": "DW_Master",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "DW_Master",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"SchemaName": {
+							"value": "@pipeline().parameters.SchemaName",
+							"type": "Expression"
+						},
+						"ObjectList": {
+							"value": "@pipeline().parameters.ObjectList",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ModelProcessing",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "DW_Master",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "AAS_Model_Processing_Delta_Logs",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ModelName": {
+							"value": "@pipeline().parameters.ModelName",
+							"type": "Expression"
+						},
+						"Full1Delta0": {
+							"value": "@pipeline().parameters.Full1Delta",
+							"type": "Expression"
+						},
+						"FunctionApp": {
+							"value": "@pipeline().parameters.Functionapp",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SchemaName": {
+				"type": "string"
+			},
+			"ObjectList": {
+				"type": "string"
+			},
+			"ModelName": {
+				"type": "string"
+			},
+			"Full1Delta": {
+				"type": "string"
+			},
+			"Functionapp": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "LZToDW"
+		},
+		"annotations": []
+	}
+}

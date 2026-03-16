@@ -1,0 +1,26 @@
+﻿CREATE TABLE [SrcSAP].[ZOTC_AFKO_AFVC1] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (20) NOT NULL,
+    [AUFNR]         NVARCHAR (20) NOT NULL,
+    [AUFPL]         NVARCHAR (20) NOT NULL,
+    [GLTRI]         NVARCHAR (15) NULL,
+    [GMEIN]         NVARCHAR (15) NULL,
+    [STLTY]         NVARCHAR (10) NULL,
+    [AUFLD]         NVARCHAR (15) NULL,
+    [BMEINS]        NVARCHAR (15) NULL,
+    [AFVC_AUFPL]    NVARCHAR (20) NULL,
+    [APLZL]         NVARCHAR (15) NOT NULL,
+    [ARBID]         NVARCHAR (15) NULL,
+    [LTXA1]         NVARCHAR (50) NULL,
+    [STEUS]         NVARCHAR (15) NULL,
+    [OBJNR]         NVARCHAR (30) NULL,
+    [AENNR]         NVARCHAR (20) NULL,
+    [WERKI]         NVARCHAR (15) NULL,
+    [OBJID]         NVARCHAR (20) NULL,
+    [WERKS]         NVARCHAR (15) NULL,
+    [ARBPL]         NVARCHAR (20) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([AUFPL]));
+

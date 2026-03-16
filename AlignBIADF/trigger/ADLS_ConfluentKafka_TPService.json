@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_ConfluentKafka_TPService",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Kafka_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "ConfluentKafkaConsumer",
+					"ObjectList": "23010,23012,23014,23016"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-01-01T03:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

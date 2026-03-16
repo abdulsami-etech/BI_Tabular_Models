@@ -1,0 +1,1361 @@
+{
+	"name": "ADLSv2_Postgres_Region_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Update Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Set End Value as Min end value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+					"storedProcedureParameters": {
+						"ObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.ObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@variables('DataSliceEndValue')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"ADLSTimestamp": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "For each region",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.SourceSystemProperties",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Insert log",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set FileNameWithRegion",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+									"storedProcedureParameters": {
+										"BatchID": {
+											"type": "int32",
+											"value": {
+												"value": "@pipeline().parameters.BatchID",
+												"type": "Expression"
+											}
+										},
+										"PipelineName": {
+											"type": "string",
+											"value": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											}
+										},
+										"PipelineTriggerType": {
+											"type": "string",
+											"value": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											}
+										},
+										"LogType": {
+											"type": "string",
+											"value": "ADLS"
+										},
+										"ObjectID": {
+											"type": "int32",
+											"value": {
+												"value": "@pipeline().parameters.ObjectID",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "If Need To Get Max Predicate Value",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Insert log",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(not(empty(pipeline().parameters.PredicateColumn)), empty(pipeline().parameters.DataSliceEndValue))",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Set End Date",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "DataSliceEndValue",
+											"value": {
+												"value": "@pipeline().parameters.DataSliceEndValue",
+												"type": "Expression"
+											}
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Get Max Predicate Value",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 1,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "PostgreSqlSource",
+												"query": {
+													"value": "@pipeline().parameters.MaxPredicateValueQuery",
+													"type": "Expression"
+												}
+											},
+											"dataset": {
+												"referenceName": "PostgresGenericDSNew",
+												"type": "DatasetReference",
+												"parameters": {
+													"dsConnStringSecretName": {
+														"value": "@item().ConnectionStringSecret",
+														"type": "Expression"
+													}
+												}
+											},
+											"firstRowOnly": false
+										}
+									},
+									{
+										"name": "Set Data Slice End Value",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "Get Max Predicate Value",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "DataSliceEndValue",
+											"value": {
+												"value": "@replace(replace(last(split(string(first(activity('Get Max Predicate Value').output.value)), '\":')), '\"', ''), '}', '')",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "On failure - Get Max Predicate Value",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "Get Max Predicate Value",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+											"storedProcedureParameters": {
+												"LogID": {
+													"value": {
+														"value": "@activity('Insert log').output.firstRow.LogID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"SinkPathRAW": {
+													"value": {
+														"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"SinkName": {
+													"value": {
+														"value": "@variables('FileNameWithRegion')",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"ErrorMessage": {
+													"value": {
+														"value": "@activity('Get Max Predicate Value').Error.Message",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"DataSliceStartValue": {
+													"value": {
+														"value": "@pipeline().parameters.DataSliceStartValue",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"DataSliceEndValue": {
+													"value": {
+														"value": "@variables('DataSliceEndValue')",
+														"type": "Expression"
+													},
+													"type": "string"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Copy to Raw",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Get Source Query",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "PostgreSqlSource",
+									"additionalColumns": [
+										{
+											"name": "_Region",
+											"value": {
+												"value": "@item().Region",
+												"type": "Expression"
+											}
+										}
+									],
+									"query": {
+										"value": "@activity('Get Source Query').output.FirstRow.Query",
+										"type": "Expression"
+									},
+									"readBehavior": "query"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "PostgresGenericDSNew",
+									"type": "DatasetReference",
+									"parameters": {
+										"dsConnStringSecretName": {
+											"value": "@item().ConnectionStringSecret",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2Parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@variables('FileNameWithRegion')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Get Source Query",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "If Need To Get Max Predicate Value",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat(\n\t'select Query from CTRL.ADLGetObjectQueryRegion (', \n\tstring(pipeline().parameters.ObjectID), ',', \n\tif(\n\t\tequals(variables('DataSliceEndValue'), ''), \n\t\t'null', \n\t\tconcat('''', variables('DataSliceEndValue'), '''')\n\t), ',',\n\tif(bool(pipeline().parameters.IsFullLoad), '1', '0'), ',',\n\tconcat('''', item().Region, ''''),\n\t')'\n)",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "On failure - Get Source Query",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Get Source Query",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('FileNameWithRegion')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Get Source Query').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": {
+											"value": "@pipeline().parameters.DataSliceStartValue",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": {
+											"value": "@variables('DataSliceEndValue')",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "On Failure - Copy to Raw",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy to Raw",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('FileNameWithRegion')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Copy to Raw').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceStartValue": {
+										"value": {
+											"value": "@pipeline().parameters.DataSliceStartValue",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": {
+											"value": "@variables('DataSliceEndValue')",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set FileNameWithRegion",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FileNameWithRegion",
+								"value": {
+									"value": "@concat(\nitem().Region,\n'_',\npipeline().parameters.FileName\n)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Update Log",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Is dataset is not empty and not full load",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Is dataset is not empty",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRAW": {
+										"value": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"SinkName": {
+										"value": {
+											"value": "@variables('FileNameWithRegion')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"RowsInserted": {
+										"value": {
+											"value": "@activity('Copy to Raw').output.rowsCopied",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"RowsUpdated": {
+										"value": "0",
+										"type": "int32"
+									},
+									"FileSizeInBytes": {
+										"value": {
+											"value": "@activity('Copy to Raw').output.dataWritten",
+											"type": "Expression"
+										},
+										"type": "int64"
+									},
+									"DataSliceStartValue": {
+										"value": {
+											"value": "@pipeline().parameters.DataSliceStartValue",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"DataSliceEndValue": {
+										"value": {
+											"value": "@variables('DataSliceEndValue')",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Is dataset not empty and LZ and not full load",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Copy to Raw",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(and(bool(pipeline().parameters.IsLZ), not(bool(pipeline().parameters.IsFullLoad))), greater(int(activity('Copy to Raw').output.rowsCopied), 0))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Insert Object File",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 1,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[CTRL].[ADLObjectFileUpdate]",
+											"storedProcedureParameters": {
+												"ObjectID": {
+													"value": {
+														"value": "@pipeline().parameters.ObjectID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"FileName": {
+													"value": {
+														"value": "@variables('FileNameWithRegion')",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"Status": {
+													"value": "Ready",
+													"type": "string"
+												},
+												"IsFullLoad": {
+													"value": {
+														"value": "@pipeline().parameters.IsFullLoad",
+														"type": "Expression"
+													},
+													"type": "boolean"
+												},
+												"FileSizeInBytes": {
+													"value": {
+														"value": "@activity('Copy to Raw').output.dataWritten",
+														"type": "Expression"
+													},
+													"type": "int64"
+												},
+												"FilePath": {
+													"value": {
+														"value": "@concat('raw/', pipeline().parameters.RawFilePathWithoutContainer)",
+														"type": "Expression"
+													}
+												},
+												"ADLSBatchID": {
+													"value": {
+														"value": "@pipeline().parameters.BatchID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"Destinations": {
+													"value": {
+														"value": "@pipeline().parameters.Destinations",
+														"type": "Expression"
+													},
+													"type": "string"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Set Max Predicate If Empty",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Is dataset not empty and LZ and not full load",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(or(empty(variables('DataSliceEndValue')), equals(variables('DataSliceEndValue'), 'null')), greater(int(activity('Copy to Raw').output.rowsCopied), 0))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Set Max Predicate",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "DataSliceEndValue",
+											"value": {
+												"value": "@string(pipeline().parameters.DataSliceStartValue)",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Is dataset is not empty and not full load",
+							"description": "In case of incremental loading we save start value to ADLObjectRegion",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set Max Predicate If Empty",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(not(bool(pipeline().parameters.IsFullLoad)), greater(int(activity('Copy to Raw').output.rowsCopied), 0))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Update ADLObjectRegion",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "CTRL.ADLObjectRegionUpdate",
+											"storedProcedureParameters": {
+												"ObjectID": {
+													"value": {
+														"value": "@pipeline().parameters.ObjectID",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												},
+												"Region": {
+													"value": {
+														"value": "@item().Region",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"DataSliceStartValue": {
+													"value": {
+														"value": "@variables('DataSliceEndValue')",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Is dataset is not empty",
+							"description": "",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set Max Predicate If Empty",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(int(activity('Copy to Raw').output.rowsCopied), 0)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Delete region based file in case of empty dataset",
+										"type": "Delete",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "ADLSv2Parquet",
+												"type": "DatasetReference",
+												"parameters": {
+													"Container": "raw",
+													"Path": {
+														"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+														"type": "Expression"
+													},
+													"FileName": {
+														"value": "@variables('FileNameWithRegion')",
+														"type": "Expression"
+													}
+												}
+											},
+											"enableLogging": false,
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false
+											}
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Append to RegionFileList",
+										"type": "AppendVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "RegionFileList",
+											"value": {
+												"value": "@json(\nconcat(\n'{',\n'\"Region\": \"', item().Region, '\",',\n'\"FileName\": \"', variables('FileNameWithRegion'), '\",',\n'\"NewDataSliceStartValue\": \"', variables('DataSliceEndValue'), '\"',\n'}'\n)\n)\n\n",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "For each region file",
+				"description": "",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Is Full Load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('RegionFileList')",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set Current End Value",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "CurrentEndValue",
+								"value": {
+									"value": "@variables('MinEndValue')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "If New End Value Is Less",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set Current End Value",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@or(\n\tempty(variables('CurrentEndValue')),\n\tif(\n\t\tequals(toLower(pipeline().parameters.DataSliceValueDataType), 'numeric'),\n\t\tless(int(item().NewDataSliceStartValue), int(variables('CurrentEndValue'))),\n\t\tless(item().NewDataSliceStartValue, variables('CurrentEndValue'))\n\t)\n)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Set min end value",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "MinEndValue",
+											"value": {
+												"value": "@item().NewDataSliceStartValue",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Is Full Load - for each region",
+							"description": "Only at this time files got merged, so we can save data slice value to db and delete region based files",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@bool(pipeline().parameters.IsFullLoad)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Update ADLObjectRegion - after full load",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "CTRL.ADLObjectRegionUpdate",
+											"storedProcedureParameters": {
+												"ObjectID": {
+													"value": {
+														"value": "@pipeline().parameters.ObjectID",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												},
+												"Region": {
+													"value": {
+														"value": "@item().Region",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"DataSliceStartValue": {
+													"value": {
+														"value": "@item().NewDataSliceStartValue",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "Delete region based file",
+										"type": "Delete",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "ADLSv2Parquet",
+												"type": "DatasetReference",
+												"parameters": {
+													"Container": "raw",
+													"Path": {
+														"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+														"type": "Expression"
+													},
+													"FileName": {
+														"value": "@item().FileName",
+														"type": "Expression"
+													}
+												}
+											},
+											"enableLogging": false,
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set End Value as Min end value",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "For each region file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "DataSliceEndValue",
+					"value": {
+						"value": "@variables('MinEndValue')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Is Full Load",
+				"description": "In case of full load we merge all files into the single file. Single file is required for correct full load process on the ADLS->LZ step",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "For each region",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(pipeline().parameters.IsFullLoad)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Merge files",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ParquetSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false,
+										"wildcardFolderPath": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"wildcardFileName": {
+											"value": "@concat(\n'*',\npipeline().parameters.FileName\n)",
+											"type": "Expression"
+										}
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings",
+										"copyBehavior": "MergeFiles"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2Parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@concat(\n'*',\npipeline().parameters.FileName\n)",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2Parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": {
+											"value": "@pipeline().parameters.RawFilePathWithoutContainer",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Insert Object File - merged",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Merge files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectFileUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@pipeline().parameters.ObjectID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"FileName": {
+										"value": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"Status": {
+										"value": "Ready",
+										"type": "string"
+									},
+									"IsFullLoad": {
+										"value": {
+											"value": "@pipeline().parameters.IsFullLoad",
+											"type": "Expression"
+										},
+										"type": "boolean"
+									},
+									"FileSizeInBytes": {
+										"value": {
+											"value": "@activity('Merge files').output.dataWritten",
+											"type": "Expression"
+										},
+										"type": "int64"
+									},
+									"FilePath": {
+										"value": {
+											"value": "@concat('raw/', pipeline().parameters.RawFilePathWithoutContainer)",
+											"type": "Expression"
+										}
+									},
+									"ADLSBatchID": {
+										"value": {
+											"value": "@pipeline().parameters.BatchID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Destinations": {
+										"value": {
+											"value": "@pipeline().parameters.Destinations",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "Int"
+			},
+			"ObjectID": {
+				"type": "Int"
+			},
+			"RawFilePathWithoutContainer": {
+				"type": "String"
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"IsLZ": {
+				"type": "Bool"
+			},
+			"PredicateColumn": {
+				"type": "String"
+			},
+			"DataSliceStartValue": {
+				"type": "String"
+			},
+			"DataSliceEndValue": {
+				"type": "String"
+			},
+			"IsFullLoad": {
+				"type": "Bool"
+			},
+			"MaxPredicateValueQuery": {
+				"type": "String"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			},
+			"Destinations": {
+				"type": "string"
+			},
+			"SourceSystemProperties": {
+				"type": "array"
+			},
+			"DataSliceValueDataType": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"DataSliceEndValue": {
+				"type": "String"
+			},
+			"Query": {
+				"type": "String"
+			},
+			"FileNameWithRegion": {
+				"type": "String"
+			},
+			"CurrentEndValue": {
+				"type": "String"
+			},
+			"MinEndValue": {
+				"type": "String"
+			},
+			"RegionFileList": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

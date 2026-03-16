@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_FDL_SECGROUP",
+	"properties": {
+		"description": "Finance Data Lake Security  Group ",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_Text_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "Sec"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2020-12-01T05:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

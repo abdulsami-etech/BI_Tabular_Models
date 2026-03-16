@@ -1,0 +1,12 @@
+{
+	"name": "MAT",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "MAT",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

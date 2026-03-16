@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcWebStore]
+    AUTHORIZATION [dbo];
+

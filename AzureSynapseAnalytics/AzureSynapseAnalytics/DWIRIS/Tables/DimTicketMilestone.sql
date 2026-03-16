@@ -1,0 +1,31 @@
+﻿CREATE TABLE [DWIRIS].[DimTicketMilestone] (
+    [SKTicketMilestone]    INT             NOT NULL,
+    [ADLSBatchID]          INT             NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)   NOT NULL,
+    [LZBatchID]            INT             NOT NULL,
+    [DWBatchID]            INT             NOT NULL,
+    [DWHash]               CHAR (40)       NOT NULL,
+    [SKTicket]             INT             NOT NULL,
+    [BusinessHoursId]      NCHAR (18)      NOT NULL,
+    [TicketMilestoneId]    NCHAR (18)      NOT NULL,
+    [IsCompleted]          NVARCHAR (5)    NULL,
+    [IsDeleted]            NVARCHAR (5)    NULL,
+    [IsViolated]           NVARCHAR (5)    NULL,
+    [TargetResponseInDays] DECIMAL (18, 2) NULL,
+    [TargetResponseInHrs]  DECIMAL (18, 2) NULL,
+    [TargetResponseInMins] INT             NULL,
+    [CaseId]               NCHAR (18)      NULL,
+    [CompletionDate]       DATETIME2 (7)   NULL,
+    [ElapsedTimeInMins]    INT             NULL,
+    [ElapsedTimeInDays]    DECIMAL (18, 2) NULL,
+    [ElapsedTimeInHrs]     DECIMAL (18, 2) NULL,
+    [StartDate]            DATETIME2 (7)   NULL,
+    [TargetDate]           DATETIME2 (7)   NULL,
+    [MilestoneName]        NVARCHAR (80)   NULL,
+    [MilestoneDescription] NVARCHAR (255)  NULL,
+    [MileStoneNetHours]    INT             NULL,
+    [MilestoneAging]       INT             NULL,
+    [MilestonesCount]      INT             NULL
+)
+WITH (CLUSTERED INDEX([SKTicketMilestone]), DISTRIBUTION = HASH([SKTicket]));
+

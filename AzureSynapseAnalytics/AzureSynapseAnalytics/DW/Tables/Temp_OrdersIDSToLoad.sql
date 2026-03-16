@@ -1,0 +1,13 @@
+﻿CREATE TABLE [DW].[Temp_OrdersIDSToLoad]
+(
+[vip_order_id] [bigint] NOT NULL,
+CONSTRAINT [PK_Temp_OrdersIDSToLoad] PRIMARY KEY NONCLUSTERED
+(
+[vip_order_id] ASC
+) NOT ENFORCED
+)
+WITH
+(
+DISTRIBUTION = ROUND_ROBIN,
+HEAP
+)

@@ -1,0 +1,145 @@
+{
+	"name": "DataLoads_Parquet_BaseTables",
+	"properties": {
+		"description": "Pipeline for Historical Data Loads for SAP Tables",
+		"activities": [
+			{
+				"name": "GetFilestoLoad",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_ADLS_PolybaseSrc",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@pipeline().parameters.ParquetFilePath",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						{
+							"value": "childItems",
+							"type": "Expression"
+						}
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "ForEachFile",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetFilestoLoad",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetFilestoLoad').output.childItems",
+						"type": "Expression"
+					},
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "LoadFinalData",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ParquetSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": {
+											"value": "@concat(pipeline().parameters.ParquetFilePath,item().name)",
+											"type": "Expression"
+										},
+										"wildcardFileName": "*.*",
+										"enablePartitionDiscovery": false
+									}
+								},
+								"sink": {
+									"type": "SqlDWSink",
+									"allowPolyBase": true,
+									"polyBaseSettings": {
+										"rejectValue": 0,
+										"rejectType": "value",
+										"useTypeDefault": true
+									},
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_ADLS_PolybaseSrc",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@concat(pipeline().parameters.ParquetFilePath,item().name)",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_ASA_PolybaseSnk",
+									"type": "DatasetReference",
+									"parameters": {
+										"DestinationTableSchema": {
+											"value": "@pipeline().parameters.DestinationTableSchema",
+											"type": "Expression"
+										},
+										"DestinationTableName": {
+											"value": "@pipeline().parameters.DestinationTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ParquetFilePath": {
+				"type": "string"
+			},
+			"DestinationTableSchema": {
+				"type": "string"
+			},
+			"DestinationTableName": {
+				"type": "string"
+			}
+		},
+		"annotations": []
+	}
+}

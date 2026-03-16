@@ -1,0 +1,28 @@
+{
+	"name": "CaseState_ShippmentBatchAttributes",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "CaseStateShipmentsBatchAttributes",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "CaseStateDW",
+					"Destination": "CaseStateSQL"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2021-10-14T17:51:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

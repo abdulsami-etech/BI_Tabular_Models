@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_NASACONSDL",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "NASA"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2021-01-27T10:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

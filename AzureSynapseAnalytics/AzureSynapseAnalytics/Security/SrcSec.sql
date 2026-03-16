@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcSec]
+    AUTHORIZATION [dbo];
+

@@ -1,0 +1,298 @@
+{
+	"name": "CaseStateInitialLoading",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy Case State History",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "truncate CaseState Staging tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "SELECT\t[DWBatchID]\n\t,\tconvert(bigint, [SAPOrderNumber]) as [SAPOrderNumber]\n\t,\tconvert(varchar(100), [OrderStatus]) as [OrderStatus]\n\t,\t[OrderStatusDateTime_UTC]\n\t,\t[HistoryKey]\n\t,\tconvert(varchar(16), [SourceSystem]) as [SourceSystem]\n\t,        [SKCaseStateStatistic] \n\t,\t[StartTime_UTC]\n\t,   [CompleteTime_UTC]\nFROM [DWCaseMonitor].[CaseStateHistory]",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "[stage].[CaseStateHistory]"
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy Case State",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "truncate CaseState Staging tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "SELECT\t[DWBatchID] + 1 as [DWBatchID]\n\t,\tconvert(varchar(80), [ClinID]) as [ClinID]\n\t,\tconvert(varchar(80), [DID]) as [DID]\n\t,\tconvert(varchar(15), [TreatmentID]) as [TreatmentID]\n\t,\tconvert(bigint, [SAPOrdernumber]) as [SAPOrderNumber]\n\t,\tconvert(varchar(16), [SFDCOrderNumber]) as [SFDCOrderNumber]\n\t,\tconvert(varchar(18), [IDSOrderNumber]) as [IDSOrderNumber]\n\t,\tconvert(varchar(32), [TreatmentCategory]) as [TreatmentCategory]\n\t,\tconvert(varchar(64), [CurrentOrderStatus]) as [CurrentOrderStatus]\n\t,\t[CurrentOrderStatusDateTime_UTC]\n\t,\tconvert(varchar(64), [ProductType]) as [ProductType]\n\t,\tconvert(varchar(16), [SourceSystem]) as [SourceSystem]\nFROM [DW].[CaseState]",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "[stage].[CaseState]"
+						}
+					}
+				]
+			},
+			{
+				"name": "Populate DW tables",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[DW].[LoadCaseStateHistory]",
+					"storedProcedureParameters": {
+						"BatchID": {
+							"value": "1",
+							"type": "Int32"
+						},
+						"LastSuccessfullDWTimestamp": {
+							"value": null,
+							"type": "DateTime"
+						},
+						"IsForceFullLoad": {
+							"value": "True",
+							"type": "Boolean"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "truncate CaseState Staging tables",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Populate DW tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "truncate table stage.CaseState\ntruncate table stage.CaseStateHistory\nselect 1",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "stage.CaseState"
+						}
+					}
+				}
+			},
+			{
+				"name": "CaseState Load Stage to Target",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Case State History",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Copy Case State",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[LoadCaseStateObjects]",
+					"storedProcedureParameters": {
+						"IsForceFullLoad": {
+							"value": "True",
+							"type": "Boolean"
+						},
+						"DWBatchid": {
+							"value": "1",
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Load Case State History Summary",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CaseState Load Stage to Target",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].LoadCaseStateHistorySummary",
+					"storedProcedureParameters": {
+						"IsForceFullLoad": {
+							"value": "True",
+							"type": "Boolean"
+						},
+						"DWBatchid": {
+							"value": "1",
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Load Case State Estimates",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CaseState Load Stage to Target",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].LoadCaseStateDetailsEstimate",
+					"storedProcedureParameters": {
+						"IsForceFullLoad": {
+							"value": "True",
+							"type": "Boolean"
+						},
+						"DWBatchid": {
+							"value": "1",
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"concurrency": 1,
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "CaseState"
+			}
+		},
+		"folder": {
+			"name": "CaseState"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

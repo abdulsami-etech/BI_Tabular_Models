@@ -1,0 +1,30 @@
+﻿CREATE TABLE [SrcNASA].[Contact_Providers] (
+    [LZBatchID]       INT             NOT NULL,
+    [ADLSBatchID]     INT             NOT NULL,
+    [ADLSTimestamp]   DATETIME2 (0)   NOT NULL,
+    [id]              BIGINT          NOT NULL,
+    [DocId]           NVARCHAR (255)  NULL,
+    [FirstName]       NVARCHAR (255)  NULL,
+    [LastName]        NVARCHAR (255)  NULL,
+    [PhoneNumber]     NVARCHAR (255)  NULL,
+    [Email]           NVARCHAR (255)  NULL,
+    [ContactMethod]   NVARCHAR (255)  NULL,
+    [PreferredTime]   NVARCHAR (255)  NULL,
+    [ClientIP]        NVARCHAR (255)  NULL,
+    [created_at]      DATETIME2 (7)   NOT NULL,
+    [updated_at]      DATETIME2 (7)   NOT NULL,
+    [Birthday]        DATE            NULL,
+    [Opt_in]          BIT             NULL,
+    [Segment]         NVARCHAR (255)  NULL,
+    [Zip]             NVARCHAR (255)  NULL,
+    [in_ca]           BIT             NULL,
+    [lead_source]     NVARCHAR (255)  NULL,
+    [leadsource]      NVARCHAR (4000) NULL,
+    [account]         NVARCHAR (255)  NULL,
+    [account2]        NVARCHAR (255)  NULL,
+    [account3]        NVARCHAR (255)  NULL,
+    [visitor_id]      NVARCHAR (12)   NULL,
+    [minutes_on_site] VARCHAR (18)    NULL
+)
+WITH (CLUSTERED INDEX([id]), DISTRIBUTION = HASH([id]));
+

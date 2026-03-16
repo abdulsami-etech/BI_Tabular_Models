@@ -1,0 +1,37 @@
+{
+	"name": "ADLS_Avro",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_JSON_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "Avro"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-07-21T12:52:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						5,
+						9,
+						21
+					]
+				}
+			}
+		}
+	}
+}

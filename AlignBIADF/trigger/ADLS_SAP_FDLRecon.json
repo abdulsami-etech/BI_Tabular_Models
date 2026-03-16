@@ -1,0 +1,24 @@
+{
+	"name": "ADLS_SAP_FDLRecon",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "FDLRecon",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2021-09-29T11:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,30 @@
+﻿CREATE TABLE [SrcSFDC].[CaseMileStone] (
+    [LZBatchID]             INT             NOT NULL,
+    [ADLSBatchID]           INT             NOT NULL,
+    [ADLSTimestamp]         DATETIME2 (0)   NOT NULL,
+    [BusinessHoursId]       NCHAR (18)      NULL,
+    [CaseId]                NCHAR (18)      NOT NULL,
+    [CompletionDate]        DATETIME2 (7)   NULL,
+    [CreatedById]           NCHAR (18)      NULL,
+    [CreatedDate]           DATETIME2 (7)   NOT NULL,
+    [ElapsedTimeInDays]     DECIMAL (18, 2) NULL,
+    [ElapsedTimeInHrs]      DECIMAL (18, 2) NULL,
+    [ElapsedTimeInMins]     INT             NULL,
+    [Id]                    NCHAR (18)      NOT NULL,
+    [IsCompleted]           BIT             NOT NULL,
+    [IsDeleted]             BIT             NOT NULL,
+    [IsViolated]            BIT             NOT NULL,
+    [LastModifiedById]      NCHAR (18)      NULL,
+    [LastModifiedDate]      DATETIME2 (7)   NOT NULL,
+    [MilestoneTypeId]       NCHAR (18)      NULL,
+    [StartDate]             DATETIME2 (7)   NULL,
+    [SystemModstamp]        DATETIME2 (7)   NOT NULL,
+    [TargetDate]            DATETIME2 (7)   NOT NULL,
+    [TargetResponseInDays]  DECIMAL (18, 2) NULL,
+    [TargetResponseInHrs]   DECIMAL (18, 2) NULL,
+    [TargetResponseInMins]  INT             NULL,
+    [TimeRemainingInMins]   NVARCHAR (10)   NULL,
+    [TimeSinceTargetInMins] NVARCHAR (10)   NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

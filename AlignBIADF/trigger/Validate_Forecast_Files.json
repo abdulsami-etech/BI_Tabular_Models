@@ -1,0 +1,28 @@
+{
+	"name": "Validate_Forecast_Files",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ValidateTextFile_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectID": 200012,
+					"AlertProperty": "Fcst_ALLForecast_SendEmailTo"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2022-02-04T00:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

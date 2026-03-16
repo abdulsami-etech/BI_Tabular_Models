@@ -1,0 +1,22 @@
+{
+	"name": "SFDC",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SFDC",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SalesforceObject",
+		"structure": [
+			{
+				"name": "Id",
+				"type": "String"
+			},
+			{
+				"name": "EXPR_1",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

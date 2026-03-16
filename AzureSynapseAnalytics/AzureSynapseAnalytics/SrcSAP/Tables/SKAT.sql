@@ -1,0 +1,14 @@
+﻿CREATE TABLE [SrcSAP].[SKAT] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRAS]         NVARCHAR (1)  NOT NULL,
+    [KTOPL]         NVARCHAR (4)  NOT NULL,
+    [SAKNR]         NVARCHAR (10) NOT NULL,
+    [TXT20]         NVARCHAR (20) NOT NULL,
+    [TXT50]         NVARCHAR (50) NOT NULL,
+    [MCOD1]         NVARCHAR (25) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRAS], [KTOPL], [SAKNR]), DISTRIBUTION = HASH([SAKNR]));
+

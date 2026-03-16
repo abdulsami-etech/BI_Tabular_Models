@@ -1,0 +1,13 @@
+{
+    "name": "MESItero",
+    "properties": {
+        "description": "Dataset for MES ",
+        "linkedServiceName": {
+            "referenceName": "MESItero",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "SqlServerTable"
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,275 @@
+{
+	"name": "SetupADWSecurity",
+	"properties": {
+		"activities": [
+			{
+				"name": "Create Src roles and grant select",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate Session ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "declare @rolePrefix varchar(10) = '@{variables('RolePrefix')}'\n\t,\t@SQL\t\tvarchar(max)\n\t,\t@SessionID\tuniqueidentifier = '@{variables('SessionID')}'\n\nset @SQL = (\n\tselect string_agg(convert(varchar(max), 'create role ' + quotename(@rolePrefix + s.name) + ' authorization dbo; grant select on schema::' + quotename(s.name) + ' to ' + quotename(@rolePrefix + s.name)), ';' + char(13) + char(10))\n\tfrom sys.schemas s\n\twhere s.name like 'Src%'\n\tand not exists (\n\t\tselect *\n\t\tfrom sys.database_principals p\n\t\twhere p.type = 'R'\n\t\t\tand p.name = @rolePrefix + s.name\n\t)\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\n\tselect 1\nend \nelse\n\tselect 0",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Generate Session ID",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "SessionID",
+					"value": {
+						"value": "@guid()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Drop db_datareader assignments",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate Session ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "declare @SQL\t\tvarchar(max)\n\t,\t@SessionID\tuniqueidentifier = '@{variables('SessionID')}'\n\nset @SQL = (\n\tselect string_agg('exec sp_droprolemember ''db_datareader'', ''' + p.name + '''', ';' + char(13) + char(10))\n\tfrom sys.database_principals r  \n\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\twhere r.type = 'R'\n\t\tand r.name = 'db_datareader'\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\n\tselect 1\nend \nelse\n\tselect 0",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get sensitive metadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate Session ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select\tstring_agg(rn + ':' + t.SchemaName, ',') as SchemaList\n\t,\tstring_agg(rn + ':' + t.ObjectName, ',') as TableList\n\t,\tstring_agg(rn + ':' + t.ColumnName, ',') as ColumnList\nfrom (\n\tselect\tright('00' + convert(varchar(10), row_number() over (order by SchemaName, ObjectName, ColumnName)), 3) as rn\n\t\t,\tSchemaName\n\t\t,\tObjectName\n\t\t,\tColumnName\n\tfrom CTRL.SensitiveColumn\n) t",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Sensitive deny and grant",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ReadAll users",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "declare @ReadAllWithSensitiveRoleName\tvarchar(32) = '@{variables('ReadAllWithSensitiveRoleName')}'\n\t,\t@ReadAllWithSensitiveUsers\t\tvarchar(1000) = '@{pipeline().parameters.ReadAllWithSensitiveUsers}'\n\t,\t@SQL\t\t\t\t\tvarchar(max)\n\t,\t@SchemaList\t\t\t\tvarchar(max) = '@{activity('Get Sensitive Metadata').output.firstRow.SchemaList}'\n\t,\t@TableList\t\t\t\tvarchar(max) = '@{activity('Get Sensitive Metadata').output.firstRow.TableList}'\n\t,\t@ColumnList\t\t\t\tvarchar(max) = '@{activity('Get Sensitive Metadata').output.firstRow.ColumnList}'\n\t,\t@SessionID\t\t\t\tuniqueidentifier = '@{variables('SessionID')}'\n\t\nif object_id('tempdb..#tmpColumns') is not null\n\tdrop table #tmpColumns\n\ncreate table #tmpColumns (\n\t\tSchemaName\tvarchar(64)\tnot null\n\t,\tTableName\tvarchar(64)\tnot null\n\t,\tColumnName\tvarchar(64)\tnot null\n) with (distribution = round_robin, heap)\n\ninsert into #tmpColumns (SchemaName, TableName, ColumnName)\nselect s.SchemaName, t.TableName, c.ColumnName\nfrom (\n\tselect\tleft(s.value, 3) as ID\n\t\t,\tsubstring(s.value, 5, 200) as SchemaName\n\tfrom string_split(@SchemaList, ',') s\n\twhere s.value != ''\n) s\ninner join (\n\tselect\tleft(s.value, 3) as ID\n\t\t,\tsubstring(s.value, 5, 200) as TableName\n\tfrom string_split(@TableList, ',') s\n\twhere s.value != ''\n) t on t.ID = s.ID\ninner join (\n\tselect\tleft(s.value, 3) as ID\n\t\t,\tsubstring(s.value, 5, 200) as ColumnName\n\tfrom string_split(@ColumnList, ',') s\n\twhere s.value != ''\n) c on c.ID = s.ID\n\n--denying access\nset @SQL = (\n\tselect string_agg(SQL, ';' + char(13) + char(10))\n\tfrom (\n\t\tselect 'deny select on object::' + quotename(c.table_schema) + '.' + quotename(c.table_name) + ' (' \n\t\t\t\t+ string_agg(quotename(c.column_name), ', ') + ') to ' + quotename(granted.PrincipalName) as SQL\n\t\tfrom #tmpColumns t\n\t\tinner join information_schema.columns c on c.table_schema = t.SchemaName\n\t\t\t\t\t\t\t\t\t\t\t\tand c.table_name = t.TableName\n\t\t\t\t\t\t\t\t\t\t\t\tand c.column_name = t.ColumnName\n\t\tinner join (\n\t\t\tselect distinct\n\t\t\t\t\ts.name\t\t\tas SchemaName\n\t\t\t\t,\tpr.name\t\t\tas PrincipalName\n\t\t\t\t,\tpr.type_desc\tas PrincipalType\n\t\t\tfrom sys.database_permissions pe\n\t\t\tinner join sys.database_principals as pr on pe.grantee_principal_id = pr.principal_id\n\t\t\tinner join sys.schemas s on s.schema_id = pe.major_id\n\t\t\twhere pe.class_desc = 'SCHEMA'\n\t\t\t\tand pe.permission_name = 'SELECT'\n\t\t\t\tand pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION')\n\t\t) granted on granted.SchemaName = c.table_schema\n\t\tgroup by c.table_schema, c.table_name, granted.PrincipalName\n\t) t\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--granting access\n--creating role ReadAllWithSensitive if does not exist\nif not exists (\n\tselect *\n\tfrom sys.database_principals p\n\twhere p.type = 'R'\n\t\tand p.name = @ReadAllWithSensitiveRoleName\n)\nbegin\n\tset @SQL = 'create role ' + quotename(@ReadAllWithSensitiveRoleName) + ' authorization dbo'\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend\n\n--adding missing users to the ReadAllWithSensitive role\nset @SQL = (\n\tselect string_agg('exec sp_addrolemember ''' + @ReadAllWithSensitiveRoleName + ''', ''' + u.value + '''', ';' + char(13) + char(10))\n\tfrom string_split(@ReadAllWithSensitiveUsers, ';') u\n\twhere not exists (\n\t\tselect *\n\t\tfrom sys.database_principals r  \n\t\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\t\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\t\twhere r.type = 'R'\n\t\t\tand r.name = @ReadAllWithSensitiveRoleName\n\t\t\tand p.name = u.value\n\t)\n\tand u.value != ''\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend\n\n--removing users from the ReadAllWithSensitive role\nset @SQL = (\n\tselect string_agg('exec sp_droprolemember ''' + @ReadAllWithSensitiveRoleName + ''', ''' + p.name + '''', ';' + char(13) + char(10))\n\tfrom sys.database_principals r  \n\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\twhere r.type = 'R'\n\t\tand r.name = @ReadAllWithSensitiveRoleName\n\t\tand not exists (\n\t\t\tselect *\n\t\t\tfrom string_split(@ReadAllWithSensitiveUsers, ';') u\n\t\t\twhere p.name = u.value\n\t\t)\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--granting select to everything including sensitive data for ReadAllWithSensitive role\nif not exists (\n\tselect *\n\tfrom sys.database_permissions pe\n\tinner join sys.database_principals as pr on pe.grantee_principal_id = pr.principal_id\n\twhere pe.class_desc = 'database'\n\t\tand pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION')\n\t\tand pe.permission_name = 'SELECT'\n\t\tand pr.name = @ReadAllWithSensitiveRoleName\n)\nbegin\n\tset @SQL = 'grant select on database::' + quotename(db_name()) + ' to ' + quotename(@ReadAllWithSensitiveRoleName)\n\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend\n\nselect 1\n\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "ReadAll users",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Create Src roles and grant select",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Drop db_datareader assignments",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get sensitive metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "declare @readAllRoleName varchar(32) = '@{variables('ReadAllRoleName')}'\n\t,\t@SQL\t\t\tvarchar(max)\n\t,\t@SessionID\t\tuniqueidentifier = '@{variables('SessionID')}'\n\t,\t@ReadAllUsers\tvarchar(1000) = '@{pipeline().parameters.ReadAllUsers}'\n\n--creating ReadAll role if does not exist\nif not exists (\n\tselect *\n\tfrom sys.database_principals p\n\twhere p.type = 'R'\n\t\tand p.name = @readAllRoleName\n)\nbegin\n\tset @SQL = 'create role ' + quotename(@readAllRoleName) + ' authorization dbo'\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend\n\n--adding missing users to the ReadAll role\nset @SQL = (\n\tselect string_agg('exec sp_addrolemember ''' + @readAllRoleName + ''', ''' + u.value + '''', ';' + char(13) + char(10))\n\tfrom string_split(@ReadAllUsers, ';') u\n\twhere not exists (\n\t\tselect *\n\t\tfrom sys.database_principals r  \n\t\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\t\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\t\twhere r.type = 'R'\n\t\t\tand r.name = @readAllRoleName\n\t\t\tand p.name = u.value\n\t)\n\tand u.value != ''\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--removing users from the ReadAll role\nset @SQL = (\n\tselect string_agg('exec sp_droprolemember ''' + @readAllRoleName + ''', ''' + p.name + '''', ';' + char(13) + char(10))\n\tfrom sys.database_principals r  \n\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\twhere r.type = 'R'\n\t\tand r.name = @readAllRoleName\n\t\tand not exists (\n\t\t\tselect *\n\t\t\tfrom string_split(@ReadAllUsers, ';') u\n\t\t\twhere p.name = u.value\n\t\t)\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--granting select permissions to all schemas for ReadAll role\nset @SQL = (\n\tselect string_agg('grant select on schema::' + quotename(sc.name) + ' to ' + quotename(@readAllRoleName), ';' + char(13) + char(10))\n\tfrom sys.schemas sc\n\twhere not exists (\n\t\tselect *\n\t\tfrom sys.database_permissions pe\n\t\tinner join sys.database_principals pr on pe.grantee_principal_id = pr.principal_id\n\t\tinner join sys.schemas s on s.schema_id = pe.major_id\n\t\twhere pe.class_desc = 'SCHEMA'\n\t\t\tand pe.permission_name = 'SELECT'\n\t\t\tand pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION')\n\t\t\tand pr.name = @readAllRoleName\n\t\t\tand s.schema_id = sc.schema_id\n\t)\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\nselect 1\n\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Masking and unmasking",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Sensitive deny and grant",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "declare\t@UnmaskSensitiveRoleName\tvarchar(32) = '@{variables('UnmaskSensitiveRoleName')}'\n\t,\t@SQL\t\t\t\t\t\tvarchar(max)\n\t,\t@SchemaList\t\t\t\t\tvarchar(max) = '@{activity('Get Sensitive Metadata').output.firstRow.SchemaList}'\n\t,\t@TableList\t\t\t\t\tvarchar(max) = '@{activity('Get Sensitive Metadata').output.firstRow.TableList}'\n\t,\t@ColumnList\t\t\t\t\tvarchar(max) = '@{activity('Get Sensitive Metadata').output.firstRow.ColumnList}'\n\t,\t@SessionID\t\t\t\t\tuniqueidentifier = '@{variables('SessionID')}'\n\t,\t@UnmaskSensitiveUsers\t\tvarchar(1000) = '@{pipeline().parameters.UnmaskSensitiveUsers}'\n\t\n--creating UnmaskSensitive role if does not exist\nif not exists (\n\tselect *\n\tfrom sys.database_principals p\n\twhere p.type = 'R'\n\t\tand p.name = @UnmaskSensitiveRoleName\n)\nbegin\n\tset @SQL = 'create role ' + quotename(@UnmaskSensitiveRoleName) + ' authorization dbo'\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend\n\n--adding missing users to the UnmaskSensitive role\nset @SQL = (\n\tselect string_agg('exec sp_addrolemember ''' + @UnmaskSensitiveRoleName + ''', ''' + u.value + '''', ';' + char(13) + char(10))\n\tfrom string_split(@UnmaskSensitiveUsers, ';') u\n\twhere not exists (\n\t\tselect *\n\t\tfrom sys.database_principals r  \n\t\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\t\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\t\twhere r.type = 'R'\n\t\t\tand r.name = @UnmaskSensitiveRoleName\n\t\t\tand p.name = u.value\n\t)\n\tand u.value != ''\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--removing users from the UnmaskSensitive role\nset @SQL = (\n\tselect string_agg('exec sp_droprolemember ''' + @UnmaskSensitiveRoleName + ''', ''' + p.name + '''', ';' + char(13) + char(10))\n\tfrom sys.database_principals r  \n\tinner join sys.database_role_members m on m.role_principal_id = r.principal_id\n\tinner join sys.database_principals p on p.principal_id = m.member_principal_id\n\twhere r.type = 'R'\n\t\tand r.name = @UnmaskSensitiveRoleName\n\t\tand not exists (\n\t\t\tselect *\n\t\t\tfrom string_split(@UnmaskSensitiveUsers, ';') u\n\t\t\twhere p.name = u.value\n\t\t)\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--granting access to UnmaskSensitive\nif not exists (\n\tselect *\n\tfrom sys.database_permissions pe\n\tinner join sys.database_principals pr on pe.grantee_principal_id = pr.principal_id\n\twhere pe.class_desc = 'DATABASE'\n\t\tand pe.permission_name = 'UNMASK'\n\t\tand pe.state_desc in ('GRANT', 'GRANT_WITH_GRANT_OPTION')\n\t\tand pr.name = @UnmaskSensitiveRoleName\n)\nbegin\n\tset @SQL = 'grant unmask to ' + quotename(@UnmaskSensitiveRoleName)\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend\n\nif object_id('tempdb..#tmpColumns') is not null\n\tdrop table #tmpColumns\n\ncreate table #tmpColumns (\n\t\tSchemaName\tvarchar(64)\tnot null\n\t,\tTableName\tvarchar(64)\tnot null\n\t,\tColumnName\tvarchar(64)\tnot null\n) with (distribution = round_robin, heap)\n\ninsert into #tmpColumns (SchemaName, TableName, ColumnName)\nselect s.SchemaName, t.TableName, c.ColumnName\nfrom (\n\tselect\tleft(s.value, 3) as ID\n\t\t,\tsubstring(s.value, 5, 200) as SchemaName\n\tfrom string_split(@SchemaList, ',') s\n\twhere s.value != ''\n) s\ninner join (\n\tselect\tleft(s.value, 3) as ID\n\t\t,\tsubstring(s.value, 5, 200) as TableName\n\tfrom string_split(@TableList, ',') s\n\twhere s.value != ''\n) t on t.ID = s.ID\ninner join (\n\tselect\tleft(s.value, 3) as ID\n\t\t,\tsubstring(s.value, 5, 200) as ColumnName\n\tfrom string_split(@ColumnList, ',') s\n\twhere s.value != ''\n) c on c.ID = s.ID\n\n--dropping masking\nset @SQL = (\n\tselect string_agg(SQL, char(13) + char(10))\n\tfrom (\n\t\tselect 'alter table ' + quotename(s.name) + '.' + quotename(tab.name) \n\t\t\t\t+ ' alter column ' + quotename(col.name)\n\t\t\t\t+ ' drop masked;' as SQL\n\t\tfrom sys.masked_columns m\n\t\tinner join sys.tables tab on m.object_id = tab.object_id\n\t\tinner join sys.schemas s on s.schema_id = tab.schema_id\n\t\tinner join sys.columns col on col.object_id = m.object_id\n\t\t\t\t\t\t\t\tand col.column_id = m.column_id\n\t\twhere not exists (\n\t\t\tselect *\n\t\t\tfrom #tmpColumns t\n\t\t\tinner join information_schema.columns c on c.table_schema = t.SchemaName\n\t\t\t\t\t\t\t\t\t\t\t\t\tand c.table_name = t.TableName\n\t\t\t\t\t\t\t\t\t\t\t\t\tand c.column_name = t.ColumnName\n\t\t\twhere s.name = c.table_schema\n\t\t\t\tand tab.name = c.table_name\n\t\t\t\tand col.name = c.column_name\n\t\t)\n\t\tand m.is_masked = 1\n\t) t\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\n--adding masking\nset @SQL = (\n\tselect string_agg(SQL, char(13) + char(10))\n\tfrom (\n\t\tselect 'alter table ' + quotename(c.table_schema) + '.' + quotename(c.table_name) \n\t\t\t\t+ ' alter column ' + quotename(c.column_name)\n\t\t\t\t+ ' ' +\tconcat(\n\t\t\t\t\t\t\t\tc.data_type\n\t\t\t\t\t\t\t,\tcase when c.data_type in ('tinyint', 'smallint', 'int', 'bigint')\n\t\t\t\t\t\t\t\t\tthen ''\n\t\t\t\t\t\t\t\t\telse concat(\n\t\t\t\t\t\t\t\t\t\t\t\t'(' + case when c.character_maximum_length = -1 then 'max' else convert(varchar, c.character_maximum_length) end + ')'\n\t\t\t\t\t\t\t\t\t\t\t,\t'(' + convert(varchar, c.numeric_precision) + isnull(',' + convert(varchar, c.numeric_scale), '') + ')'\n\t\t\t\t\t\t\t\t\t\t)\n\t\t\t\t\t\t\t\tend\n\t\t\t\t\t\t)\n\t\t\t\t+ case when c.is_nullable = 'NO' then ' not null' else ' null' end\n\t\t\t\t+ ' masked with (function = ''default()'');' as SQL\n\t\tfrom #tmpColumns t\n\t\tinner join information_schema.columns c on c.table_schema = t.SchemaName\n\t\t\t\t\t\t\t\t\t\t\t\tand c.table_name = t.TableName\n\t\t\t\t\t\t\t\t\t\t\t\tand c.column_name = t.ColumnName\n\t\twhere not exists (\n\t\t\tselect *\n\t\t\tfrom sys.masked_columns m\n\t\t\tinner join sys.tables tab on m.object_id = tab.object_id\n\t\t\tinner join sys.schemas s on s.schema_id = tab.schema_id\n\t\t\tinner join sys.columns col on col.object_id = m.object_id\n\t\t\t\t\t\t\t\t\tand col.column_id = m.column_id\n\t\t\twhere s.name = c.table_schema\n\t\t\t\tand tab.name = c.table_name\n\t\t\t\tand col.name = c.column_name\n\t\t\t\tand m.is_masked = 1\n\t\t)\n\t) t\n)\n\nif @SQL is not null\nbegin\n\texec CTRL.InsertDynamicQueryLog @SessionID = @SessionID, @SQLQuery = @SQL\n\texec(@SQL)\nend \n\nselect 1\n\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ReadAllUsers": {
+				"type": "string"
+			},
+			"ReadAllWithSensitiveUsers": {
+				"type": "string"
+			},
+			"UnmaskSensitiveUsers": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"RolePrefix": {
+				"type": "String",
+				"defaultValue": "Read"
+			},
+			"SessionID": {
+				"type": "String"
+			},
+			"ReadAllRoleName": {
+				"type": "String",
+				"defaultValue": "ReadAll"
+			},
+			"ReadAllWithSensitiveRoleName": {
+				"type": "String",
+				"defaultValue": "ReadAllWithSensitive"
+			},
+			"UnmaskSensitiveRoleName": {
+				"type": "String",
+				"defaultValue": "UnmaskSensitive"
+			}
+		},
+		"folder": {
+			"name": "Control"
+		},
+		"annotations": []
+	}
+}

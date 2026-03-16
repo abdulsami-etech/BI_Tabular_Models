@@ -1,0 +1,1 @@
+PRINT N'SqlScripts folder placeholder'; 

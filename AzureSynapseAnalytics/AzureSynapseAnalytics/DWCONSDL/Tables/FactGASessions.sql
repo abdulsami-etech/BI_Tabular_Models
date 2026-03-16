@@ -1,0 +1,32 @@
+﻿CREATE TABLE [DWCONSDL].[FactGASessions] (
+    [DWBatchID]            INT            NOT NULL,
+    [DWHash]               CHAR (40)      NOT NULL,
+    [DWHashKey]            CHAR (40)      NOT NULL,
+    [FullVisitorId]        NVARCHAR (30)  NOT NULL,
+    [Region]               NVARCHAR (50)  NULL,
+    [VisitDate]            DATE           NOT NULL,
+    [Medium]               NVARCHAR (50)  NULL,
+    [Source]               NVARCHAR (250) NULL,
+    [ChannelGrouping]      NVARCHAR (50)  NULL,
+    [CountryFromHostName]  NVARCHAR (50)  NULL,
+    [City]                 NVARCHAR (75)  NULL,
+    [Metro]                NVARCHAR (75)  NULL,
+    [Latitude]             NVARCHAR (15)  NULL,
+    [Longitude]            NVARCHAR (15)  NULL,
+    [Browser]              NVARCHAR (100) NULL,
+    [DeviceCategory]       NVARCHAR (25)  NULL,
+    [MobileDeviceModel]    NVARCHAR (75)  NULL,
+    [MobileDeviceBranding] NVARCHAR (40)  NULL,
+    [Language]             NVARCHAR (60)  NULL,
+    [VisitsInADay]         INT            NULL,
+    [NewVisitsInADay]      INT            NULL,
+    [HitsInADay]           INT            NULL,
+    [PageViewsInADay]      INT            NULL,
+    [ScreenViewsInADay]    INT            NULL,
+    [TimeonSiteInADay]     INT            NULL,
+    [BouncesInADay]        INT            NULL,
+    [CreatedDate]          DATETIME       NULL,
+    [ModifiedDate]         DATETIME       NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([FullVisitorId]));
+

@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcCONSDL]
+    AUTHORIZATION [dbo];
+

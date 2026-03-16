@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_MESCorp_Order",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_MESCorp_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "2062,2064"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2020-03-31T00:00:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

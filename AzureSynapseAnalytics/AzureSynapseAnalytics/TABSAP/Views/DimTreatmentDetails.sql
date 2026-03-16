@@ -1,0 +1,10 @@
+﻿CREATE VIEW [TABSAP].[DimTreatmentDetails]
+AS SELECT                     [TreatmentOptionKey] [Treatment Id]
+                              ,[SAPTreatmentOption] [SAP Treatment Id]
+                              ,[TreatmentOption] [Treatment Option]
+							   ,[TreatmentOption] [Treatment Option - OTC DM]
+                              ,[SortOrder] [Sort Order]
+                              ,[ProductHierarchy] [Product Hierarchy]
+                              ,[TreatmentOptionHighLevel] [Treatment Option High Level]
+                              ,[TreatmentOptionReportingLevel] [Treatment Option Reporting Level]
+FROM [SrcSAPFile].[TreatmentOption];

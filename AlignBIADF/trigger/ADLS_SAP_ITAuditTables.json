@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_SAP_ITAuditTables",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline Finance",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SAP_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "60000,60003,60006,60010,60011,60012,60014,60016,60017,60018,60021,60022,60023,60024,60025,60027,60035,60036,60037,60038,60039,60040"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2020-05-04T02:15:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

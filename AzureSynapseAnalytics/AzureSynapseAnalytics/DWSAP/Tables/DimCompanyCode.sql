@@ -1,0 +1,12 @@
+﻿CREATE TABLE [DWSAP].[DimCompanyCode] (
+    [Level 1]      NVARCHAR (255) NULL,
+    [Level 2]      NVARCHAR (255) NULL,
+    [Level 3]      NVARCHAR (255) NULL,
+    [Level 4]      NVARCHAR (255) NULL,
+    [Level 5]      NVARCHAR (255) NULL,
+    [Level 6]      NVARCHAR (255) NULL,
+    [COMPCODE]     NVARCHAR (255) NULL,
+    [COMPANY CODE] NVARCHAR (255) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN);
+

@@ -1,0 +1,2 @@
+﻿CREATE SCHEMA [SrcKaiNexus]
+    AUTHORIZATION [dbo];

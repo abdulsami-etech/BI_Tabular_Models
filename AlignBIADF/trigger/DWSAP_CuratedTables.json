@@ -1,0 +1,29 @@
+{
+	"name": "DWSAP_CuratedTables",
+	"properties": {
+		"description": "This  trigger is used to invoke curated tables stored proc as there is a dependency on the DWSAP tables",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Run_Dependent_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaNameL1": "DWSAP",
+					"ObjectListL1": "116"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 8,
+				"startTime": "2022-06-30T10:40:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

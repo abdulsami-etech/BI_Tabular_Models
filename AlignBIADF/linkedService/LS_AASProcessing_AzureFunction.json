@@ -1,0 +1,21 @@
+{
+	"name": "LS_AASProcessing_AzureFunction",
+	"properties": {
+		"description": "LS_AASProcessing_AzureFunction",
+		"annotations": [],
+		"type": "AzureFunction",
+		"typeProperties": {
+			"functionAppUrl": "https://@{pipeline().parameters.FunctionApp}.azurewebsites.net",
+			"functionKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AASProcessing",
+				"secretVersion": ""
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

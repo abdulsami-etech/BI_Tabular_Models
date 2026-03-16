@@ -1,0 +1,19 @@
+{
+	"name": "SFMC_EMEA_Sftp_Folder",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SFMCEUsftp",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "SftpLocation",
+				"folderPath": "/Export/BI/"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,32 @@
+﻿CREATE TABLE [DWIRIS].[DimTicketItem] (
+    [SKTicketItem]           INT             NOT NULL,
+    [ADLSBatchID]            INT             NOT NULL,
+    [ADLSTimestamp]          DATETIME2 (0)   NOT NULL,
+    [LZBatchID]              INT             NOT NULL,
+    [DWBatchID]              INT             NULL,
+    [DWHash]                 CHAR (40)       NULL,
+    [KeyTicketItem]          NCHAR (18)      NULL,
+    [SKAsset]                INT             NULL,
+    [SKTicket]               INT             NULL,
+    [SKCreatedDate]          INT             NULL,
+    [CreatedDate]            DATETIME2 (0)   NULL,
+    [IsRMA]                  INT             NULL,
+    [IsDOA]                  NVARCHAR (255)  NULL,
+    [ReplacedType]           NVARCHAR (4000) NULL,
+    [ReplacedSN]             NVARCHAR (255)  NULL,
+    [ReplacementSN]          NVARCHAR (255)  NULL,
+    [TrackingNumber]         NVARCHAR (255)  NULL,
+    [ReportedIssue]          NVARCHAR (MAX)  NULL,
+    [RootCause]              NVARCHAR (1200) NULL,
+    [ApprovedStatus]         NVARCHAR (4000) NULL,
+    [ReplacementReason]      NVARCHAR (4000) NULL,
+    [IsDeleted]              INT             NULL,
+    [ProductName]            NVARCHAR (4000) NULL,
+    [ProductCode]            NVARCHAR (4000) NULL,
+    [IncomingTrackingNumber] NVARCHAR (4000) NULL,
+    [QuoteProposalID]        NVARCHAR (4000) NULL,
+    [ProductGroup]           NVARCHAR (4000) NULL,
+    [IsInvalid]              INT             NULL
+)
+WITH (CLUSTERED INDEX([SKTicketItem]), DISTRIBUTION = REPLICATE);
+

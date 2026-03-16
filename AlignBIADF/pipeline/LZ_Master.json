@@ -1,0 +1,334 @@
+{
+	"name": "LZ_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Iterate through LZ objects",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get LZ Object List",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Current Timestamp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get LZ Object List').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Execute LZ Load Object",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "LZ_LoadObject",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"LZObjectID": {
+										"value": "@{item().LZObjectID}",
+										"type": "Expression"
+									},
+									"BatchID": {
+										"value": "@activity('Generate new BatchId').output.FirstRow.BatchID",
+										"type": "Expression"
+									},
+									"SourceSystem": {
+										"value": "@{item().SourceSystem}",
+										"type": "Expression"
+									},
+									"ObjectName": {
+										"value": "@{item().ObjectName}",
+										"type": "Expression"
+									},
+									"CurrentTimestamp": {
+										"value": "@variables('CurrentTimestamp')",
+										"type": "Expression"
+									},
+									"Destination": {
+										"value": "@pipeline().parameters.Destination",
+										"type": "Expression"
+									},
+									"SFDCFlattenedHistoryColumnList": {
+										"value": "@{item().SFDCFlattenedHistoryColumnList}",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "On failure - Execute LZ Load Object",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Execute LZ Load Object",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[LZObjectUpdate]",
+								"storedProcedureParameters": {
+									"LZObjectID": {
+										"value": {
+											"value": "@{item().LZObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Generate new BatchId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get LZ Object List",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[LZGetObjectList]",
+						"storedProcedureParameters": {
+							"SourceSystemList": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.SourceSystemList",
+									"type": "Expression"
+								}
+							},
+							"Destination": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.Destination",
+									"type": "Expression"
+								}
+							},
+							"ObjectList": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.ObjectList",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "On failure - iterate through LZ Objects",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through LZ objects",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Batch Info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through LZ objects",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchId').output.firstRow.BatchId",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set Current Timestamp",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "CurrentTimestamp",
+					"value": {
+						"value": "@utcnow()",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystemList": {
+				"type": "String"
+			},
+			"Destination": {
+				"type": "string"
+			},
+			"ObjectList": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "ADLSv2"
+			},
+			"CurrentTimestamp": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "ADLSv2ToDestination"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,25 @@
+name: CI-AzureDataFactory-master-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+- adf_publish
+
+pool:
+  vmImage: 'windows-latest'
+
+stages:
+  - stage: StageBuild
+    jobs:
+    - job: RunBuildActivity
+      displayName: 'Execute Build Process'
+      steps:
+        - task: CopyFiles@2
+          displayName: Copy data-factory files from solution to stage
+          inputs:
+            contents: 'dev2alignbiadfci/**'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+
+        - task: PublishBuildArtifacts@1
+          displayName: Publish build artifacts to stage
+          inputs:
+            pathToPublish: $(Build.ArtifactStagingDirectory)
+            artifactName: AligntechInfraPostBuildArtifacts

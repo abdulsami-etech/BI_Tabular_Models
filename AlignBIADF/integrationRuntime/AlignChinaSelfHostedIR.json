@@ -1,0 +1,12 @@
+{
+	"name": "AlignChinaSelfHostedIR",
+	"properties": {
+		"type": "SelfHosted",
+		"typeProperties": {
+			"linkedInfo": {
+				"resourceId": "/subscriptions/05a3a26f-2a39-45e0-9049-88630764168b/resourcegroups/PRalignbirg/providers/Microsoft.DataFactory/factories/pralignbiadf/integrationruntimes/AlignChinaSelfHostedIR",
+				"authorizationType": "Rbac"
+			}
+		}
+	}
+}

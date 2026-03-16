@@ -1,0 +1,28 @@
+{
+	"name": "DW_Ticket",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "DW_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SchemaName": "DW",
+					"ObjectList": "258"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-05-19T09:59:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

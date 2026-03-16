@@ -1,0 +1,35 @@
+{
+	"name": "VolumeAASModel_Hourly_Processing",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ProcessAASDatabase",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"WebhookURLToken": {
+						"type": "SecureString",
+						"value": "**********"
+					},
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbiaas",
+					"ASDatabase": "Volume",
+					"ASRefreshType": "Full"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-04-03T18:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

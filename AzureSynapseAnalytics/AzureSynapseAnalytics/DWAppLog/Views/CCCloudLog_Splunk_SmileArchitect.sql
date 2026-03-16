@@ -1,0 +1,10 @@
+﻿CREATE VIEW [DWAppLog].[CCCloudLog_Splunk_SmileArchitect]
+AS SELECT
+	[trace]
+	,[action]
+	,[ts]
+	,[_count]
+	,[splunk_time]
+	,[appVersion]
+	,[_data]
+FROM [SrcSplunk].[CCCloud_SmileArchitect]

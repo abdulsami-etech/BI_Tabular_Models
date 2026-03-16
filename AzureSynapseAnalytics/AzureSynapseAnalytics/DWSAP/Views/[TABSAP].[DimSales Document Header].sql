@@ -1,0 +1,162 @@
+--BI-12996 New View
+CREATE VIEW [TABSAP].[DimSales Document Header] AS 
+SELECT 
+  [ADLSTimestamp], 
+  [PartitionColumn], 
+  [Sales Document], 
+  [Sales Document Type], 
+  [Sales Document Category], 
+  [Billing Type], 
+  [Age Tier], 
+  [Order Stages], 
+  [Stage Bucket], 
+  [PatientType], 
+  [SoldTo], 
+  [CCADate], 
+  [TreatmentCategory], 
+  [ClinID], 
+  [Professional Category], 
+  [Advantage Program Name], 
+  [MAF], 
+  [Sales Org], 
+  [Division], 
+  [Compliance Indicator], 
+  [PO Number], 
+  [IDSOrderID], 
+  [Distribution Channel], 
+  [Sales Group], 
+  [Sales Office], 
+  [Controlling Area], 
+  [Purchasing Org], 
+  [Unit of Dimension for length/Width/Height], 
+  [Bill-to party], 
+  [Payer], 
+  [Country of ship-to party], 
+  [Customer Group1], 
+  [Customer Group2], 
+  [Customer Group3], 
+  [Customer Group4], 
+  [Customer Group5], 
+  [Equipment Serial Num], 
+  [Initiator Company Id], 
+  [Document Year], 
+  [UpperAlignerStartstage], 
+  [UpperAlignerEndStage], 
+  [LowerAlignerStartstage], 
+  [LowerAlignerEndStage], 
+  [CustomerGroupType], 
+  [IsDSOOrder], 
+  [AgeTierRange], 
+  [AgeTierDetail], 
+  [AgeSegment], 
+  [AgeCategory], 
+  [TreatmentId], 
+  [ECC_CCADate], 
+  [Total Net Amount] 
+FROM 
+  [DWSAP].[DimSalesDocumentHeader_Performance] 
+UNION ALL 
+SELECT 
+  [ADLSTimestamp], 
+  Max(
+    CONCAT(
+      YEAR (
+        Coalesce([Document Date], [ACT_GI_DTE])
+      ), 
+      '-', 
+      MONTH(
+        Coalesce([Document Date], [ACT_GI_DTE])
+      )
+    )
+  ) AS [PartitionColumn], 
+  [Sales Document], 
+  [Document Type] AS [Sales Document Type], 
+  [Document Category] AS [Sales Document Category], 
+  NULL AS [Billing Type], 
+  [Age Tier], 
+  [Order Stages], 
+  [Stages Bucket] AS [Stage Bucket], 
+  NULL AS [PatientType], 
+  [Sold-to Party] AS [SoldTo], 
+  [CCA DATE] AS [CCADate], 
+  [Treatment Category] AS [TreatmentCategory], 
+  NULL AS [ClinID], 
+  NULL AS [Professional Category], 
+  NULL AS [Advantage Program Name], 
+  NULL AS [MAF], 
+  [Sales Organization] AS [Sales Org], 
+  [Division], 
+  [Compliance Indicator], 
+  NULL AS [PO Number], 
+  NULL AS [IDSOrderID], 
+  [Distribution Channel], 
+  [Sales Group], 
+  NULL AS [Sales Office], 
+  [Controlling Area], 
+  NULL AS [Purchasing Org], 
+  NULL AS [Unit of Dimension for length/Width/Height], 
+  [Bill-to party], 
+  [PAYER] AS [Payer], 
+  NULL AS [Country of ship-to party], 
+  [Customer Group 1] AS [Customer Group1], 
+  [Customer Group 2] AS [Customer Group2], 
+  [Customer Group 3] AS [Customer Group3], 
+  [Customer Group 4] AS [Customer Group4], 
+  [Customer Group 5] AS [Customer Group5], 
+  [Equipment Serial Num], 
+  [Initiator Company ID] AS [Initiator Company Id], 
+  Year(
+    Cast([Document Date] AS date)
+  ) AS [Document Year], 
+  NULL AS [UpperAlignerStartstage], 
+  NULL AS [UpperAlignerEndStage], 
+  NULL AS [LowerAlignerStartstage], 
+  NULL AS [LowerAlignerEndStage], 
+  NULL AS [CustomerGroupType], 
+  NULL AS [IsDSOOrder], 
+  NULL AS [AgeTierRange], 
+  NULL AS [AgeTierDetail], 
+  NULL AS [AgeSegment], 
+  NULL AS [AgeCategory], 
+  [Treatment ID] AS [TreatmentId], 
+  NULL AS [ECC_CCADate], 
+  NULL AS [Total Net Amount] 
+FROM 
+  [DWSAP].[ScannerHistoryProcessed_Performance] 
+WHERE 
+  [Sales Document] NOT IN(
+    SELECT 
+      [Sales Document] 
+    FROM 
+      [DWSAP].[DimSalesDocumentHeader_Performance]
+  ) 
+Group By 
+  [ADLSTimestamp], 
+  [Sales Document], 
+  [Document Type], 
+  [Document Category], 
+  [Age Tier], 
+  [Order Stages], 
+  [Stages Bucket], 
+  [Sold-to Party], 
+  [CCA DATE], 
+  [Treatment Category], 
+  [Sales Organization], 
+  [Division], 
+  [Compliance Indicator], 
+  [Distribution Channel], 
+  [Sales Group], 
+  [Controlling Area], 
+  [Bill-to party], 
+  [PAYER], 
+  [Customer Group 1], 
+  [Customer Group 2], 
+  [Customer Group 3], 
+  [Customer Group 4], 
+  [Customer Group 5], 
+  [Equipment Serial Num], 
+  [Initiator Company ID], 
+  Year(
+    Cast([Document Date] AS date)
+  ), 
+  [Treatment ID];

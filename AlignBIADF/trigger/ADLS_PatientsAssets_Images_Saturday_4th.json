@@ -1,0 +1,43 @@
+{
+	"name": "ADLS_PatientsAssets_Images_Saturday_4th",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ObjectList": "80005",
+					"SourceSystem": "Images"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Month",
+				"interval": 1,
+				"startTime": "2021-08-30T13:35:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						6
+					],
+					"monthlyOccurrences": [
+						{
+							"day": "Saturday",
+							"occurrence": 4
+						}
+					]
+				}
+			}
+		}
+	}
+}

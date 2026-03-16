@@ -1,0 +1,39 @@
+{
+	"name": "AAS_ModelProcessing_Tumbling_2hrs",
+	"properties": {
+		"description": "AAS_ModelProcessing_Tumbling_2hrs",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "AAS_Model_Processing_Delta_Logs",
+				"type": "PipelineReference"
+			},
+			"parameters": {
+				"ModelName": "RevVolCOGS_Actuals",
+				"Full1Delta0": "0",
+				"FunctionApp": "aasmodelprocessingpr"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Hour",
+			"interval": 4,
+			"startTime": "2021-09-30T15:40:00Z",
+			"delay": "00:00:00",
+			"maxConcurrency": 1,
+			"retryPolicy": {
+				"intervalInSeconds": 30
+			},
+			"dependsOn": [
+				{
+					"type": "TumblingWindowTriggerDependencyReference",
+					"referenceTrigger": {
+						"referenceName": "DWSAP_Tumbling_2Hrs",
+						"type": "TriggerReference"
+					}
+				}
+			]
+		}
+	}
+}

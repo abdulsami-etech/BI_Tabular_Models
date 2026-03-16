@@ -1,0 +1,40 @@
+{
+	"name": "APAC_BI_Model_Full_Process",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "AASDatabaseSelectedProcessing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbiaas",
+					"ASDatabase": "APAC BI Model Integrated",
+					"BodyMessage": {
+						"Type": "Full"
+					}
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-08-12T11:23:00",
+				"timeZone": "Russian Standard Time",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						1
+					]
+				}
+			}
+		}
+	}
+}

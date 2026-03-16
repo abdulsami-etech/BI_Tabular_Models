@@ -1,0 +1,13 @@
+{
+	"name": "InsightApp",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "InsightIpadApp",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "GoogleBigQueryObject",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

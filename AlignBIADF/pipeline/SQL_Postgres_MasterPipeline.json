@@ -1,0 +1,253 @@
+{
+	"name": "SQL_Postgres_MasterPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEachSourceSystem",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup SourceSystem information",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup SourceSystem information').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Get Columns Metadata",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SQL_Potgres_Metadata_Columns",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ConnectionString": {
+										"value": "@item().ConnectionStringSecretName",
+										"type": "Expression"
+									},
+									"SourceSystemName": {
+										"value": "@item().SourceSystem",
+										"type": "Expression"
+									},
+									"SourceSystemType": {
+										"value": "@item().SourceSystemType",
+										"type": "Expression"
+									},
+									"SchemaName": {
+										"value": "@item().SchemaName",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Get Table Metadata",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SQL_Postgres_Metadata_Tables",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ConnectionString": {
+										"value": "@item().ConnectionStringSecretName",
+										"type": "Expression"
+									},
+									"SourceSystemName": {
+										"value": "@item().SourceSystem",
+										"type": "Expression"
+									},
+									"SourceSystemType": {
+										"value": "@item().SourceSystemType",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup SourceSystem information",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT  [SourceSystem]\n      ,[SourceSystemType]\n      ,[CTRL].[GetSourceSystemProperty]([SourceSystem],'ConnectionStringSecretname') as ConnectionStringSecretname,\n\t  ISNULL([CTRL].[GetSourceSystemProperty]([SourceSystem],'SchemaName'),'')\n\t  as SchemaName\n  FROM [CTRL].[SourceSystem]\n  where SourceSystemType='MSSQL' or SourceSystemType='PostgreSQL'\n  and [CTRL].[GetSourceSystemProperty]([SourceSystem],'ConnectionStringSecretname') is not null",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ForEachSourceSystem",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Lookup SourceSystem information",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Lookup SourceSystem information",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "Metadata"
+			}
+		},
+		"folder": {
+			"name": "Metadata"
+		},
+		"annotations": []
+	}
+}

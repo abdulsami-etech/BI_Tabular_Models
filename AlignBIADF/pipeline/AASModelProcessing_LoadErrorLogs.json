@@ -1,0 +1,164 @@
+{
+	"name": "AASModelProcessing_LoadErrorLogs",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Error Message",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Model Refresh Output",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Model Refresh Output').output.messages",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Model Processing Error Logs",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[Load_ModelProcessingErrorLogs]",
+								"storedProcedureParameters": {
+									"dbname": {
+										"value": {
+											"value": "@pipeline().parameters.ModelName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"message": {
+										"value": {
+											"value": "@item().message",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"refreshid": {
+										"value": {
+											"value": "@pipeline().parameters.dbrefreshId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"status": {
+										"value": {
+											"value": "@activity('Model Refresh Output').output.status",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"type": {
+										"value": {
+											"value": "@item().type",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Model Refresh Output",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat(pipeline().parameters.aascon,pipeline().parameters.dbrefreshId)",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "@pipeline().parameters.aastoken",
+							"type": "Expression"
+						},
+						"Content-Type": "application/json"
+					}
+				}
+			},
+			{
+				"name": "Revert AAS Marker Date",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get Error Message",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "Update [DWSAP].[AASTableMarkers]\nSet [Marker] = Temp.[Marker]\nFrom [DWSAP].[AASTableMarkers] AS [Main]\ninner join [DWSAP].[AASTableMarkers_Temp] AS Temp ON Main.[DbName] = Temp.[DbName] AND Main.[TableName] = Temp.[TableName]\n\nIf Exists (Select 1 from [INFORMATION_SCHEMA].[TABLES] \n\t\t\twhere [TABLE_SCHEMA] = 'DWSAP' AND [TABLE_NAME] = 'AASTableMarkers_Temp')\nBegin\n\tDrop table [DWSAP].[AASTableMarkers_Temp]\nEnd\n\nSelect 'Marker value reverted back' as [MessageValue];",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"aascon": {
+				"type": "string"
+			},
+			"dbrefreshId": {
+				"type": "string"
+			},
+			"aastoken": {
+				"type": "string"
+			},
+			"ModelName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "AASModelProcessing"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-09-17T12:18:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

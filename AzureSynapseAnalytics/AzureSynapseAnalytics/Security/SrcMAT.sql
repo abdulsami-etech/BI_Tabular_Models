@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [SrcMAT]
+    AUTHORIZATION [dbo];
+

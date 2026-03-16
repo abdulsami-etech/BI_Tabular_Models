@@ -1,0 +1,785 @@
+{
+	"name": "FDL_Finance_File_Processing",
+	"properties": {
+		"description": "FDL_Finance_File_Processing",
+		"activities": [
+			{
+				"name": "Get object list",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLGetObjectList]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.SourceSystem",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.SourceSystem",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Iterate through objects",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Temp Path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Load Object",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "ADLSv2_File_Text_FinanceInternal",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"BatchID": {
+										"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+										"type": "Expression"
+									},
+									"ObjectID": {
+										"value": "@{item().ObjectID}",
+										"type": "Expression"
+									},
+									"RawFilePath": {
+										"value": "@{item().RawFilePath}",
+										"type": "Expression"
+									},
+									"IsLZ": {
+										"value": "@{item().IsLZ}",
+										"type": "Expression"
+									},
+									"TempFolder": {
+										"value": "@variables('TempFolder')",
+										"type": "Expression"
+									},
+									"CurrentTimestamp": {
+										"value": "@{item().CurrentTimestamp}",
+										"type": "Expression"
+									},
+									"Destinations": {
+										"value": "@{item().Destinations}",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "On failure - Load Object",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load Object",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+								"storedProcedureParameters": {
+									"ObjectID": {
+										"value": {
+											"value": "@{item().ObjectID}",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through objects",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SourceSystem",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Get object list",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get object list",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@pipeline().parameters.SourceSystem",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get object list').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set Temp Path",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "TempFolder",
+					"value": {
+						"value": "@concat('control/Temp/', utcnow('yyyy/MM/dd/'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "For LZ Master",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get_URL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Emailid",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get object list').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Execute LZ Finance Master",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "LZ_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceSystemList": "SAPFile",
+									"Destination": "LZ",
+									"ObjectList": {
+										"value": "@item().ObjectID",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ExecuteDWFinanceMaster",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "If Completed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "DW_FinanceMaster",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SchemaName": "DWSAP",
+									"ObjectName": {
+										"value": "@item().ObjectName",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Check File Status",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Execute LZ Finance Master",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "Select ISNULL([Status],'NULL') AS [Status] from CTRL.ADLObjectFile\nwhere [ObjectID] = @{item().ObjectID}\n\tand [ADLSBatchID] = @{activity('Generate new BatchID').output.firstRow.BatchID}\n\tand [DateUpdated] = (Select Max([DateUpdated]) from CTRL.ADLObjectFile where [ObjectID] = @{item().ObjectID} and [ADLSBatchID] = @{activity('Generate new BatchID').output.firstRow.BatchID});",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "If Completed",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Check File Status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('Check File Status').output.value,'Completed')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "SendMail",
+										"type": "WebActivity",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@activity('Get_URL').output.firstRow.TEXT",
+												"type": "Expression"
+											},
+											"method": "POST",
+											"body": {
+												"value": "{\n\t\"EmailTo\":\"@{activity('Emailid').output.firstRow.TEXT}\",\n\t\"Subject\":\"SrcSAP Table\",\n\t\"PipelineName\":\"@{pipeline().Pipeline}\",\n\t\"ObjectName\":\"@{item().ObjectName}\",\t\n\t\"Status\":\" Processed Successfully\"\n}",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Check LZ File Load Status",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Execute LZ Finance Master",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": ";WITH LogCTE\nAS\n(\nSELECT LogID\n,[ObjectID]\n,[LoadStatus]\n,[ErrorMessage]\n,[SinkName]\n,ROW_NUMBER()OVER(ORDER BY LogID DESC) AS Latest\nFROM [CTRL].[ETLLog]\nWHERE ObjectID =  @{item().ObjectID}\nAND LogType='LZLoadFile'\n)\nSELECT LogID,ObjectId,LoadStatus,ErrorMessage,SinkName,Latest FROM LogCTE\nWHERE Latest=1",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Check LZ File Load Status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('Check LZ File Load Status').output.firstRow.LoadStatus,'Failure')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Send LZ Email",
+										"type": "WebActivity",
+										"dependsOn": [
+											{
+												"activity": "Update status of faulty files",
+												"dependencyConditions": [
+													"Completed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@activity('Get_URL').output.firstRow.TEXT",
+												"type": "Expression"
+											},
+											"method": "POST",
+											"body": {
+												"value": "{\n\t\"EmailTo\":\"@{activity('Emailid').output.firstRow.TEXT}\",\n\t\"Subject\":\"@{concat(pipeline().DataFactory,' - FDL FileProcessing')} Failed\",\n\t\"PipelineName\":\"@{pipeline().Pipeline}\",\n\t\"ObjectName\":\"@{item().ObjectName}\",\n\t\"FileName\" :\"FDL File\",\n\t\"Status\":\"@{concat('File Processing failed due to junk or bad data within the file - More Details:  ',activity('Check LZ File Load Status').output.firstRow.ErrorMessage)}\"\n}",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "Update status of faulty files",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "\nupdate ctrl.ADLObjectFile\nset Status='Skipped',DateUpdated=GETUTCDATE()\nfrom ctrl.ADLObjectFile \nWHERE FileName=@{concat('''',activity('Check LZ File Load Status').output.firstRow.SinkName,'''')}\nand ObjectID= @{item().ObjectID}\nSELECT 1",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "SQLDBConfig",
+												"type": "DatasetReference"
+											},
+											"firstRowOnly": false
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get_URL",
+				"description": "",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update Batch info",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": " Select [TEXT] from [CSTM].[Values]\n where [PipelineName] = 'ADLSv2_File_Text_FinanceInternal'\n and [Type] = 'URL'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Emailid",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update Batch info",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "Select [TEXT] from [CSTM].[Values]\n where [PipelineName] = 'ADLSv2_File_Text_FinanceInternal'\n and [Type] = 'Email'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Execute RevRec_Performance_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For LZ Master",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "DWSAP.FlatFile_RevRecShipmentLogic_Performance",
+					"storedProcedureParameters": {
+						"BATCHID": {
+							"value": {
+								"value": "@rand(1,1000000)",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"LASTSUCCESSFULLDWTIMESTAMP": {
+							"value": {
+								"value": "@utcnow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Execute Scanner_Performance_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For LZ Master",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "DWSAP.FlatFile_ScannerRevenueUnitLogic_Performance",
+					"storedProcedureParameters": {
+						"BatchID": {
+							"value": {
+								"value": "@rand(1,1000000)",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"LastSuccessfullDWTimestamp": {
+							"value": {
+								"value": "@utcnow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Execute NonSystemunits_Performance_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For LZ Master",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "DWSAP.FlatFile_NonSystemUnitsLogic_Performance",
+					"storedProcedureParameters": {
+						"BatchID": {
+							"value": {
+								"value": "@rand(1,1000000)",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"LastSuccessfullDWTimestamp": {
+							"value": {
+								"value": "@utcnow()",
+								"type": "Expression"
+							},
+							"type": "Datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystem": {
+				"type": "string",
+				"defaultValue": "SAPFile"
+			}
+		},
+		"variables": {
+			"TempFolder": {
+				"type": "String"
+			},
+			"TempObjectName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Finance"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

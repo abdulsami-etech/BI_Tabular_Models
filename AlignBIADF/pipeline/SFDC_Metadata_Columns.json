@@ -1,0 +1,795 @@
+{
+	"name": "SFDC_Metadata_Columns",
+	"properties": {
+		"activities": [
+			{
+				"name": "Getting API URL of each Object",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set access token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select describe as apiurl,label,ctrl.GetSourceSystemProperty('SFDCAPI','APIURLPrefix') as urlprefix from ctrl.sfdctablesmetadata",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Tables in SFDC",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Getting API URL of each Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Getting API URL of each Object').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "SFDC Columns RESTAPI to Azure Storage",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010"
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RESTAPIAuth",
+									"type": "DatasetReference",
+									"parameters": {
+										"URL": "@concat(item().urlprefix,item().apiurl)",
+										"Method": "GET",
+										"RequestBody": {
+											"value": "@string('')",
+											"type": "Expression"
+										},
+										"Authorization": "@concat('Bearer ',variables('Access Token'))"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "files",
+										"Path": "SFDC/scolumns",
+										"FileName": {
+											"value": "@concat(item().label,'_scolumns.json')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "scolumns to temp table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Tables in SFDC",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "SFDC/scolumns",
+							"wildcardFileName": "*.json"
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE TEMP.SFDCColumnsMetadata",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['autoNumber']"
+								},
+								"sink": {
+									"name": "autoNumber",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['byteLength']"
+								},
+								"sink": {
+									"name": "byteLength",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "['calculated']"
+								},
+								"sink": {
+									"name": "calculated",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['calculatedFormula']"
+								},
+								"sink": {
+									"name": "calculatedFormula",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['caseSensitive']"
+								},
+								"sink": {
+									"name": "caseSensitive",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['custom']"
+								},
+								"sink": {
+									"name": "custom",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['defaultValue']"
+								},
+								"sink": {
+									"name": "defaultValue",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['defaultValueFormula']"
+								},
+								"sink": {
+									"name": "defaultValueFormula",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['digits']"
+								},
+								"sink": {
+									"name": "digits",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "['externalId']"
+								},
+								"sink": {
+									"name": "externalId",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['filterable']"
+								},
+								"sink": {
+									"name": "filterable",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['idLookup']"
+								},
+								"sink": {
+									"name": "idLookup",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"path": "['label']"
+								},
+								"sink": {
+									"name": "label",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['length']"
+								},
+								"sink": {
+									"name": "length",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "['name']"
+								},
+								"sink": {
+									"name": "ColumnName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['precision']"
+								},
+								"sink": {
+									"name": "precision"
+								}
+							},
+							{
+								"source": {
+									"path": "['scale']"
+								},
+								"sink": {
+									"name": "scale",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"path": "['unique']"
+								},
+								"sink": {
+									"name": "fieldunique",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['name']"
+								},
+								"sink": {
+									"name": "TableName",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['fields']"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ADLSv2JSONSink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "files",
+							"Path": "SFDC/scolumns",
+							"FileName": "*.json"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBConfig_Temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "TEMP.SFDCColumnsMetadata"
+						}
+					}
+				]
+			},
+			{
+				"name": "Populate Column to ctrl Table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "scolumns to temp table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[LoadSFDCColumnsMetadata]"
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Generate new BatchID",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+						"storedProcedureParameters": {
+							"SourceSystem": {
+								"type": "string",
+								"value": {
+									"value": "@variables('SourceSystem')",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Batch info",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Populate Column to ctrl Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Getting API URL of each object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Getting API URL of each Object",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - Populate Column to ctrl Table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Populate Column to ctrl Table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On failure - scolumns to temp table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "scolumns to temp table",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLBatchLogUpdate]",
+					"storedProcedureParameters": {
+						"SourceSystem": {
+							"value": {
+								"value": "@variables('SourceSystem')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"BatchID": {
+							"value": {
+								"value": "@activity('Generate new BatchID').output.firstRow.BatchID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"ErrorMessage": {
+							"value": "See ETL log",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Delete existing files",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Generate new BatchID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2JSONSink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "files",
+							"Path": "SFDC/scolumns",
+							"FileName": "*"
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "Set access token",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get access token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Access Token",
+					"value": {
+						"value": "@activity('Get access token').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get Existing Token",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Delete existing files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select datediff(mi, getdate(), CTRL.GetSourceSystemProperty('@{pipeline().parameters.SourceSystem}', 'APITokenExpirationDate')) as MinutesLeft",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Refresh Token If Not Valid",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Existing Token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\nnot(empty(string(activity('Get Existing Token').output.firstRow.MinutesLeft))),\nless(activity('Get Existing Token').output.firstRow.MinutesLeft,30)\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute SFDC_Generate_Token",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SFDC_Generate_Token",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get access token",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Refresh Token If Not Valid",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://',first(split(pipeline().DataFactory, 'alignbiadfci')),'alignkeyvault','.vault.azure.net/secrets/',pipeline().parameters.TokenSecretName,'?api-version=7.0')",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystem": {
+				"type": "string",
+				"defaultValue": "MedalliaAPI"
+			},
+			"ConnectionString": {
+				"type": "string",
+				"defaultValue": "MedalliaConnectionString"
+			},
+			"TokenSecretName": {
+				"type": "string",
+				"defaultValue": "MedalliaSecurityToken"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String"
+			},
+			"TokenValue_URL": {
+				"type": "String"
+			},
+			"Access Token": {
+				"type": "String"
+			},
+			"Connection String URL": {
+				"type": "String"
+			},
+			"Connection String": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Metadata"
+		},
+		"annotations": []
+	}
+}

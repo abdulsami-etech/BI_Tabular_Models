@@ -1,0 +1,30 @@
+﻿CREATE TABLE [SrcSFDC].[Tracker__c] (
+    [LZBatchID]                            INT            NOT NULL,
+    [ADLSBatchID]                          INT            NOT NULL,
+    [ADLSTimestamp]                        DATETIME2 (0)  NOT NULL,
+    [Asset__c]                             NCHAR (18)     NULL,
+    [Carrier__c]                           NVARCHAR (255) NULL,
+    [ConnectionReceivedId]                 NCHAR (18)     NULL,
+    [ConnectionSentId]                     NCHAR (18)     NULL,
+    [CreatedById]                          NCHAR (18)     NULL,
+    [CurrencyIsoCode]                      NVARCHAR (3)   NOT NULL,
+    [Id]                                   NCHAR (18)     NOT NULL,
+    [IsDeleted]                            VARCHAR (5)    NOT NULL,
+    [LastActivityDate]                     DATETIME2 (7)  NULL,
+    [LastModifiedById]                     NCHAR (18)     NOT NULL,
+    [LastModifiedDate]                     DATETIME2 (7)  NULL,
+    [Name]                                 NVARCHAR (80)  NULL,
+    [Opportunity__c]                       NCHAR (18)     NULL,
+    [OwnerId]                              NCHAR (18)     NOT NULL,
+    [Proof_of_delivery_Signed__c]          NVARCHAR (255) NULL,
+    [Scheduled_Delivery_Delivered_Date__c] DATETIME2 (7)  NULL,
+    [Shipped_Date__c]                      DATETIME2 (7)  NULL,
+    [SystemModstamp]                       DATETIME2 (7)  NOT NULL,
+    [Ticket__c]                            NCHAR (18)     NULL,
+    [Tracking_Message__c]                  NVARCHAR (255) NULL,
+    [Tracking_Number__c]                   NVARCHAR (255) NULL,
+    [Tracking_Status__c]                   NVARCHAR (255) NULL,
+	[Processing_status__c]				   NVARCHAR (255) NULL
+)
+WITH (CLUSTERED INDEX([Id]), DISTRIBUTION = HASH([Id]));
+

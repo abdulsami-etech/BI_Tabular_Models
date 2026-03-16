@@ -1,0 +1,358 @@
+{
+	"name": "CaseStateCCAPrediction",
+	"properties": {
+		"activities": [
+			{
+				"name": "Update RowNum for Blank ETA Records",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get URL and Token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "truncate table stage.CaseStateCCAAPrediction\nupdate [dbo].[CaseStateCCAattributes]\nset RowNum = Null\nwhere RowNum is not null\n\nupdate [dbo].[CaseStateCCAattributes] \nset RowNum = b.RowNum\nfrom [dbo].[CaseStateCCAattributes]  \ninner join (\nselect sapordernumber,ROW_NUMBER() over(order by sapordernumber) as RowNum\nfrom [dbo].[CaseStateCCAattributes] where PredictedTime is null\n) b on [dbo].[CaseStateCCAattributes].sapordernumber = b.sapordernumber\nselect 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dbo.CaseStateCCAattributes"
+						}
+					}
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Number of For Loops",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Number of For Loops').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Json Output from SQL Table",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat('select ',concat('''',concat('{\"Inputs\": {\n\"WebServiceInput0\":',concat('''',concat('+ (SELECT cast(SAPOrderNumber as varchar) as SAPOrderNumber,cast ([ScanType] as varchar)  as scanType\n      ,cast ([ProductType] as varchar) as productType\n\t  ,cast ([Region] as varchar) as region\n\t  ,cast ([TreatmentType] as varchar) as treatmentType\n      ,cast ([Team] as varchar) as uda\n\t  ,cast ([DedicatedTech] as varchar) as DedicatedTech\n      ,cast ([DDTbacklog] as varchar) as DDTBacklog\n      ,cast ([DayNumberofWeek] as varchar) as DayNumberofWeek\n\t  ,cast ([UpcomingHoliday] as varchar) holidayin1to2day\n      ,cast ([WeekOfYear] as varchar) as WeekOfYear\n      ,cast ([PriorityBucket] as varchar) as PriorityBucket\n      ,cast ([EveningShift] as varchar) as EveningShift\n      ,cast ([MorningShift] as varchar) as MorningShift\n\t  ,cast ([SSbacklog] as varchar) as ssbacklog\n      ,cast ([Capacity] as varchar) as Capacity\n  FROM [dbo].[CaseStateCCAattributes] where rownum between ',concat(item().LoopCount,concat(' and ',concat(item().LoopCount,concat(' + 999' ,concat(variables('QueryString')\n  ))))))))))",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBCaseState",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "dbo.CaseStateCCAattributes"
+									}
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
+							"name": "Calling End Point for ML Model",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Json Output from SQL Table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010"
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RESTAPIAuth",
+									"type": "DatasetReference",
+									"parameters": {
+										"URL": {
+											"value": "@activity('Get URL and Token').output.FirstRow.URL",
+											"type": "Expression"
+										},
+										"Method": "POST",
+										"RequestBody": {
+											"value": "@activity('Json Output from SQL Table').output.FirstRow.Output",
+											"type": "Expression"
+										},
+										"Authorization": {
+											"value": "@activity('Get URL and Token').output.FirstRow.APIToken",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": "CaseStateDB\\TaggingToCCAA",
+										"FileName": "CCAAPrediction.json"
+									}
+								}
+							]
+						},
+						{
+							"name": "Json to Stage Table",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Calling End Point for ML Model",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['SAPOrderNumber']"
+											},
+											"sink": {
+												"name": "SapOrderNumber"
+											}
+										},
+										{
+											"source": {
+												"path": "['Scored Labels']"
+											},
+											"sink": {
+												"name": "PredictedTime"
+											}
+										}
+									],
+									"collectionReference": "$['Results']['WebServiceOutput0']",
+									"mapComplexValuesToString": false
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": "CaseStateDB\\TaggingToCCAA",
+										"FileName": "CCAAPrediction.json"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBCaseState",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "stage.CaseStateCCAAPrediction"
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Number of For Loops",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update RowNum for Blank ETA Records",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select (rownum/1000)*1000  as LoopCount from [dbo].[CaseStateCCAattributes]\nwhere PredictedTime is null\ngroup by rownum/1000\norder by 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dbo.CaseStateCCAattributes"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Update Prediction Time",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "\nupdate a\n  set PredictedTime = b.PredictedTime\n  from [dbo].[CaseStateCCAattributes] a\n  inner join stage.CaseStateCCAAPrediction b on a.SAPOrdernumber=b.SAPOrdernumber\nselect 1\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "Stage.CaseStateCCAAPrediction"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get URL and Token",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select [CTRL].[GetSourceSystemProperty]('ML_TaggingToCCAA','URL') as 'URL',[CTRL].[GetSourceSystemProperty]('ML_TaggingToCCAA','APIToken')  as APIToken\n\n\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig_Temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "ctrl.SourceSystemProperty"
+						}
+					}
+				}
+			}
+		],
+		"variables": {
+			"QueryString": {
+				"type": "String",
+				"defaultValue": " for json auto ) + '}}'as Output"
+			}
+		},
+		"folder": {
+			"name": "CaseState"
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-09-19T00:40:27Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

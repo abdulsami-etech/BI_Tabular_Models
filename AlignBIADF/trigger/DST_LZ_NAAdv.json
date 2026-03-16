@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_NAAdv",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "NAAdv",
+					"Destination": "LZ",
+					"ObjectList": "1014000"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-06-20T00:00:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

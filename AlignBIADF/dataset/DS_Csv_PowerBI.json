@@ -1,0 +1,23 @@
+{
+	"name": "DS_Csv_PowerBI",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLSv2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "PowerBI/ActivityLog/ToProcess",
+				"fileSystem": "files"
+			},
+			"columnDelimiter": "\u0001",
+			"rowDelimiter": "\u0001",
+			"escapeChar": "",
+			"quoteChar": ""
+		},
+		"schema": []
+	}
+}

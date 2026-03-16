@@ -1,0 +1,36 @@
+{
+	"name": "ADLS_ShipExec_Master",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_ShipExec",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_ShipExec_Master",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-08-02T20:01:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						5,
+						11,
+						17,
+						23
+					]
+				}
+			}
+		}
+	}
+}

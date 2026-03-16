@@ -1,0 +1,12 @@
+﻿CREATE TABLE [SrcSAP].[ZTABLE_NO_OF_REC] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [TABNAME]       NVARCHAR (30) NOT NULL,
+    [ERDAT]         NVARCHAR (8)  NOT NULL,
+    [RECORDS]       INT           NOT NULL,
+    [TOT_RECORDS]   INT           NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [TABNAME], [ERDAT]), DISTRIBUTION = HASH([TABNAME]));
+

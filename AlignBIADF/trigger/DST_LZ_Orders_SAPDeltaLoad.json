@@ -1,0 +1,30 @@
+{
+	"name": "DST_LZ_Orders_SAPDeltaLoad",
+	"properties": {
+		"description": "DST_LZ_Orders_SAPDeltaLoad",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "SAP",
+					"Destination": "LZ",
+					"ObjectList": "61001,61002,61003,61004,61005,61006,61009,60099"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2021-09-16T04:25:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,12 @@
+﻿CREATE TABLE [SrcSAP].[TVAKT] (
+    [LZBatchID]     INT           NOT NULL,
+    [ADLSBatchID]   INT           NOT NULL,
+    [ADLSTimestamp] DATETIME2 (0) NOT NULL,
+    [MANDT]         NVARCHAR (3)  NOT NULL,
+    [SPRAS]         NVARCHAR (1)  NOT NULL,
+    [AUART]         NVARCHAR (4)  NOT NULL,
+    [BEZEI]         NVARCHAR (20) NOT NULL,
+    [TXT_BUTTON]    NVARCHAR (20) NOT NULL
+)
+WITH (CLUSTERED INDEX([MANDT], [SPRAS], [AUART]), DISTRIBUTION = HASH([AUART]));
+

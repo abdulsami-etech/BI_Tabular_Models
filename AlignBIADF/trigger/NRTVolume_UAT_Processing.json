@@ -1,0 +1,34 @@
+{
+	"name": "NRTVolume_UAT_Processing",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ProcessAASDatabase",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"WebhookURLToken": {
+						"type": "SecureString",
+						"value": "**********"
+					},
+					"ASServerSuffix": "alignbitab",
+					"ASDatabase": "Volume_UAT",
+					"ASRefreshType": "Full"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 4,
+				"startTime": "2021-02-20T00:31:00",
+				"endTime": "2021-03-31T01:08:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

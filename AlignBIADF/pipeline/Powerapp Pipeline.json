@@ -1,0 +1,242 @@
+{
+	"name": "Powerapp Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Switch1",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@pipeline().parameters.Process",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "Revenue",
+							"activities": [
+								{
+									"name": "Generate Revenue CSV",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Execute Revenue SP",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlDWSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "Powerapps_SQLDW",
+											"type": "DatasetReference",
+											"parameters": {
+												"Table": "RevenueCPMOutbound",
+												"Schema": "DWSAP"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Powerapps_ADLS",
+											"type": "DatasetReference",
+											"parameters": {
+												"Filename": {
+													"value": "@concat('CPMRevenueOutbound','-',pipeline().parameters.FromMonth,'-',pipeline().parameters.ToMonth,'.csv')",
+													"type": "Expression"
+												},
+												"Process": "Revenue"
+											}
+										}
+									]
+								},
+								{
+									"name": "Execute Revenue SP",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[DWSAP].[LoadRevenueCPMOutbound]",
+										"storedProcedureParameters": {
+											"FromMonth": {
+												"value": {
+													"value": "@pipeline().parameters.FromMonth",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ToMonth": {
+												"value": {
+													"value": "@pipeline().parameters.ToMonth",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "SQLDW",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						},
+						{
+							"value": "Volume",
+							"activities": [
+								{
+									"name": "Generate Volume CSV",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Execute Volume SP",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlDWSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "Powerapps_SQLDW",
+											"type": "DatasetReference",
+											"parameters": {
+												"Table": "VolumeCPMOutbound",
+												"Schema": "DWSAP"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Powerapps_ADLS",
+											"type": "DatasetReference",
+											"parameters": {
+												"Filename": {
+													"value": "@concat('CPMVolumeOutbound','-',pipeline().parameters.FromMonth,'-',pipeline().parameters.ToMonth,'.csv')",
+													"type": "Expression"
+												},
+												"Process": "Volume"
+											}
+										}
+									]
+								},
+								{
+									"name": "Execute Volume SP",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[DWSAP].[LoadVolumeCPMOutbound]",
+										"storedProcedureParameters": {
+											"FromMonth": {
+												"value": {
+													"value": "@pipeline().parameters.FromMonth",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ToMonth": {
+												"value": {
+													"value": "@pipeline().parameters.ToMonth",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "SQLDW",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"FromMonth": {
+				"type": "string"
+			},
+			"ToMonth": {
+				"type": "string"
+			},
+			"Process": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Finance"
+		},
+		"annotations": []
+	}
+}

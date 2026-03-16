@@ -1,0 +1,12 @@
+{
+	"name": "ClinicalRS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ClinicalRS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "OdbcTable",
+		"schema": []
+	}
+}

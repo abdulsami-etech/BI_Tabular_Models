@@ -1,0 +1,30 @@
+{
+	"name": "InsightIpadApp",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "GoogleBigQuery",
+		"typeProperties": {
+			"project": "insight-ipad-app",
+			"requestGoogleDriveScope": false,
+			"authenticationType": "UserAuthentication",
+			"clientId": "173168465016-d0lgmi7m530sjqqt1nv5raijtihdpbsi.apps.googleusercontent.com",
+			"clientSecret": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "GbqInsightIpadAppClientSecret"
+			},
+			"refreshToken": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "GbqInsightIpadAppRefreshToken"
+			}
+		}
+	}
+}

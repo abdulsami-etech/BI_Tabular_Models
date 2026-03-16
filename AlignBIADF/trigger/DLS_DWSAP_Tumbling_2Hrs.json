@@ -1,0 +1,29 @@
+{
+	"name": "DLS_DWSAP_Tumbling_2Hrs",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "DW_Master",
+				"type": "PipelineReference"
+			},
+			"parameters": {
+				"SchemaName": "DWSAP",
+				"ObjectList": "100,101,102,103,108,114,115,118"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Hour",
+			"interval": 4,
+			"startTime": "2021-12-09T16:40:00Z",
+			"delay": "00:00:00",
+			"maxConcurrency": 1,
+			"retryPolicy": {
+				"intervalInSeconds": 30
+			},
+			"dependsOn": []
+		}
+	}
+}

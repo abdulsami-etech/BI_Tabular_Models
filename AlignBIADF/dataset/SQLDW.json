@@ -1,0 +1,12 @@
+{
+	"name": "SQLDW",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLDW",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

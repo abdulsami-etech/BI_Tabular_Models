@@ -1,0 +1,11 @@
+﻿CREATE VIEW [TABIRIS].[FactTicketHistory] AS select [ID]
+		  ,[FieldType]
+		  ,[OldValue]
+		  ,[CreatedDate]
+		  ,[SKDate]
+		  ,[SKUser]
+		  ,[SKTicket]
+		  ,[SKTicketComplaint]
+		  ,[SKTicketonboarding]
+		  ,[SKTicketTraining]
+from DWIRIS.FactTicketHistory;

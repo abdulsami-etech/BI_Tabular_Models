@@ -1,0 +1,25 @@
+{
+	"name": "ADLS_SFMC_Files",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_SFMC",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SFMC_Master",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2020-02-04T05:00:00.000Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

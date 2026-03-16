@@ -1,0 +1,510 @@
+{
+	"name": "CaseState_ChildPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Last DW BathID",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "LoadCaseStateHistorySummary",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT ISNULL(MAX([DWBatchID]),0) as DWbatchID  FROM [dbo].[CaseState]",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "[dbo].[CaseState]"
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Copy Case State History Summary",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Get Last DW BathID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [DWBatchID]\n      ,[SAPOrderNumber]\n      ,[ClinID]\n      ,[Validated]\n      ,[DetailStatus]\n      ,[DetailStatusBusinessTranslation]\n      ,isnull([AggregateStatus],'') as [AggregateStatus]\n      ,isnull([DoctorStatus],'') as [DoctorStatus]\n      ,[StartTime_UTC]\n      ,[EndTime_UTC]\n      ,[SequenceNumber]\n      ,[NumberofTimesInOperation]\n      ,[QueueName]\n      ,[OperationTimeInMinutes]\n      ,[OperationDeviationInMinutes]\n      ,[StatusIndicatorOfTimeSpentInCurrentStep]\n      ,[QueueTimeinMinutes]\n      ,[QueueDeviationInMinutes]\n      ,[StatusIndicatorOfTimespentInPreviousQueue]\n      ,[RecordLevel]\n      ,isnull([SourceSystem],'') as [SourceSystem]\n      ,[SKCaseStateStatistic]\n      ,[EECDDate]\n      ,[CCDDate]\n      ,HistoryKey\n  FROM [DW].[CaseStateHistorySummary]\nwhere [DWBatchID] >= @{activity('Get Last DW BathID').output.firstRow.DWbatchID}\n",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "Truncate table [stage].CaseStateHistorySummary",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "[stage].[CaseStateHistorySummary]"
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy Case State",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Get Last DW BathID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\t[DWBatchID]\n\t,\tconvert(varchar(80), [ClinID]) as [ClinID]\n\t,\tconvert(varchar(80), [DID]) as [DID]\n\t,\tconvert(varchar(15), [TreatmentID]) as [TreatmentID]\n\t,\tconvert(bigint, [SAPOrdernumber]) as [SAPOrderNumber]\n\t,\tconvert(varchar(16), [SFDCOrderNumber]) as [SFDCOrderNumber]\n\t,\tconvert(varchar(18), [IDSOrderNumber]) as [IDSOrderNumber]\n\t,\tconvert(varchar(32), [TreatmentCategory]) as [TreatmentCategory]\n\t,\tconvert(varchar(64), [CurrentOrderStatus]) as [CurrentOrderStatus]\n\t,\t[CurrentOrderStatusDateTime_UTC]\n\t,\tconvert(varchar(64), [ProductType]) as [ProductType]\n\t,\tconvert(varchar(16), [SourceSystem]) as [SourceSystem]\n\t,\tEECDDate\n        ,       CCDDate\nFROM [DW].[CaseState]\nwhere [DWBatchID] >= @{activity('Get Last DW BathID').output.firstRow.DWbatchID}",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "Truncate table [stage].[CaseState]",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "[stage].[CaseState]"
+						}
+					}
+				]
+			},
+			{
+				"name": "CaseState Load Stage to Target",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Case State",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[LoadCaseStateObjects]",
+					"storedProcedureParameters": {
+						"IsForceFullLoad": {
+							"value": "False",
+							"type": "Boolean"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "LoadCaseStateHistorySummary Procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Case State History Summary",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[LoadCaseStateHistorySummary]",
+					"storedProcedureParameters": {
+						"IsForceFullLoad": {
+							"value": "False",
+							"type": "Boolean"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Copy CaseStateShipmentAttributes",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Get BatchID for ShipmentAttributes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [DWBatchID]\n      ,[SAPOrderNumber]\n      ,[StartDate]\n      ,[ScanType]\n      ,[ProductType]\n      ,[Region]\n      ,[Arches]\n      ,[Backlog]\n      ,[Capacity]\n      ,[ComplianceIndicator]\n      ,[MassFinisher]\n      ,[WeekNumber]\n      ,[DayNumberOfWeek]\n      ,[Stages]\n      ,[FABMachineCount]\n      ,[Expedite]\n      ,[FABHourCapacity]\n      ,[AFABMachineCount]\n      ,[Rework]\n      ,[PredictedTime]\n      ,[ActualTime]\n      ,[BacklogFactor]\n  FROM [DW].[CaseStateShipmentAttributes]\n  where [DWBatchID]>= @{activity('Get BatchID for ShipmentAttributes').output.firstRow.DWbatchID}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "Truncate Table Stage.CaseStateShipmentAttributes",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "Stage.CaseStateShipmentAttributes"
+						}
+					}
+				]
+			},
+			{
+				"name": "Get BatchID for ShipmentAttributes",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT ISNULL(MAX([DWBatchID]),0) as DWbatchID  FROM [dbo].CaseStateShipmentAttributes",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dbo.CaseStateShipmentAttributes"
+						}
+					}
+				}
+			},
+			{
+				"name": "Stage to Target LoadCaseStateShipmentAttributes",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy CaseStateShipmentAttributes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[LoadCaseStateShipmentAttributes]"
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Case State Shipment Prediction",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage to Target LoadCaseStateShipmentAttributes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "CaseStateShipmentsPrediction",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Get BatchID for CCAAttributes",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT ISNULL(MAX([DWBatchID]),0) as DWbatchID  FROM [dbo].CaseStateCCAattributes",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dbo.CaseStateCCAattributes"
+						}
+					}
+				}
+			},
+			{
+				"name": "Copy CaseStateCCAAttributes",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Get BatchID for CCAAttributes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [DWBatchID]\n      ,[SAPOrdernumber]\n      ,[StartDate]\n      ,[ScanType]\n      ,[Team]\n      ,[ProductType]\n      ,[Region]\n      ,[DDTbacklog]\n      ,[SSbacklog]\n      ,[DayNumberofWeek]\n      ,[WeekOfYear]\n      ,[PriorityBucket]\n      ,[DedicatedTech]\n      ,[UpcomingHoliday]\n      ,[EveningShift]\n      ,[MorningShift]\n      ,[PredictedTime]\n      ,[ActualTime]\n      ,[Capacity]\n      ,[TreatmentType]\n  FROM DW.[CaseStateCCAattributes]\n  where [DWBatchID]>= @{activity('Get BatchID for CCAAttributes').output.firstRow.DWbatchID}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "Truncate Table Stage.CaseStateCCAattributes",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "Stage.CaseStateCCAattributes"
+						}
+					}
+				]
+			},
+			{
+				"name": "Stage to Target LoadCaseStateCCAAttributes",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy CaseStateCCAAttributes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[LoadCaseStateCCAattributes]"
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBCaseState",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Case State CCA Prediction",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage to Target LoadCaseStateCCAAttributes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "CaseStateCCAPrediction",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "LoadCaseStateHistorySummary",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[DW].[LoadCaseStateHistorySummary]"
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDW",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"concurrency": 1,
+		"parameters": {
+			"SourceSystemList": {
+				"type": "String"
+			},
+			"Destination": {
+				"type": "string"
+			},
+			"BatchID": {
+				"type": "int"
+			}
+		},
+		"variables": {
+			"SourceSystem": {
+				"type": "String",
+				"defaultValue": "CaseState"
+			},
+			"DWBathchID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "CaseState"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

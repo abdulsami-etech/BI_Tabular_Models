@@ -1,0 +1,33 @@
+﻿CREATE TABLE [SrcMES_AFAB_MX1].[REPORT] (
+    [LZBatchID]            INT            NOT NULL,
+    [ADLSBatchID]          INT            NOT NULL,
+    [ADLSTimestamp]        DATETIME2 (0)  NOT NULL,
+    [report_key]           BIGINT         NOT NULL,
+    [site_num]             INT            NOT NULL,
+    [guid]                 CHAR (38)      NOT NULL,
+    [description]          NVARCHAR (255) NULL,
+    [category]             NVARCHAR (50)  NULL,
+    [creator_key]          BIGINT         NOT NULL,
+    [creation_time]        DATETIME       NOT NULL,
+    [creation_time_u]      DATETIME       NULL,
+    [creation_time_z]      NVARCHAR (64)  NULL,
+    [last_modifier_key]    BIGINT         NOT NULL,
+    [last_modified_time]   DATETIME       NOT NULL,
+    [last_modified_time_u] DATETIME       NULL,
+    [last_modified_time_z] NVARCHAR (64)  NULL,
+    [report_design_key]    BIGINT         NOT NULL,
+    [report_super_key]     BIGINT         NOT NULL,
+    [number_printouts]     INT            NOT NULL,
+    [report_kind]          INT            NOT NULL,
+    [printed_by_user_name] NVARCHAR (64)  NOT NULL,
+    [printed_on_station]   NVARCHAR (64)  NULL,
+    [format_type]          INT            NOT NULL,
+    [xfr_insert_pid]       INT            NOT NULL,
+    [xfr_update_pid]       INT            NOT NULL,
+    [trx_id]               CHAR (38)      NOT NULL,
+    [pd_xfr_update_pid]    INT            NOT NULL,
+    [src_xfr_update_pid]   INT            NOT NULL,
+    [purged]               INT            NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH([report_key]));
+

@@ -1,0 +1,3 @@
+﻿CREATE SCHEMA [DWSAP]
+    AUTHORIZATION [dbo];
+

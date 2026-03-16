@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_MESAFABPL",
+	"properties": {
+		"description": "AlertGroup = DL - Azure Pipeline MFG",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_SQLServer_PL_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "MES_AFAB_PL"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2022-07-20T17:18:00",
+				"timeZone": "Pacific Standard Time"
+			}
+		}
+	}
+}

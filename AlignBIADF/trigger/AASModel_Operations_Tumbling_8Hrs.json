@@ -1,0 +1,38 @@
+{
+	"name": "AASModel_Operations_Tumbling_8Hrs",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "AAS_Model_Processing_Delta_Logs",
+				"type": "PipelineReference"
+			},
+			"parameters": {
+				"ModelName": "Operations",
+				"Full1Delta0": "0",
+				"FunctionApp": "aasmodelprocessingpr"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Hour",
+			"interval": 8,
+			"startTime": "2021-10-20T04:15:00Z",
+			"delay": "00:00:00",
+			"maxConcurrency": 1,
+			"retryPolicy": {
+				"intervalInSeconds": 30
+			},
+			"dependsOn": [
+				{
+					"type": "TumblingWindowTriggerDependencyReference",
+					"referenceTrigger": {
+						"referenceName": "DWMaster_Operations_Tumbling_8Hrs",
+						"type": "TriggerReference"
+					}
+				}
+			]
+		}
+	}
+}

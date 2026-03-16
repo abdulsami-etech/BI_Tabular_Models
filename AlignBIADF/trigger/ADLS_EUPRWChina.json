@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_EUPRWChina",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "EUPRWCHINA"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 8,
+				"startTime": "2021-07-09T07:23:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

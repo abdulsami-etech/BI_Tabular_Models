@@ -1,0 +1,40 @@
+{
+	"name": "ADLS_ShipExec_Text",
+	"properties": {
+		"description": "Start at 8:30 AM PST and run every 4 hours",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_Text_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "ShipExec",
+					"LoadToLZ": true
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2021-08-02T20:05:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						5,
+						11,
+						17,
+						23
+					]
+				}
+			}
+		}
+	}
+}

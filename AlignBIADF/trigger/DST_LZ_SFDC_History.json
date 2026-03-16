@@ -1,0 +1,29 @@
+{
+	"name": "DST_LZ_SFDC_History",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "SFDC_History",
+					"Destination": "LZ",
+					"ObjectList": "25170"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-07-13T09:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

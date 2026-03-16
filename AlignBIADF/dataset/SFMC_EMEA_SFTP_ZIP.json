@@ -1,0 +1,31 @@
+{
+	"name": "SFMC_EMEA_SFTP_ZIP",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SFMCEUsftp",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "SftpLocation",
+				"fileName": {
+					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": "/Export/BI"
+			},
+			"compression": {
+				"type": "ZipDeflate"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,8 @@
+﻿CREATE TABLE [DWSAP].[AASConfig] (
+    [DbName]        VARCHAR (100) NULL,
+    [BigTableFlag]  VARCHAR (100) NULL,
+    [TableName]     VARCHAR (100) NULL,
+    [PartitionName] VARCHAR (100) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN);
+

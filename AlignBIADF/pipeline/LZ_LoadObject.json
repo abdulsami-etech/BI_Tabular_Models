@@ -1,0 +1,897 @@
+{
+	"name": "LZ_LoadObject",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "LZLoadObject"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.LZObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update LZ Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRaw": {
+							"value": {
+								"value": "@variables('StgPath')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": null,
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": null,
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": null,
+							"type": "int64"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set Path",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StgPath",
+					"value": {
+						"value": "@concat('raw/', pipeline().parameters.SourceSystem, '/', pipeline().parameters.ObjectName, '/')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get Files",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set Path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "select FileName, FilePath, IsFullLoad, FileSizeInBytes, ADLSBatchID, ADLSTimestamp, ADLSTimestampFormatted from [CTRL].[LZGetFileListForObject] (@{pipeline().parameters.LZObjectID})\norder by ADLSTimestamp",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Iterate through files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Files').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "If Destination LZ and previous iteration succeeded",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(not(variables('IsIterationFailed')), equals(pipeline().parameters.Destination, 'LZ'))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Execute Load File",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "LZ_LoadFile",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"FilePath": {
+													"value": "@{item().FilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@{item().FileName}",
+													"type": "Expression"
+												},
+												"LZObjectID": {
+													"value": "@pipeline().parameters.LZObjectID",
+													"type": "Expression"
+												},
+												"IsFullLoad": {
+													"value": "@{item().IsFullLoad}",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@pipeline().parameters.BatchID",
+													"type": "Expression"
+												},
+												"FileSizeInBytes": {
+													"value": "@{item().FileSizeInBytes}",
+													"type": "Expression"
+												},
+												"ADLSBatchID": {
+													"value": "@{item().ADLSBatchID}",
+													"type": "Expression"
+												},
+												"ADLSTimestamp": {
+													"value": "@{item().ADLSTimestamp}",
+													"type": "Expression"
+												},
+												"Destination": {
+													"value": "@pipeline().parameters.Destination",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Is Destination Loyalty",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(pipeline().parameters.Destination, 'Loyalty')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Execute Load File Loyalty",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "LZ_LoadFileToLoyalty",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"FilePath": {
+													"value": "@{item().FilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@{item().FileName}",
+													"type": "Expression"
+												},
+												"LZObjectID": {
+													"value": "@pipeline().parameters.LZObjectID",
+													"type": "Expression"
+												},
+												"IsFullLoad": {
+													"value": "@{item().IsFullLoad}",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@pipeline().parameters.BatchID",
+													"type": "Expression"
+												},
+												"FileSizeInBytes": {
+													"value": "@{item().FileSizeInBytes}",
+													"type": "Expression"
+												},
+												"ADLSBatchID": {
+													"value": "@{item().ADLSBatchID}",
+													"type": "Expression"
+												},
+												"ADLSTimestamp": {
+													"value": "@{item().ADLSTimestamp}",
+													"type": "Expression"
+												},
+												"Destination": {
+													"value": "@pipeline().parameters.Destination",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Is Destination S3",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(pipeline().parameters.Destination, 'S3')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Run LZ_LoadFileToS3",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "LZ_LoadFileToS3",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"FilePath": {
+													"value": "@{item().FilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@{item().FileName}",
+													"type": "Expression"
+												},
+												"LZObjectID": {
+													"value": "@pipeline().parameters.LZObjectID",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@pipeline().parameters.BatchID",
+													"type": "Expression"
+												},
+												"FileSizeInBytes": {
+													"value": "@{item().FileSizeInBytes}",
+													"type": "Expression"
+												},
+												"Destination": {
+													"value": "@pipeline().parameters.Destination",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Set IsIterationFailed to true",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "If Destination LZ and previous iteration succeeded",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "IsIterationFailed",
+								"value": true
+							}
+						},
+						{
+							"name": "Throw Error Explicitly",
+							"description": "We need to throw error explicitly, otherwise \"For Each\" activity will be treated as success.",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set IsIterationFailed to true",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": "throw 60000, 'See LZLoadFile logs', 1\nselect 1",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Is Destination Saga",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(pipeline().parameters.Destination, 'Saga')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Execute Load File Saga",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "LZ_LoadFileToSaga",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"FilePath": {
+													"value": "@{item().FilePath}",
+													"type": "Expression"
+												},
+												"FileName": {
+													"value": "@{item().FileName}",
+													"type": "Expression"
+												},
+												"LZObjectID": {
+													"value": "@pipeline().parameters.LZObjectID",
+													"type": "Expression"
+												},
+												"IsFullLoad": {
+													"value": "@{item().IsFullLoad}",
+													"type": "Expression"
+												},
+												"BatchID": {
+													"value": "@pipeline().parameters.BatchID",
+													"type": "Expression"
+												},
+												"FileSizeInBytes": {
+													"value": "@{item().FileSizeInBytes}",
+													"type": "Expression"
+												},
+												"ADLSBatchID": {
+													"value": "@{item().ADLSBatchID}",
+													"type": "Expression"
+												},
+												"ADLSTimestamp": {
+													"value": "@{item().ADLSTimestamp}",
+													"type": "Expression"
+												},
+												"Destination": {
+													"value": "@pipeline().parameters.Destination",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "On failure - iterate through files",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Iterate through files",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRaw": {
+							"value": {
+								"value": "@variables('StgPath')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": "see LZLoadFile logs",
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update LZ Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Is SFDC History Flattened",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[LZObjectUpdate]",
+					"storedProcedureParameters": {
+						"LZObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.LZObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"CurrentTimestamp": {
+							"value": {
+								"value": "@if(\n\tequals(activity('Get Files').output.count, 0),\n\tnull,\n\tlast(activity('Get Files').output.value).ADLSTimestampFormatted\n)",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Is SFDC History Flattened",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Iterate through files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\n\tand(\n\tequals(pipeline().parameters.Destination, 'LZ'),\n\tnot(empty(pipeline().parameters.SFDCFlattenedHistoryColumnList))\n\t),\n\tgreater(activity('Get Files').output.count, 0)\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Insert log SFDC History Flattened",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+									"storedProcedureParameters": {
+										"BatchID": {
+											"type": "int32",
+											"value": {
+												"value": "@pipeline().parameters.BatchID",
+												"type": "Expression"
+											}
+										},
+										"PipelineName": {
+											"type": "string",
+											"value": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											}
+										},
+										"PipelineTriggerType": {
+											"type": "string",
+											"value": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											}
+										},
+										"LogType": {
+											"type": "string",
+											"value": "LZLoadObject_SFDCHistoryFlattened"
+										},
+										"ObjectID": {
+											"type": "int32",
+											"value": {
+												"value": "@pipeline().parameters.LZObjectID",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBConfig",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Update log SFDC History Flattened",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Populate SFDC History Flattened",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log SFDC History Flattened').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRaw": {
+										"value": {
+											"value": "@variables('StgPath')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"RowsInserted": {
+										"value": {
+											"value": "@activity('Populate SFDC History Flattened').output.firstRow.RowsInserted",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"RowsUpdated": {
+										"value": {
+											"value": "@activity('Populate SFDC History Flattened').output.firstRow.RowsUpdated",
+											"type": "Expression"
+										},
+										"type": "int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Populate SFDC History Flattened",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Insert log SFDC History Flattened",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set Session ID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlDWSource",
+									"sqlReaderStoredProcedureName": "[CTRL].[LZRefreshSFDCHistoryTable]",
+									"storedProcedureParameters": {
+										"ColumnList": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.SFDCFlattenedHistoryColumnList",
+												"type": "Expression"
+											}
+										},
+										"SessionID": {
+											"type": "String",
+											"value": {
+												"value": "@variables('SFDCHistoryFlattenedSessionID')",
+												"type": "Expression"
+											}
+										},
+										"SFDCHistoryTableName": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.ObjectName",
+												"type": "Expression"
+											}
+										},
+										"LZBatchID": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.BatchID",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDW",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "On failure - Populate SFDC History Flattened",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Populate SFDC History Flattened",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+								"storedProcedureParameters": {
+									"LogID": {
+										"value": {
+											"value": "@activity('Insert log SFDC History Flattened').output.firstRow.LogID",
+											"type": "Expression"
+										},
+										"type": "int32"
+									},
+									"SinkPathRaw": {
+										"value": {
+											"value": "@variables('StgPath')",
+											"type": "Expression"
+										},
+										"type": "string"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('Populate SFDC History Flattened').Error.Message",
+											"type": "Expression"
+										},
+										"type": "string"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "SQLDBConfig",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set Session ID",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "SFDCHistoryFlattenedSessionID",
+								"value": {
+									"value": "@guid()",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"SourceSystem": {
+				"type": "String"
+			},
+			"ObjectName": {
+				"type": "String"
+			},
+			"LZObjectID": {
+				"type": "Int"
+			},
+			"BatchID": {
+				"type": "Int"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			},
+			"Destination": {
+				"type": "string"
+			},
+			"SFDCFlattenedHistoryColumnList": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StgPath": {
+				"type": "String",
+				"defaultValue": "Stage/IDS/stp_data/"
+			},
+			"SFDCHistoryFlattenedSessionID": {
+				"type": "String"
+			},
+			"IsIterationFailed": {
+				"type": "Boolean",
+				"defaultValue": false
+			}
+		},
+		"folder": {
+			"name": "ADLSv2ToDestination"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,23 @@
+{
+    "name": "SAPTable",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "SAPECC",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "TableName": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "SapTableResource",
+        "schema": [],
+        "typeProperties": {
+            "tableName": {
+                "value": "@dataset().TableName",
+                "type": "Expression"
+            }
+        }
+    }
+}

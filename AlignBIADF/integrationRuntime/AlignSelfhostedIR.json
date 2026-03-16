@@ -1,0 +1,12 @@
+{
+	"name": "AlignSelfhostedIR",
+	"properties": {
+		"type": "SelfHosted",
+		"typeProperties": {
+			"linkedInfo": {
+				"resourceId": "/subscriptions/e41ad765-fd49-450a-8aa6-49512fcb83f5/resourcegroups/alignbidevrg/providers/Microsoft.DataFactory/factories/alignbidevadf/integrationruntimes/AlignSelfhostedIR2",
+				"authorizationType": "Rbac"
+			}
+		}
+	}
+}

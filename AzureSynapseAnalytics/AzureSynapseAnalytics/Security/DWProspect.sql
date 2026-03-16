@@ -1,0 +1,2 @@
+﻿CREATE SCHEMA [DWProspect]
+    AUTHORIZATION [dbo];

@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_ConfluentKafka_JSON",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_File_JSON_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "ConfluentKafka"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2022-01-01T04:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

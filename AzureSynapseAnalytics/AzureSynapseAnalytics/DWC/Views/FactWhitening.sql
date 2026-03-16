@@ -1,0 +1,20 @@
+CREATE VIEW [DWC].[FactWhitening] AS 
+SELECT [SKOrder]
+,[SAPOrderNumber]
+,[MaterialNumber]
+,[LineNumber]
+,[PatientAge]
+,[Product]
+,[DeliverableType]
+,[IncentiveCode]
+,[AMRTerritoryCode]
+,[CCATerritoryCode]
+,[ListPrice]
+,[NetPrice]
+,[DiscAmount]
+,[DiscPerc]
+,[SecRegion]
+,[Quantity]
+,[DeliverableQty]
+FROM [DW].[FactWhitening] fw
+INNER JOIN dwglobal.GeographyRegion d ON d.RegionGroup = fw.SecRegion AND d.dataset='DWC';

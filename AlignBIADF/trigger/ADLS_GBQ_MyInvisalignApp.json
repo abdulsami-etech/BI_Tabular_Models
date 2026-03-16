@@ -1,0 +1,33 @@
+{
+	"name": "ADLS_GBQ_MyInvisalignApp",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_SFMC",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_GBQ_MyInvisalignApp_Master",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-07-09T15:14:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						40
+					],
+					"hours": [
+						7
+					]
+				}
+			}
+		}
+	}
+}

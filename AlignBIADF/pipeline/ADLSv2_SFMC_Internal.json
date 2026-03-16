@@ -1,0 +1,969 @@
+{
+	"name": "ADLSv2_SFMC_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "ADLS"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+					"storedProcedureParameters": {
+						"ObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.ObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"ADLSTimestamp": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": {
+								"value": "@int(variables('TotalRowCount'))",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": "0",
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": {
+								"value": "@int(variables('TotalBytes'))",
+								"type": "Expression"
+							},
+							"type": "int64"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "\nselect\to.S3FileDestination + '/' + o.ObjectName + '/ToProcess' as ToProcessFolder\n\t,\to.ObjectName\n\t,\t'files' as Container\n\t, \tconvert(nvarchar(20),o.DataSliceStartValue) as DataSliceStartValue\n\t,\t o.PredicateExpression as FileName\n\t,\to.PredicateColumn as FileType\n        , 'files/' +o.S3FileDestination + '/' + o.ObjectName +'_' as UnzipedFileDestination\nfrom CTRL.ADLObject o\nwhere o.ObjectID = @{pipeline().parameters.ObjectID}",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "On failure - Get Source Query",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get Details",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Get Details').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "For Each File",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata').output.childitems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Process Zip files",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(\n\tand(\n\t\tstartswith(\n\t\t\titem().name,\n\t\t\tactivity('Get Details').output.FirstRow.FileName\n\t\t),\n\t\tendswith(\n\t\t\titem().name,\n\t\t\tactivity('Get Details').output.FirstRow.FileType\n\t\t)\n\t),\n\tequals(activity('Get Details').output.FirstRow.FileType,'zip')\n)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Insert Log File unzip",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "SqlSource",
+												"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+												"storedProcedureParameters": {
+													"BatchID": {
+														"type": "int32",
+														"value": {
+															"value": "@pipeline().parameters.BatchID",
+															"type": "Expression"
+														}
+													},
+													"PipelineName": {
+														"type": "string",
+														"value": {
+															"value": "@pipeline().Pipeline",
+															"type": "Expression"
+														}
+													},
+													"PipelineTriggerType": {
+														"type": "string",
+														"value": {
+															"value": "@pipeline().TriggerType",
+															"type": "Expression"
+														}
+													},
+													"LogType": {
+														"type": "string",
+														"value": "ADLS Text File"
+													},
+													"ObjectID": {
+														"type": "int32",
+														"value": {
+															"value": "@pipeline().parameters.ObjectID",
+															"type": "Expression"
+														}
+													}
+												},
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "SQLDBConfig",
+												"type": "DatasetReference"
+											}
+										}
+									},
+									{
+										"name": "Update Log File unzip",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "Delete zip",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+											"storedProcedureParameters": {
+												"LogID": {
+													"value": {
+														"value": "@activity('Insert Log File unzip').output.firstRow.LogID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"SinkPathRAW": {
+													"value": null,
+													"type": "string"
+												},
+												"SinkName": {
+													"value": {
+														"value": "@variables('RawFileName')",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"RowsInserted": {
+													"value": {
+														"value": "@sub(int(variables('TotalRowCount')), int(variables('TotalRowCountTemp')))",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"RowsUpdated": {
+													"value": "0",
+													"type": "int32"
+												},
+												"FileSizeInBytes": {
+													"value": {
+														"value": "@sub(int(variables('TotalBytes')), int(variables('TotalBytesTemp')))",
+														"type": "Expression"
+													},
+													"type": "int64"
+												},
+												"DataSliceStartValue": {
+													"value": null,
+													"type": "string"
+												},
+												"DataSliceEndValue": {
+													"value": null,
+													"type": "string"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "Copy from SFTP to ADLSv2 unzip",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "Insert Log File unzip",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "BinarySource",
+												"storeSettings": {
+													"type": "SftpReadSettings",
+													"recursive": false
+												}
+											},
+											"sink": {
+												"type": "BinarySink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												}
+											},
+											"enableStaging": false
+										},
+										"inputs": [
+											{
+												"referenceName": "SFMC_EMEA_SFTP_ZIP",
+												"type": "DatasetReference",
+												"parameters": {
+													"FileName": {
+														"value": "@item().name",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ADLSv2Binary",
+												"type": "DatasetReference",
+												"parameters": {
+													"FilePath": {
+														"value": "@activity('Get Details').output.FirstRow.ToProcessFolder",
+														"type": "Expression"
+													},
+													"FileName": {
+														"value": "@''",
+														"type": "Expression"
+													},
+													"Container": {
+														"value": "@activity('Get Details').output.FirstRow.Container",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "move unziped files",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Copy from SFTP to ADLSv2 unzip",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADLSv2_SFMC_Internal_sub",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"ToProcessPath": {
+													"value": "@concat(\nactivity('Get Details').output.FirstRow.Container\n,'/'\n,activity('Get Details').output.FirstRow.ToProcessFolder\n,'/'\n,item().name\n,'/'\n)",
+													"type": "Expression"
+												},
+												"DestinationPath": {
+													"value": "@activity('Get Details').output.FirstRow.UnzipedFileDestination",
+													"type": "Expression"
+												},
+												"DestinationFilePrefix": {
+													"value": "@replace(item().name,'.zip','')",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "Delete zip",
+										"type": "Delete",
+										"dependsOn": [
+											{
+												"activity": "move unziped files",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "ADLSv2Binary",
+												"type": "DatasetReference",
+												"parameters": {
+													"FilePath": {
+														"value": "@activity('Get Details').output.FirstRow.ToProcessFolder",
+														"type": "Expression"
+													},
+													"FileName": {
+														"value": "@item().name",
+														"type": "Expression"
+													},
+													"Container": {
+														"value": "@activity('Get Details').output.FirstRow.Container",
+														"type": "Expression"
+													}
+												}
+											},
+											"enableLogging": false,
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Process CSV files",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(\n\tand(\n\t\tstartswith(\n\t\t\titem().name,\n\t\t\tactivity('Get Details').output.FirstRow.FileName\n\t\t),\n\t\tendswith(\n\t\t\titem().name,\n\t\t\tactivity('Get Details').output.FirstRow.FileType\n\t\t)\n\t),\n\tequals(activity('Get Details').output.FirstRow.FileType,'csv')\n)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Insert Log File",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "SqlSource",
+												"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+												"storedProcedureParameters": {
+													"BatchID": {
+														"type": "int32",
+														"value": {
+															"value": "@pipeline().parameters.BatchID",
+															"type": "Expression"
+														}
+													},
+													"PipelineName": {
+														"type": "string",
+														"value": {
+															"value": "@pipeline().Pipeline",
+															"type": "Expression"
+														}
+													},
+													"PipelineTriggerType": {
+														"type": "string",
+														"value": {
+															"value": "@pipeline().TriggerType",
+															"type": "Expression"
+														}
+													},
+													"LogType": {
+														"type": "string",
+														"value": "ADLS Text File"
+													},
+													"ObjectID": {
+														"type": "int32",
+														"value": {
+															"value": "@pipeline().parameters.ObjectID",
+															"type": "Expression"
+														}
+													}
+												},
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "SQLDBConfig",
+												"type": "DatasetReference"
+											}
+										}
+									},
+									{
+										"name": "Update Log File",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "Copy from SFTP to ADLSv2",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+											"storedProcedureParameters": {
+												"LogID": {
+													"value": {
+														"value": "@activity('Insert Log File').output.firstRow.LogID",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"SinkPathRAW": {
+													"value": null,
+													"type": "string"
+												},
+												"SinkName": {
+													"value": {
+														"value": "@variables('RawFileName')",
+														"type": "Expression"
+													},
+													"type": "string"
+												},
+												"RowsInserted": {
+													"value": {
+														"value": "@sub(int(variables('TotalRowCount')), int(variables('TotalRowCountTemp')))",
+														"type": "Expression"
+													},
+													"type": "int32"
+												},
+												"RowsUpdated": {
+													"value": "0",
+													"type": "int32"
+												},
+												"FileSizeInBytes": {
+													"value": {
+														"value": "@sub(int(variables('TotalBytes')), int(variables('TotalBytesTemp')))",
+														"type": "Expression"
+													},
+													"type": "int64"
+												},
+												"DataSliceStartValue": {
+													"value": null,
+													"type": "string"
+												},
+												"DataSliceEndValue": {
+													"value": null,
+													"type": "string"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "SQLDBConfig",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "Copy from SFTP to ADLSv2",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "Insert Log File",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "BinarySource",
+												"storeSettings": {
+													"type": "SftpReadSettings",
+													"recursive": false
+												}
+											},
+											"sink": {
+												"type": "BinarySink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												}
+											},
+											"enableStaging": false
+										},
+										"inputs": [
+											{
+												"referenceName": "SFMC_EMEA_SFTP_File",
+												"type": "DatasetReference",
+												"parameters": {
+													"FileName": {
+														"value": "@item().name",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ADLSv2Binary",
+												"type": "DatasetReference",
+												"parameters": {
+													"FilePath": {
+														"value": "@activity('Get Details').output.FirstRow.ToProcessFolder",
+														"type": "Expression"
+													},
+													"FileName": {
+														"value": "@item().name",
+														"type": "Expression"
+													},
+													"Container": {
+														"value": "@activity('Get Details').output.FirstRow.Container",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "On failure - For Each File",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each File",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": "see ADLS Text File log type",
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": "see ADF log",
+							"type": "string"
+						},
+						"DataSliceStartValue": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Metadata",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Get Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "SFMC_EMEA_Sftp_Folder",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "SftpReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@{activity('Get Details').output.FirstRow.DataSliceStartValue}",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "Int"
+			},
+			"ObjectID": {
+				"type": "Int"
+			},
+			"RawFilePath": {
+				"type": "String"
+			},
+			"IsLZ": {
+				"type": "Bool"
+			},
+			"TempFolder": {
+				"type": "String"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			},
+			"Destinations": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"DataSliceEndValue": {
+				"type": "String"
+			},
+			"Query": {
+				"type": "String"
+			},
+			"RawFileName": {
+				"type": "String"
+			},
+			"TotalRowCount": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TotalRowCountTemp": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TotalBytes": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"TotalBytesTemp": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

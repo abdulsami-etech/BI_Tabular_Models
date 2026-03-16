@@ -1,0 +1,27 @@
+{
+	"name": "ADLS_InvisalignAccessories",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "InvisalignAccessories"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2020-09-30T11:30:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

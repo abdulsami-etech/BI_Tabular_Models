@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_Splunk_Files",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_NASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_API_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "SplunkAPI"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 6,
+				"startTime": "2020-02-04T05:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

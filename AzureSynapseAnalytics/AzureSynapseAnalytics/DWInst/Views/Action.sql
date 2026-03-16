@@ -1,0 +1,11 @@
+﻿CREATE VIEW [DWInst].[Action]
+AS SELECT [session_id]
+      ,[action_datetime]
+      ,[action_id]
+      ,[type]
+      ,[id]
+      ,[parent_id]
+      ,[name]
+      ,[value]
+      ,[state]
+  FROM [SrcInst].[Action];

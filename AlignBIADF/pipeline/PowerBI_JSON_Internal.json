@@ -1,0 +1,784 @@
+{
+	"name": "PowerBI_JSON_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Create Temp Table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ADLCreateTempTable]",
+						"storedProcedureParameters": {
+							"jsonTableStructure": {
+								"type": "String",
+								"value": {
+									"value": "@string('[{\"name\": \"Prop_0\", \"type\": \"Byte[]\"}]')",
+									"type": "Expression"
+								}
+							},
+							"ObjectName": {
+								"type": "String",
+								"value": "PowerBILog"
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy To Temp Table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Create Temp Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "PowerBI/ActivityLog/ToProcess",
+							"wildcardFileName": "*",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Csv_PowerBI",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SQLDBConfig_Temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": {
+								"value": "@activity('Create temp table').output.firstRow.TempTableName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Get Details",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select JSONQuery, ObjectName from ctrl.ADLObject where ObjectID in (',pipeline().parameters.ObjectList,')')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Copy to Raw From Temp",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy To Temp Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n'declare @json nvarchar(max) = (select top (1) Prop_0 from '\n,activity('Create temp table').output.firstRow.TempTableName\n,') '\n,activity('Get Details').output.firstRow.JSONQuery\n)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Parquet_PowerBI",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Copy Data To Stage Table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy to Raw From Temp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "PowerBI/ActivityLog/Processed/",
+							"wildcardFileName": "*.*",
+							"enablePartitionDiscovery": false
+						}
+					},
+					"sink": {
+						"type": "SqlDWSink",
+						"preCopyScript": "TRUNCATE TABLE Stage.PowerBI_ActivityLog",
+						"allowPolyBase": true,
+						"polyBaseSettings": {
+							"rejectValue": 0,
+							"rejectType": "value",
+							"useTypeDefault": true
+						},
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Id",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "RecordType",
+									"type": "String"
+								},
+								"sink": {
+									"name": "RecordType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "CreationTime",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CreationTime",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Operation",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Operation",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "OrganizationId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "OrganizationId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "UserType",
+									"type": "String"
+								},
+								"sink": {
+									"name": "UserType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "UserId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "UserId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ClientIP",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ClientIP",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "UserAgent",
+									"type": "String"
+								},
+								"sink": {
+									"name": "UserAgent",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Activity",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Activity",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ItemName",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ItemName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "WorkSpaceName",
+									"type": "String"
+								},
+								"sink": {
+									"name": "WorkSpaceName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DatasetName",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DatasetName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ReportName",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ReportName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "CapacityId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CapacityId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "CapacityName",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CapacityName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "WorkspaceId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "WorkspaceId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ObjectId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ObjectId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DatasetId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DatasetId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ReportId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ReportId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EmbedTokenId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EmbedTokenId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Username",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Username",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Roles",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Roles",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Datasets",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Datasets",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "IsSuccess",
+									"type": "String"
+								},
+								"sink": {
+									"name": "IsSuccess",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ReportType",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ReportType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "RequestId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "RequestId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ActivityId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ActivityId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DistributionMethod",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DistributionMethod",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ConsumptionMethod",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ConsumptionMethod",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "continuationToken",
+									"type": "String"
+								},
+								"sink": {
+									"name": "continuationToken",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "lastResultSet",
+									"type": "String"
+								},
+								"sink": {
+									"name": "lastResultSet",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ADF_PipelineRunId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ADF_PipelineRunId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ADF_PipelineTriggerTime",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ADF_PipelineTriggerTime",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Parquet_PowerBI_input",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQLDW_PowerBI",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Move Processed files to ArchivedFolder",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy Data To Stage Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "PowerBI/ActivityLog/Processed/",
+							"wildcardFileName": "*.parquet",
+							"deleteFilesAfterCompletion": true
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Binary_PowerBI",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Binary_PowerBI_Archived",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Move Raw JSON files to ArchivedFolder",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy Data To Stage Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "PowerBI/ActivityLog/ToProcess/",
+							"wildcardFileName": "*.json",
+							"deleteFilesAfterCompletion": true
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Binary_PowerBI_ToProcess",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Binary_PowerBI_ToProcessArchival",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Drop Temp Table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy to Raw From Temp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('drop table ', activity('Create Temp Table').output.firstRow.TempTableName, ' select 1')",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Load Main Table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy Data To Stage Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "exec [SrcPowerBI].[LoadPowerBIActivityLog]",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDW",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ObjectList": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "PowerBIDataExtract"
+		},
+		"annotations": []
+	}
+}

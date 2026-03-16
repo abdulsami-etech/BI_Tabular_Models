@@ -1,0 +1,353 @@
+{
+	"name": "CaseStateShipmentsPrediction",
+	"properties": {
+		"activities": [
+			{
+				"name": "Update RowNum for Blank ETA Records",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get URL and APIToken",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "truncate table stage.CaseStateCCAShipmentPrediction\nupdate [dbo].[CaseStateShipmentAttributes]\nset RowNum = Null\nwhere RowNum is not null\n\nupdate [dbo].[CaseStateShipmentAttributes] \nset RowNum = b.RowNum\nfrom [dbo].[CaseStateShipmentAttributes]  \ninner join (\nselect sapordernumber,ROW_NUMBER() over(order by sapordernumber) as RowNum\nfrom [dbo].[CaseStateShipmentAttributes] where PredictedTime is null\n) b on [dbo].[CaseStateShipmentAttributes].sapordernumber = b.sapordernumber\nselect 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dbo.CCAShipmentPrediction"
+						}
+					}
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Number of For Loops",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Number of For Loops').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Json Output from SQL Table",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat('select ',concat('''',concat('{\"Inputs\": {\n\"WebServiceInput0\":',concat('''',concat('+ (SELECT \n\t   cast(DWBatchID as nvarchar) as DWBatchID\n      ,cast([SAPOrderNumber] as varchar) as [SAPOrderNumber]\n\t  ,[StartDate]\n      ,[ScanType]\n      ,[ProductType]\n      ,[Region]\n      ,[Arches]\n\t  ,cast([Backlog] as varchar) as [Backlog]\n\t  ,cast([Capacity] as varchar) as [Capacity]\n\t  ,cast([ComplianceIndicator] as varchar) as [ComplianceIndicator]\n\t  ,cast([MassFinisher] as varchar) as [MassFinisher]\n\t  ,cast([WeekNumber] as varchar) as [WeekNumber]\n\t  ,cast([DayNumberOfWeek] as varchar) as [DayNumberOfWeek]   \n\t  ,cast([Stages] as varchar) as [Stages]   \n\t  ,cast([FABMachineCount] as varchar) as [FABMachineCount]   \n\t  ,cast([Expedite] as varchar) as [Expedite]   \n\t  ,cast([FABHourCapacity] as varchar) as [FABHourCapacity]  \n\t  ,cast([AFABMachineCount] as varchar) as [AFABMachineCount]  \n\t  ,cast([Rework] as varchar) as [Rework]\n\t  ,cast(isnull(PredictedTime,0) as varchar) as PredictedTime\n\t  ,cast([ActualTime] as varchar) as [ActualTime]  \n\t  ,cast([BacklogFactor] as varchar) as [BacklogFactor]\n  FROM [dbo].[CaseStateShipmentAttributes] where rownum between ',concat(item().LoopCount,concat(' and ',concat(item().LoopCount,concat(' + 999' ,concat(variables('QueryString')\n  ))))))))))",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SQLDBCaseState",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "dbo.CCAShipmentPrediction"
+									}
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
+							"name": "Calling End Point for ML Model",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Json Output from SQL Table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010"
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RESTAPIAuth",
+									"type": "DatasetReference",
+									"parameters": {
+										"URL": {
+											"value": "@activity('Get URL and APIToken').output.FirstRow.URL",
+											"type": "Expression"
+										},
+										"Method": "POST",
+										"RequestBody": {
+											"value": "@activity('Json Output from SQL Table').output.FirstRow.Output",
+											"type": "Expression"
+										},
+										"Authorization": {
+											"value": "@activity('Get URL and APIToken').output.FirstRow.APIToken",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": "CaseStateDB\\CCAShipments",
+										"FileName": "ShipmentsPrediction.json"
+									}
+								}
+							]
+						},
+						{
+							"name": "Json to Stage Table",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Calling End Point for ML Model",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['SAPOrderNumber']"
+											},
+											"sink": {
+												"name": "SapOrderNumber"
+											}
+										},
+										{
+											"source": {
+												"path": "['Scored Labels']"
+											},
+											"sink": {
+												"name": "PredictedTime"
+											}
+										}
+									],
+									"collectionReference": "$['Results']['WebServiceOutput0']",
+									"mapComplexValuesToString": false
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ADLSv2JSONSink",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": "raw",
+										"Path": "CaseStateDB\\CCAShipments",
+										"FileName": "ShipmentsPrediction.json"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SQLDBCaseState",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": "stage.CaseStateCCAShipmentPrediction"
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Number of For Loops",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update RowNum for Blank ETA Records",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select (rownum/1000)*1000  as LoopCount from [dbo].[CaseStateShipmentAttributes]\nwhere PredictedTime is null\ngroup by rownum/1000\norder by 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "dbo.CaseStateShipmentAttributes"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Update Prediction Time",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "update a\n  set PredictedTime = b.PredictedTime\n  from [dbo].[CaseStateShipmentAttributes] a\n  inner join stage.CaseStateCCAShipmentPrediction b on a.SAPOrderNumber=b.SapOrderNumber\nselect 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBCaseState",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "Stage.CaseStateCCAShipmentPrediction"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get URL and APIToken",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select [CTRL].[GetSourceSystemProperty]('ML_CCAToShipment','URL') as 'URL',[CTRL].[GetSourceSystemProperty]('ML_CCAToShipment','APIToken')  as APIToken\n\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig_Temp",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "ctrl.SourceSystemProperty"
+						}
+					}
+				}
+			}
+		],
+		"variables": {
+			"QueryString": {
+				"type": "String",
+				"defaultValue": " for json auto ) + '}}'as Output"
+			}
+		},
+		"folder": {
+			"name": "CaseState"
+		},
+		"annotations": []
+	}
+}

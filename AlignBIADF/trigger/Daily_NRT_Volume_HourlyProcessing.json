@@ -1,0 +1,107 @@
+{
+	"name": "Daily_NRT_Volume_HourlyProcessing",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "AASDatabaseSelectedProcessing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ASRegion": "westus.asazure.windows.net",
+					"ASServerSuffix": "alignbiaas",
+					"ASDatabase": "Daily_NRT_Volume",
+					"BodyMessage": {
+						"Type": "Full",
+						"CommitMode": "transactional",
+						"MaxParallelism": 2,
+						"RetryCount": 2,
+						"Objects": [
+							{
+								"table": "Volume",
+								"partition": "Volume_CQ"
+							},
+							{
+								"table": "Volume",
+								"partition": "Volume_PQ"
+							},
+							{
+								"table": "CCPostings",
+								"partition": "CCPostings_CQ"
+							},
+							{
+								"table": "CCPostings",
+								"partition": "CCPostings_PQ"
+							},
+							{
+								"table": "Forecast"
+							},
+							{
+								"table": "Geography"
+							},
+							{
+								"table": "Treatment Option"
+							},
+							{
+								"table": "LastRefreshTimeStmap"
+							},
+							{
+								"table": "Date"
+							}
+						]
+					}
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2021-10-19T00:35:00",
+				"timeZone": "Pacific Standard Time",
+				"schedule": {
+					"minutes": [
+						20
+					],
+					"hours": [
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23
+					],
+					"weekDays": [
+						"Sunday",
+						"Monday",
+						"Tuesday",
+						"Wednesday",
+						"Thursday",
+						"Friday",
+						"Saturday"
+					]
+				}
+			}
+		}
+	}
+}

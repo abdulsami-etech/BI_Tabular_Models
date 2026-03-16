@@ -1,0 +1,502 @@
+{
+	"name": "ADLSv2_KafkaConfluent_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "ADLS"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get size if file exists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": "-1",
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": "0",
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": {
+								"value": "@int(variables('FileSize'))",
+								"type": "Expression"
+							},
+							"type": "int64"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "On Failure - Run streaming notebook",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Run streaming notebook",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@pipeline().parameters.RawFilePath",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@activity('Run streaming notebook').Error.Message",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Run streaming notebook",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Get kafka details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set RawFilePathWithoutContainer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Repos/KafkaConfluent/KafkaConfluentDataPipeline/Databricks/Notebooks/KafkaConfluent/KafkaConsumer",
+					"baseParameters": {
+						"kafkaRegion": {
+							"value": "@pipeline().parameters.KafkaRegion",
+							"type": "Expression"
+						},
+						"kafkaTopic": {
+							"value": "@activity('Get kafka details').output.firstRow.KafkaTopic",
+							"type": "Expression"
+						},
+						"startingOffset": {
+							"value": "@activity('Get kafka details').output.firstRow.KafkaStartingOffset",
+							"type": "Expression"
+						},
+						"jsonSchema": {
+							"value": "@activity('Get kafka details').output.firstRow.KafkaJSONSchema",
+							"type": "Expression"
+						},
+						"parquetFileName": {
+							"value": "@pipeline().parameters.FileName",
+							"type": "Expression"
+						},
+						"parquetPathWithoutContainer": {
+							"value": "@variables('RawFilePathWithoutContainer')",
+							"type": "Expression"
+						},
+						"alertRecipientsKeyVaultSecretName": {
+							"value": "@pipeline().parameters.KafkaAlertRecipientsKeyVaultSecretName",
+							"type": "Expression"
+						},
+						"objectID": {
+							"value": "@string(pipeline().parameters.ObjectID)",
+							"type": "Expression"
+						},
+						"ADLSBatchID": {
+							"value": "@string(pipeline().parameters.BatchID)",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Databricks",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"WorkspaceURL": {
+							"value": "@pipeline().parameters.DatabricksWorkspaceURL",
+							"type": "Expression"
+						},
+						"WorkspaceResourceId": {
+							"value": "@pipeline().parameters.DatabricksWorkspaceResourceId",
+							"type": "Expression"
+						},
+						"ClusterId": {
+							"value": "@pipeline().parameters.DatabricksClusterId",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set RawFilePathWithoutContainer",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "RawFilePathWithoutContainer",
+					"value": {
+						"value": "@join(\n\tskip(\n\t\tsplit(\n\t\t\tpipeline().parameters.RawFilePath,\n\t\t\t'/'\n\t\t),\n\t\t1\n\t),\n\t'/'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get kafka details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Insert log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select\tSchemaName  as KafkaTopic\n\t,\tJSONQuery\tas KafkaJSONSchema\n\t,\tiif(DataSliceStartValue is null, 'earliest', 'latest') as KafkaStartingOffset\nfrom CTRL.ADLObject\nwhere ObjectId = @{pipeline().parameters.ObjectID}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check if file was created",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Run streaming notebook",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2Binary",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@variables('RawFilePathWithoutContainer')",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@pipeline().parameters.FileName",
+								"type": "Expression"
+							},
+							"Container": "raw"
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Get size if file exists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Check if file was created",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('Check if file was created').output.Exists",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Set file size",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get file size",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FileSize",
+								"value": {
+									"value": "@string(activity('Get file size').output.Size)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Get file size",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@variables('RawFilePathWithoutContainer')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@pipeline().parameters.FileName",
+											"type": "Expression"
+										},
+										"Container": "raw"
+									}
+								},
+								"fieldList": [
+									"size"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "Int"
+			},
+			"ObjectID": {
+				"type": "Int"
+			},
+			"RawFilePath": {
+				"type": "String"
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"IsLZ": {
+				"type": "Bool"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			},
+			"Destinations": {
+				"type": "string"
+			},
+			"DatabricksWorkspaceURL": {
+				"type": "string"
+			},
+			"DatabricksWorkspaceResourceId": {
+				"type": "string"
+			},
+			"DatabricksClusterId": {
+				"type": "string"
+			},
+			"KafkaRegion": {
+				"type": "string"
+			},
+			"KafkaAlertRecipientsKeyVaultSecretName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"RawFilePathWithoutContainer": {
+				"type": "String"
+			},
+			"FileSize": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

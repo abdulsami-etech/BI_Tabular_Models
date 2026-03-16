@@ -1,0 +1,28 @@
+{
+	"name": "CTRL_SetupADWSecurity",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "SetupADWSecurity",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"ReadAllUsers": "Datalake-BI-Align;Datalake-BI-Align-SQADB",
+					"ReadAllWithSensitiveUsers": "BI-DW-Sensitive;readuser;largercuser"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2020-09-10T00:55:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

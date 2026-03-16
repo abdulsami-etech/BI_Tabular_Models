@@ -1,0 +1,5 @@
+﻿CREATE TABLE [Custom].[TestDoctors] (
+    [ClinId] NVARCHAR (50) NOT NULL
+)
+WITH (CLUSTERED INDEX([ClinId]), DISTRIBUTION = REPLICATE);
+

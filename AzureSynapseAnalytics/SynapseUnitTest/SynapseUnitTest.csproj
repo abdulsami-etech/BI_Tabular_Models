@@ -1,0 +1,305 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <SSDTUnitTestPath Condition="'$(SSDTUnitTestPath)' == ''">$(VsInstallRoot)\Common7\IDE\Extensions\Microsoft\SQLDB</SSDTUnitTestPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SSDTPath Condition="'$(SSDTPath)' == ''">$(VsInstallRoot)\Common7\IDE\Extensions\Microsoft\SQLDB\DAC\130</SSDTPath>
+  </PropertyGroup>
+  <Import Project="..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.props" Condition="Exists('..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{90ED599B-DAF9-4A47-AA16-8CD41002FE4C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SynapseUnitTest</RootNamespace>
+    <AssemblyName>SynapseUnitTest</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">15.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <ReferencePath>$(ProgramFiles)\Common Files\microsoft shared\VSTT\$(VisualStudioVersion)\UITestExtensionPackages</ReferencePath>
+    <IsCodedUITest>False</IsCodedUITest>
+    <TestProjectType>UnitTest</TestProjectType>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DimAccount.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DimContact.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DimOrderIDS.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DimOrderSFDC.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWAppLog.LoadHubSession.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWIOSim.LoadSession.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWMyInvisalignApp.LoadHubSession.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWVirtualCare.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadCaseStateCCRAttributes.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadCaseStateHistory.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadDimAccount.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadDimAccountTerritoryAssociation.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadDimContact.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadDimTracker.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadDimUser.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadDimVctTraining.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadFactSagaEnrollment.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadFactScanReportSharing.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoadSatLink_ScannerWand.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LoasCaseStateShipmentAttributes.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="LZPrepareExternalView.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="SqlDatabaseSetup.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="DWCONSDL.LoadFactGAGoalsBRAZILDailyC.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAGoalsEMEA.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactConsdlKPIConsolidated.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAGoalsEMEADaily.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAGoalsEMEADailyC.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGASessions.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAUMs.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAUMsC.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAUMsCTD.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAUMsWithPagePathC.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactLead.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactSmileViewLogs.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadGASessionHits.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+    <Compile Include="DWCONSDL.LoadFactGAUMsCTDHistory.cs">
+      <SubType>Designer</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="DimAccount.resx">
+      <DependentUpon>DimAccount.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DimContact.resx">
+      <DependentUpon>DimContact.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DimOrderIDS.resx">
+      <DependentUpon>DimOrderIDS.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DimOrderSFDC.resx">
+      <DependentUpon>DimOrderSFDC.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWAppLog.LoadHubSession.resx">
+      <DependentUpon>DWAppLog.LoadHubSession.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWIOSim.LoadSession.resx">
+      <DependentUpon>DWIOSim.LoadSession.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWMyInvisalignApp.LoadHubSession.resx">
+      <DependentUpon>DWMyInvisalignApp.LoadHubSession.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWVirtualCare.resx">
+      <DependentUpon>DWVirtualCare.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadCaseStateCCRAttributes.resx">
+      <DependentUpon>LoadCaseStateCCRAttributes.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadCaseStateHistory.resx">
+      <DependentUpon>LoadCaseStateHistory.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadDimAccount.resx">
+      <DependentUpon>LoadDimAccount.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadDimAccountTerritoryAssociation.resx">
+      <DependentUpon>LoadDimAccountTerritoryAssociation.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadDimContact.resx">
+      <DependentUpon>LoadDimContact.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadDimTracker.resx">
+      <DependentUpon>LoadDimTracker.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadDimUser.resx">
+      <DependentUpon>LoadDimUser.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadDimVctTraining.resx">
+      <DependentUpon>LoadDimVctTraining.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadFactSagaEnrollment.resx">
+      <DependentUpon>LoadFactSagaEnrollment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadFactScanReportSharing.resx">
+      <DependentUpon>LoadFactScanReportSharing.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoadSatLink_ScannerWand.resx">
+      <DependentUpon>LoadSatLink_ScannerWand.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoasCaseStateShipmentAttributes.resx">
+      <DependentUpon>LoasCaseStateShipmentAttributes.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LZPrepareExternalView.resx">
+      <DependentUpon>LZPrepareExternalView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAGoalsBRAZILDailyC.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAGoalsBRAZILDailyC.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAGoalsEMEA.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAGoalsEMEA.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactConsdlKPIConsolidated.resx">
+      <DependentUpon>DWCONSDL.LoadFactConsdlKPIConsolidated.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAGoalsEMEADaily.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAGoalsEMEADaily.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAGoalsEMEADailyC.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAGoalsEMEADailyC.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGASessions.resx">
+      <DependentUpon>DWCONSDL.LoadFactGASessions.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAUMs.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAUMs.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAUMsC.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAUMsC.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAUMsCTD.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAUMsCTD.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAUMsWithPagePathC.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAUMsWithPagePathC.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactLead.resx">
+      <DependentUpon>DWCONSDL.LoadFactLead.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactSmileViewLogs.resx">
+      <DependentUpon>DWCONSDL.LoadFactSmileViewLogs.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadGASessionHits.resx">
+      <DependentUpon>DWCONSDL.LoadGASessionHits.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DWCONSDL.LoadFactGAUMsCTDHistory.resx">
+      <DependentUpon>DWCONSDL.LoadFactGAUMsCTDHistory.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup Condition="$(VisualStudioVersion) == '16.0'">
+    <Reference Include="Microsoft.Data.Tools.Schema.Sql, Version=15.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>$(SSDTPath)\Microsoft.Data.Tools.Schema.Sql.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Data.Tools.Schema.Sql.UnitTesting, Version=16.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>$(SSDTUnitTestPath)\Microsoft.Data.Tools.Schema.Sql.UnitTesting.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Data.Tools.Schema.Sql.UnitTestingAdapter, Version=16.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>$(SSDTUnitTestPath)\Microsoft.Data.Tools.Schema.Sql.UnitTestingAdapter.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.props'))" />
+    <Error Condition="!Exists('..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.targets'))" />
+  </Target>
+  <Import Project="..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.targets" Condition="Exists('..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.targets')" />
+  <PropertyGroup>
+    <SsdtUnitTestVersion>3.1</SsdtUnitTestVersion>
+  </PropertyGroup>
+  <Import Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.Sql.UnitTesting.targets" Condition="$(VisualStudioVersion) != '15.0' And '$(SQLDBExtensionsRefPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.Sql.UnitTesting.targets" Condition="$(VisualStudioVersion) != '15.0' And '$(SQLDBExtensionsRefPath)' == ''" />
+</Project>

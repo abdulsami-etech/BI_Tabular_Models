@@ -1,0 +1,32 @@
+﻿CREATE VIEW [DWMyInvisalignApp].[Event]
+AS SELECT
+	mia.event_timestamp,
+	mia.event_name,
+	mia.user_pseudo_id,
+	mia._count,
+	TRY_CONVERT(date,event_date) as event_date,
+	mia.event_params,
+	mia.event_previous_timestamp,
+	mia.event_value_in_usd,
+	mia.event_bundle_sequence_id,
+	mia.event_server_timestamp_offset,
+	mia.[user_id],
+	mia.user_properties,
+	mia.user_first_touch_timestamp,
+	mia.user_ltv,
+	mia.device,
+	mia.geo,
+	mia.app_info,
+	mia.traffic_source,
+	mia.stream_id,
+	mia.[platform],
+	mia.event_dimensions,
+	mia.ecommerce,
+	mia.items,
+	mia.event_params_firebase_screen_class,
+	mia.event_params_category,
+	mia.event_params_firebase_screen,
+	mia.event_params_ga_session_id,
+    COALESCE(g.SecRegion,'Unknown') AS Region
+FROM [SrcGoogleBigQuery].[MyInvisalignAppOther] mia
+LEFT JOIN [Custom].[GeographyHierarchy] g ON JSON_VALUE(mia.geo,'$.country')=g.CountryGoogleName;

@@ -1,0 +1,29 @@
+{
+	"name": "Event_CostElementHier_Trigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "FDL_Finance_File_Processing_Triggers",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "SAPFile",
+					"ObjectList": "69014"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/finance/blobs/SAPFile/CostElementHier/Tobeprocessed/",
+			"blobPathEndsWith": ".csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/a051d865-71b3-4930-8752-6a2e0a5e970d/resourceGroups/dev2alignbirg/providers/Microsoft.Storage/storageAccounts/dev2alignbiadl",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"name": "ADLS_DocLocEMEA",
+	"properties": {
+		"description": "AlertGroup = DL_Azure_Pipeline_EMEASalesMarketing",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ADLSv2_Postgres_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystem": "DocLocEMEA"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2020-06-23T06:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

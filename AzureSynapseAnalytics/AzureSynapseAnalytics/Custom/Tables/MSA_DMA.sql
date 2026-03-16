@@ -1,0 +1,7 @@
+﻿CREATE TABLE [Custom].[MSA_DMA] (
+    [PostalCode] NVARCHAR (20)  NOT NULL,
+    [MetroArea]  NVARCHAR (50)  NOT NULL,
+    [DMA]        NVARCHAR (100) NOT NULL
+)
+WITH (CLUSTERED INDEX([PostalCode]), DISTRIBUTION = REPLICATE);
+

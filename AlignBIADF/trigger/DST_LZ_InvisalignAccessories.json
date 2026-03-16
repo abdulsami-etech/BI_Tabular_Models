@@ -1,0 +1,28 @@
+{
+	"name": "DST_LZ_InvisalignAccessories",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "LZ_Master",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceSystemList": "InvisalignAccessories",
+					"Destination": "LZ"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2020-09-30T11:45:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

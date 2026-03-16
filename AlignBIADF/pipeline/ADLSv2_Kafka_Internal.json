@@ -1,0 +1,485 @@
+{
+	"name": "ADLSv2_Kafka_Internal",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert Log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[CTRL].[ETLLogUpdate]",
+						"storedProcedureParameters": {
+							"BatchID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.BatchID",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineTriggerType": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								}
+							},
+							"LogType": {
+								"type": "string",
+								"value": "ConfluentKafka"
+							},
+							"ObjectID": {
+								"type": "int32",
+								"value": {
+									"value": "@pipeline().parameters.ObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update Log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ETLLogUpdate]",
+					"storedProcedureParameters": {
+						"LogID": {
+							"value": {
+								"value": "@activity('Insert log').output.firstRow.LogID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"SinkPathRAW": {
+							"value": {
+								"value": "@concat(\npipeline().parameters.SourceSystem,\n'/',\npipeline().parameters.ObjectName,\n'/ToProcess'\n)",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"SinkName": {
+							"value": null,
+							"type": "string"
+						},
+						"RowsInserted": {
+							"value": null,
+							"type": "int32"
+						},
+						"RowsUpdated": {
+							"value": null,
+							"type": "int32"
+						},
+						"FileSizeInBytes": {
+							"value": {
+								"value": "@if(empty(variables('DataWritten')), '0', variables('DataWritten'))",
+								"type": "Expression"
+							},
+							"type": "int64"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"DataSliceEndValue": {
+							"value": null,
+							"type": "string"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Object",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "If file exists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[CTRL].[ADLObjectUpdate]",
+					"storedProcedureParameters": {
+						"ObjectID": {
+							"value": {
+								"value": "@pipeline().parameters.ObjectID",
+								"type": "Expression"
+							},
+							"type": "int32"
+						},
+						"DataSliceStartValue": {
+							"value": null,
+							"type": "string"
+						},
+						"Status": {
+							"value": "Ready",
+							"type": "string"
+						},
+						"ADLSTimestamp": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentTimestamp",
+								"type": "Expression"
+							},
+							"type": "datetime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQLDBConfig",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set OutputFilePath",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert Log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "OutputFilePath",
+					"value": {
+						"value": "@concat(\n\treplace(pipeline().parameters.SourceSystem, 'Consumer', ''),\n\t'/',\n\tpipeline().parameters.ObjectName,\n\t'/ToProcess'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Does file exist",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Run ConfluentKafkaConsumer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ADLSv2Binary",
+						"type": "DatasetReference",
+						"parameters": {
+							"FilePath": {
+								"value": "@variables('OutputFilePath')",
+								"type": "Expression"
+							},
+							"FileName": {
+								"value": "@variables('SplunkJSONOutputFileName')",
+								"type": "Expression"
+							},
+							"Container": "files"
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true
+					}
+				}
+			},
+			{
+				"name": "If file exists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Does file exist",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(activity('Does file exist').output.Exists)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Get File Size",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ADLSv2Binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"FilePath": {
+											"value": "@variables('OutputFilePath')",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@variables('SplunkJSONOutputFileName')",
+											"type": "Expression"
+										},
+										"Container": "files"
+									}
+								},
+								"fieldList": [
+									"size"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Set DataWritten for Splunk",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get File Size",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "DataWritten",
+								"value": {
+									"value": "@string(activity('Get File Size').output.Size)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Run ConfluentKafkaConsumer",
+				"type": "Custom",
+				"dependsOn": [
+					{
+						"activity": "Set SplunkJSONOutputFileName_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Lookup Object",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set OutputFilePath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"command": {
+						"value": "@concat(\n'cmd /c %AZ_BATCH_APP_PACKAGE_CONFLUENTKAFKACONSUMER%\\ConfluentKafkaConsumer.exe',\n' -blobcontainer files',\n' -blobfilename ', concat(variables('OutputFilePath'), '/', variables('SplunkJSONOutputFileName'), ''),\n' -groupid ',activity('Lookup Object').output.firstRow.groupId,\n' -topic ',activity('Lookup Object').output.firstRow.topic,\n' -sessionlifetime ',activity('Lookup Object').output.firstRow.sessionlifetime,\n' -messagetimeout ',activity('Lookup Object').output.firstRow.messagetimeout\n)\n",
+						"type": "Expression"
+					},
+					"referenceObjects": {
+						"linkedServices": [
+							{
+								"referenceName": "AzureKeyVault",
+								"type": "LinkedServiceReference"
+							}
+						],
+						"datasets": []
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Batch",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set SplunkJSONOutputFileName_copy1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Insert Log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "SplunkJSONOutputFileName",
+					"value": {
+						"value": "@concat(\npipeline().parameters.ObjectName, \n'_', \nformatDateTime(utcnow(), 'yyyyMMddHHmmss'), \n'.json'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Lookup Object",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Insert Log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select\n\to.DatabaseName as groupId,\n\to.SchemaName as topic,\n\to.QueryFilter as sessionlifetime,\n\to.JSONQuery as messagetimeout\nfrom CTRL.ADLObject o\nwhere o.ObjectID = @{pipeline().parameters.ObjectID}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"isolationLevel": "ReadUncommitted",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SQLDBConfig",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "int"
+			},
+			"ObjectID": {
+				"type": "int"
+			},
+			"ObjectName": {
+				"type": "string"
+			},
+			"SourceSystem": {
+				"type": "string"
+			},
+			"CurrentTimestamp": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"TotalRecordsFileName": {
+				"type": "String"
+			},
+			"TotalRecordsPath": {
+				"type": "String"
+			},
+			"URLs": {
+				"type": "Array"
+			},
+			"DataWritten": {
+				"type": "String"
+			},
+			"ExceptionSourceSystemList": {
+				"type": "Array"
+			},
+			"OutputFilePath": {
+				"type": "String"
+			},
+			"SplunkJSONOutputFileName": {
+				"type": "String",
+				"defaultValue": "dummy.json"
+			}
+		},
+		"folder": {
+			"name": "SourceToADLSv2"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-01-19T15:02:51Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
